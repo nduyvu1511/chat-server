@@ -2,7 +2,8 @@ import Mongoose, { Schema } from "mongoose"
 
 const AttachmentSchema = new Schema({
   url: { type: String, required: true },
-  desc: { type: String, required: false, default: undefined },
+  thumbnail_url: { type: String, required: true },
+  desc: { type: String, required: false, default: null },
   attachment_type: {
     type: String,
     enum: ["image", "video", "voice"],

@@ -1,20 +1,19 @@
 import Mongoose, { Schema } from "mongoose"
+import { IMessage } from "../types"
 
-const MessageSchema = new Schema({
-  user_id: { type: Number, ref: "User", required: true },
-  group_id: { type: Schema.Types.ObjectId, ref: "Group", required: true },
+const MessageSchema = new Schema<IMessage>({
+  user_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  room_id: { type: Schema.Types.ObjectId, ref: "Room", required: true },
   text: {
     type: String,
     trim: true,
-    default: undefined,
+    default: null,
   },
   tag_ids: [{ type: String, ref: "Tag", default: [] }],
   location: {
-    type: {
-      lng: String,
-      lat: String,
-    },
-    default: undefined,
+    lng: String,
+    lat: String,
+    default: null,
   },
   attachments: [
     {
@@ -42,20 +41,20 @@ const MessageSchema = new Schema({
       ref: "Message",
     },
     user_id: {
-      type: Number,
+      type: Schema.Types.ObjectId,
       ref: "User",
     },
     attachment_id: {
       type: Schema.Types.ObjectId,
       ref: "Attachment",
       required: false,
-      default: undefined,
+      default: null,
     },
-    default: undefined,
+    default: null,
   },
   read_by_user_ids: [
     {
-      type: Number,
+      type: Schema.Types.ObjectId,
       ref: "User",
       unique: true,
       default: [],
@@ -76,7 +75,7 @@ const MessageSchema = new Schema({
   liked_by_member_ids: [
     {
       user_id: {
-        type: Number,
+        type: Schema.Types.ObjectId,
         ref: "User",
       },
       emotion: {

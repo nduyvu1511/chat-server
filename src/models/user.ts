@@ -2,66 +2,61 @@ import Mongoose, { Schema } from "mongoose"
 import { IUser } from "../types"
 
 const UserSchema = new Schema<IUser>({
-  user_id: {
-    type: Number,
-    unique: true,
+  phone: {
+    type: String,
     required: true,
+    unique: true,
+  },
+  user_name: {
+    type: String,
+    required: true,
+    minlength: 1,
   },
   gender: {
     type: String,
-    enum: ["male", "female", "no_info"],
-    default: false,
-    required: false,
+    enum: ["male", "female", "no_info", ""],
+    default: "",
   },
   role: {
     type: String,
     enum: ["customer", "active_driver", "admin", "in_active_driver"],
     required: true,
   },
-  avatar: String,
+  avatar: { type: String, default: "" },
   bio: {
     type: String,
     default: "",
   },
   blocked_user_ids: [
     {
-      type: Number,
-      unique: true,
+      type: Schema.Types.ObjectId,
       ref: "User",
+      default: [],
     },
   ],
   date_of_birth: {
     type: String,
-    required: false,
+    default: "",
   },
-  phone: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  group_joined_ids: [
+  room_joined_ids: [
     {
       type: Schema.Types.ObjectId,
-      unique: true,
-      required: true,
-      ref: "Group",
+      ref: "Room",
       default: [],
     },
   ],
+  password: {
+    type: String,
+    required: true,
+    min: 8,
+  },
   messages_unread: [
     {
-      groups: {
-        type: {
-          group_id: Schema.Types.ObjectId,
-          message_ids: [
-            { type: Schema.Types.ObjectId, unique: true, required: true, ref: "Message" },
-          ],
-        },
-        unique: true,
-        required: true,
-        ref: "Group",
+      room_id: {
+        type: Schema.Types.ObjectId,
+        ref: "Room",
       },
-
+      message_ids: [{ type: Schema.Types.ObjectId, ref: "Message" }],
       default: [],
     },
     {
@@ -76,12 +71,15 @@ const UserSchema = new Schema<IUser>({
     type: Number,
     default: Date.now,
   },
-  is_online: Boolean,
+  is_online: {
+    type: Boolean,
+    default: true,
+  },
   offline_at: {
     type: Number,
-    default: Date.now,
+    default: null,
   },
-  group_blocked_noti_ids: [{ type: String, ref: "Group", default: [] }],
+  room_blocked_noti_ids: [{ type: String, ref: "Room", default: [] }],
 })
 
 export default Mongoose.model("User", UserSchema)

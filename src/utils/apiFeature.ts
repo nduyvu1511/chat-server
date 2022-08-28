@@ -1,9 +1,9 @@
-class APIFeatures {
-  query: any
-  queryString: string
-  constructor(query: any, queryString: string) {
-    this.query = query
-    this.queryString = queryString
+class APIFeatures<QueryCommonParams> {
+  offset: number
+  limit: number
+  constructor(offset: number, limit: number) {
+    this.offset = offset
+    this.limit = limit
   }
 
   // sort() {
