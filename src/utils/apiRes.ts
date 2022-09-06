@@ -7,7 +7,7 @@ export default class ResponseData<T> implements ResponseType<T> {
   error_code: number
   data: T
 
-  constructor(message: string, error_code: number, success: boolean, data: T) {
+  constructor(data: T, message = DEFAULT_MESSAGE, error_code = 200, success = true) {
     this.message = message
     this.success = success
     this.error_code = error_code

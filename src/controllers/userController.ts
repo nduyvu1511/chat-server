@@ -1,24 +1,35 @@
 import bcrypt from "bcrypt"
 import Express from "express"
-import jwt from "jsonwebtoken"
-import { DEFAULT_MESSAGE } from "../constant"
 import userService from "../services/userService"
 import { IUser, PartnerRes, UserLoginRes, UserRes } from "../types"
+import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
-import { getUserResponse } from "../utils/user"
+import { getUserResponse } from "../utils/userResponse"
 import { ListRes } from "./../types/commonType"
+import { generateToken } from "./../utils/userResponse"
 
 class UserController {
   async register(req: Express.Request, res: Express.Response) {
     try {
-      const user = await userService.getUserByPhone(req.body.phone)
-      if (user) {
-        return res.json(new ResponseData<null>("duplicate phone number", 400, false, null))
+      const userRes = await userService.register(req.body)
+      return res.json(new ResponseData<UserRes>(getUserResponse(userRes)))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async generateToken(req: Express.Request, res: Express.Response) {
+    try {
+      const user = await userService.getUserByPhoneAndUserId(req.body)
+      if (!user) {
+        return res.json(new ResponseError("User not found, please register first"))
       }
 
-      const userRes = await userService.register(req.body)
       return res.json(
-        new ResponseData<UserRes>(DEFAULT_MESSAGE, 200, true, getUserResponse(userRes))
+        new ResponseData<UserLoginRes>({
+          ...getUserResponse(user),
+          token: generateToken(user),
+        })
       )
     } catch (error) {
       return res.status(400).send(error)
@@ -30,21 +41,16 @@ class UserController {
     try {
       const user = await userService.getUserByPhone(phone)
       if (!user) {
-        return res.json(
-          new ResponseData<null>("Phone number not found, please register first", 400, true, null)
-        )
+        return res.json(new ResponseError("Phone number does not exist, please register first"))
       }
 
-      const pwHashed = await bcrypt.compare(password, user.password)
-      if (!pwHashed)
-        return res.json(new ResponseData<null>("Password is not match", 400, true, null))
-
-      const token = jwt.sign({ user_id: user._id, role: user.role }, process.env.JWT_SECRET + "")
+      if (!(await bcrypt.compare(password, user.password)))
+        return res.json(new ResponseError("Password is not match"))
 
       return res.json(
-        new ResponseData<UserLoginRes>(DEFAULT_MESSAGE, 200, true, {
+        new ResponseData<UserLoginRes>({
           ...getUserResponse(user),
-          token,
+          token: generateToken(user),
         })
       )
     } catch (error) {
@@ -55,7 +61,7 @@ class UserController {
   async createUser(req: Express.Request, res: Express.Response) {
     try {
       const data = await userService.createUser(req.body)
-      return res.json(new ResponseData<UserRes>(DEFAULT_MESSAGE, 200, true, getUserResponse(data)))
+      return res.json(new ResponseData<UserRes>(getUserResponse(data)))
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -63,13 +69,67 @@ class UserController {
 
   async updateProfile(req: Express.Request, res: Express.Response) {
     try {
-      const data = await userService.updateProfile({ ...req.body, user_id: req.locals.user_id })
+      const data = await userService.updateProfile({ ...req.body, user_id: req.locals._id })
       if (!data) {
+        return res.json(new ResponseError("User not found"))
+      }
+      return res.json(new ResponseData<UserRes>(getUserResponse(data)))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async getUserInfo(req: Express.Request, res: Express.Response) {
+    try {
+      console.log(req.query?.user_id)
+
+      const data = await userService.getUserByUserId(req?.query?.user_id || req.locals._id)
+      if (!data) {
+        return res.json(new ResponseError("User not found"))
+      }
+      return res.json(new ResponseData<UserRes>(getUserResponse(data)))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async changePassword(req: Express.Request, res: Express.Response) {
+    try {
+      if (!(await bcrypt.compare(req.body.current_password, req.locals.password))) {
+        return res.json(new ResponseError("Password is not match"))
+      }
+      await userService.createPassword({ ...req.body, _id: req.locals._id })
+      return res.json(new ResponseData(null, "Change password successfully"))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async checkHasPassword(req: Express.Request, res: Express.Response) {
+    try {
+      return res.json(
+        new ResponseData(
+          {
+            has_password: !!req?.locals?.password,
+          },
+          "Change password successfully"
+        )
+      )
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async createPassword(req: Express.Request, res: Express.Response) {
+    try {
+      if (req.locals?.password?.length) {
         return res.json(
-          new ResponseData<IUser | null>("Không tìm thầy người dùng", 400, false, data)
+          new ResponseError("This account already has password, use change password instead")
         )
       }
-      return res.json(new ResponseData<UserRes>(DEFAULT_MESSAGE, 200, true, getUserResponse(data)))
+
+      await userService.createPassword({ ...req.body, _id: req.locals._id })
+      return res.json(new ResponseData(null, "Create password successfully"))
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -77,13 +137,11 @@ class UserController {
 
   async changeStatus(req: Express.Request, res: Express.Response) {
     try {
-      const data = await userService.changeStatus({ ...req.body, user_id: req.locals.user_id })
+      const data = await userService.changeStatus({ ...req.body, user_id: req.locals._id })
       if (!data) {
-        return res.json(
-          new ResponseData<IUser | null>("Không tìm thầy người dùng", 400, false, data)
-        )
+        return res.json(new ResponseError("User not found"))
       }
-      return res.json(new ResponseData<UserRes>(DEFAULT_MESSAGE, 200, true, getUserResponse(data)))
+      return res.json(new ResponseData<UserRes>(getUserResponse(data)))
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -91,30 +149,21 @@ class UserController {
 
   async blockOrUnBlockUser(req: Express.Request, res: Express.Response) {
     try {
-      if (req.locals.user_id === req.body.partner_id)
-        return res.json(
-          new ResponseData<IUser | null>(
-            "You cannot pass your id into a block list!",
-            400,
-            false,
-            null
-          )
-        )
+      if (req.locals._id === req.body.partner_id)
+        return res.json(new ResponseError("You cannot pass your id into a block list!"))
 
       const partner: IUser | null = await userService.getUserByUserId(req.body.partner_id)
-      if (!partner)
-        return res.json(new ResponseData<IUser | null>("user not found", 400, false, null))
+      if (!partner) return res.json(new ResponseError("user not found"))
 
-      const data = await userService.blockOrUnBlockUser({
+      await userService.blockOrUnBlockUser({
         ...req.body,
-        user_id: req.locals.user_id,
+        user_id: req.locals._id,
       })
+
       return res.json(
-        new ResponseData<UserRes>(
-          `${req.body.status === "block" ? "Block" : "Unblock"} user successfully`,
-          200,
-          true,
-          getUserResponse(data)
+        new ResponseData(
+          req.body,
+          `${req.body.status === "block" ? "Block" : "Unblock"} user successfully`
         )
       )
     } catch (error) {
@@ -132,7 +181,7 @@ class UserController {
         offset,
         blocked_user_ids: user.blocked_user_ids || [],
       })
-      return res.json(new ResponseData<ListRes<PartnerRes[]>>(DEFAULT_MESSAGE, 200, true, data))
+      return res.json(new ResponseData<ListRes<PartnerRes[]>>(data))
     } catch (error) {
       return res.status(400).send(error)
     }

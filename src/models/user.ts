@@ -1,9 +1,15 @@
+import { ObjectId } from "mongodb"
 import Mongoose, { Schema } from "mongoose"
 import { IUser } from "../types"
 
 const UserSchema = new Schema<IUser>({
   phone: {
     type: String,
+    required: true,
+    unique: true,
+  },
+  user_id: {
+    type: Number,
     required: true,
     unique: true,
   },
@@ -47,7 +53,6 @@ const UserSchema = new Schema<IUser>({
   ],
   password: {
     type: String,
-    required: true,
     min: 8,
   },
   messages_unread: [
@@ -79,7 +84,7 @@ const UserSchema = new Schema<IUser>({
     type: Number,
     default: null,
   },
-  room_blocked_noti_ids: [{ type: String, ref: "Room", default: [] }],
+  room_blocked_noti_ids: [{ type: ObjectId, ref: "Room", default: [] }],
 })
 
 export default Mongoose.model("User", UserSchema)

@@ -1,7 +1,7 @@
 import Express from "express"
-import { DEFAULT_MESSAGE } from "../constant"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
+import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
 
 class RoomController {
@@ -9,33 +9,17 @@ class RoomController {
     try {
       const { user_id } = req.locals
       if (user_id === req.body.partner_id)
-        return res.json(
-          new ResponseData("Can not create room chat with only one person", 400, false, null)
-        )
+        return res.json(new ResponseError("Can not create room chat with only one person"))
 
       const partner = await UserService.getUserByUserId(req.body.partner_id)
       if (!partner)
-        return res.json(
-          new ResponseData(
-            "Create room chat failed because partner ID is invalid",
-            400,
-            false,
-            null
-          )
-        )
+        return res.json(new ResponseError("Create room chat failed because partner ID is invalid"))
       const user = await UserService.getUserByUserId(user_id)
       if (!user)
-        return res.json(
-          new ResponseData(
-            "Create room chat failed because partner ID is invalid",
-            400,
-            false,
-            null
-          )
-        )
+        return res.json(new ResponseError("Create room chat failed because partner ID is invalid"))
 
       const room = await RoomService.createPrivateChat({ partner, user })
-      return res.json(new ResponseData("create room chat successfully", 200, true, room))
+      return res.json(new ResponseData(room, "create room chat successfully"))
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -48,12 +32,7 @@ class RoomController {
 
       if (req.body.member_ids.length === 1 && req.body.member_ids.includes(user_id)) {
         return res.json(
-          new ResponseData(
-            "Missing member id, can not create room chat with one person",
-            400,
-            false,
-            null
-          )
+          new ResponseError("Missing member id, can not create room chat with one person")
         )
       }
 
@@ -72,12 +51,7 @@ class RoomController {
 
       if (isValid === false)
         return res.json(
-          new ResponseData(
-            "Create room chat failed because member ids is not valid",
-            400,
-            false,
-            null
-          )
+          new ResponseError("Create room chat failed because member ids is not valid")
         )
       // const room = await RoomService.createRoomChat({ ...req.body, member_ids: users, user_id })
       // return res.json(new ResponseData("create room chat successfully", 200, true, room))
@@ -99,7 +73,7 @@ class RoomController {
         search_term,
         room_ids: user?.room_joined_ids || [],
       })
-      return res.json(new ResponseData(DEFAULT_MESSAGE, 200, true, roomList))
+      return res.json(new ResponseData(roomList))
     } catch (error) {
       return res.status(400).send(error)
     }

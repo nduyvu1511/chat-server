@@ -4,7 +4,6 @@ import {
   CreateGroupChatServicesParams,
   CreatePrivateChatServicesParams,
   IRoom,
-  QueryRoomParams,
   QueryRoomServiceParams,
 } from "../types"
 
@@ -79,7 +78,6 @@ export class RoomService {
     })
       .limit(limit)
       .skip(offset)
-      
 
     return roomList
   }

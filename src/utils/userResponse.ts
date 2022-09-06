@@ -1,8 +1,11 @@
+import bcrypt from "bcrypt"
+import jwt from "jsonwebtoken"
 import { IUser, PartnerRes, UserRes } from "../types"
 
 export const getUserResponse = (data: IUser): UserRes => {
   return {
-    user_id: data?._id,
+    _id: data._id,
+    user_id: data?.user_id,
     phone: data?.phone,
     avatar: data?.avatar,
     gender: data?.gender,
@@ -17,17 +20,7 @@ export const getUserResponse = (data: IUser): UserRes => {
 }
 
 export const getPartnerListResponse = (data: IUser[]): PartnerRes[] => {
-  return data.map((item) => ({
-    user_id: item?._id,
-    phone: item?.phone,
-    avatar: item?.avatar,
-    gender: item?.gender,
-    bio: item?.bio,
-    user_name: item?.user_name,
-    date_of_birth: item?.date_of_birth,
-    is_online: item?.is_online,
-    offline_at: item?.offline_at,
-  }))
+  return data.map((item) => getPartnerResponse(item))
 }
 
 export const getPartnerResponse = (data: IUser): PartnerRes => ({
@@ -41,3 +34,14 @@ export const getPartnerResponse = (data: IUser): PartnerRes => ({
   is_online: data?.is_online,
   offline_at: data?.offline_at,
 })
+
+export const generateToken = (user: IUser): string => {
+  return jwt.sign(
+    { _id: user._id, user_id: user.user_id, role: user.role },
+    process.env.JWT_SECRET + ""
+  )
+}
+
+export const hashPassword = async (password: string): Promise<string> => {
+  return await bcrypt.hash(password, 10)
+}
