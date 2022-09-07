@@ -1,21 +1,5 @@
 import Mongoose, { Schema } from "mongoose"
-import { IMessage, LastMessage } from "../types"
-
-const LikedByUserId = new Schema(
-  {
-    user_id: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    },
-    emotion: {
-      type: String,
-      enum: ["like", "angry", "sad", "laugh", "heart", "wow"],
-    },
-  },
-  {
-    _id: false,
-  }
-)
+import { IMessage } from "../types"
 
 const MessageSchema = new Schema<IMessage>({
   user_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -35,45 +19,49 @@ const MessageSchema = new Schema<IMessage>({
   },
   attachments: [
     {
-      attachment_id: {
-        type: Schema.Types.ObjectId,
-        ref: "Attachment",
-      },
-      url: {
-        type: String,
-        trim: true,
-        // match: [URL_REGEX, "Invalid url"],
-      },
+      attachment_id: { type: Schema.Types.ObjectId, ref: "Attachment" },
       is_deleted: Boolean,
       is_hidden: Boolean,
-      created_at: {
-        type: Number,
-        default: Date.now,
-      },
       default: [],
     },
   ],
   reply_to: {
-    message_id: {
-      type: Schema.Types.ObjectId,
-      ref: "Message",
+    type: {
+      message_id: {
+        type: Schema.Types.ObjectId,
+        ref: "Message",
+      },
+      attachment_id: {
+        type: Schema.Types.ObjectId,
+        ref: "Attachment",
+        required: false,
+      },
     },
-    user_id: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    },
-    attachment_id: {
-      type: Schema.Types.ObjectId,
-      ref: "Attachment",
-      required: false,
-      default: null,
-    },
+    default: null,
   },
   read_by_user_ids: [
     {
       type: Schema.Types.ObjectId,
       ref: "User",
       default: [],
+    },
+  ],
+  liked_by_user_ids: [
+    {
+      type: {
+        user_id: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+        },
+        emotion: {
+          type: String,
+          enum: ["like", "angry", "sad", "laugh", "heart", "wow"],
+        },
+      },
+      default: [],
+    },
+    {
+      _id: false,
     },
   ],
   is_hidden: {
@@ -88,12 +76,6 @@ const MessageSchema = new Schema<IMessage>({
     type: Boolean,
     default: false,
   },
-  liked_by_user_ids: [
-    {
-      type: LikedByUserId,
-      default: [],
-    },
-  ],
   created_at: {
     type: Schema.Types.Date,
     default: Date.now,

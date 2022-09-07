@@ -1,6 +1,5 @@
 import Express from "express"
 import _ from "lodash"
-import { ObjectId } from "mongodb"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
 import { CreateGroupChatParams, IUser } from "../types"
@@ -38,14 +37,18 @@ class RoomController {
       const room = await RoomService.createPrivateChat({ partner, user: req.locals })
       if (!room) return res.json(new ResponseError("Create room chat failed"))
 
+      // const users = await RoomService.getM
+
       return res.json(
         new ResponseData(
           {
             ...toRoomDetailResponse({
               ...room,
-              messages: [],
+              message_ids: [],
               is_online: partner?.is_online,
               offline_at: partner?.offline_at,
+              message_pinned_ids: [],
+              member_ids: [req.locals, partner],
             }),
             room_avatar: partner.avatar,
             room_name: partner.user_name,
@@ -81,7 +84,16 @@ class RoomController {
         ...params,
         member_ids: userIds.map((item) => item._id),
       })
-      return res.json(new ResponseData(toRoomDetailResponse({ ...room, messages: [] })))
+      return res.json(
+        new ResponseData(
+          toRoomDetailResponse({
+            ...room,
+            message_ids: [],
+            message_pinned_ids: [],
+            member_ids: userIds,
+          })
+        )
+      )
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -125,7 +137,7 @@ class RoomController {
       const room = await RoomService.getRoomDetail({ room_id: room_id as any, user: req.locals })
       if (!room) return res.json(new ResponseError("Room not found"))
       return res.json(room)
-      // return res.json(new ResponseData({ ...data, data: toRoomMemberListResponse(data.data) }))
+      // return res.json(new ResponseData({ toRoomMemberListResponse(room) }))
     } catch (error) {
       return res.status(400).send(error)
     }

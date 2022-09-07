@@ -1,11 +1,4 @@
-import {
-  IRoom,
-  IUser,
-  RoomDetailMember,
-  RoomDetailQueryRes,
-  RoomDetailRes,
-  RoomRes,
-} from "../types"
+import { IRoom, IUser, RoomDetailPopulate, RoomDetailRes, RoomMemberRes, RoomRes } from "../types"
 import { toMessageListResponse, toMessageResponse } from "./messageResponse"
 
 export const toRoomResponse = (data: IRoom): RoomRes => {
@@ -24,23 +17,28 @@ export const toRoomListResponse = (data: IRoom[]): RoomRes[] => {
   return data.map((item) => toRoomResponse(item))
 }
 
-export const toRoomDetailResponse = (data: RoomDetailQueryRes): RoomDetailRes => {
+export const toRoomDetailResponse = (data: RoomDetailPopulate): RoomDetailRes => {
   return {
-    ...toRoomResponse(data),
-    is_online: data.is_online,
-    offline_at: data.offline_at,
-    messages: toMessageListResponse(data.messages),
-    pinned_message: data?.pinned_message ? toMessageResponse(data.pinned_message) : null,
+    ...toRoomResponse(data as any),
+    messages: toMessageListResponse(data.message_ids),
+    pinned_messages: data?.message_pinned_ids?.length
+      ? toMessageListResponse(data.message_pinned_ids)
+      : [],
+    members: toRoomMemberListResponse(data.member_ids),
   }
 }
 
-export const toRoomMemberListResponse = (data: IUser[]): RoomDetailMember[] => {
-  return data.map((item) => ({
-    user_id: item._id,
-    avatar: item?.avatar || "",
-    bio: item?.bio || "",
-    user_name: item?.user_name || "",
-    date_of_birth: item.date_of_birth || "",
-    gender: item?.gender || "",
-  }))
+export const toRoomMemberResponse = (data: IUser): RoomMemberRes => ({
+  user_id: data._id,
+  avatar: data?.avatar || "",
+  user_name: data?.user_name || "",
+  phone: data.phone,
+  bio: data?.bio || "",
+  date_of_birth: data.date_of_birth || "",
+  gender: data?.gender || "",
+  is_online: data.is_online,
+})
+
+export const toRoomMemberListResponse = (data: IUser[]): RoomMemberRes[] => {
+  return data.map((item) => toRoomMemberResponse(item))
 }

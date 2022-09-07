@@ -4,10 +4,9 @@ import { IUser } from "./userType"
 
 export type AttachmentType = "image" | "video" | "voice"
 
-export interface Tag {
+export interface MessageTag {
   _id: string
   text: string
-  created_at: Date
 }
 
 export interface AuthorMessage {
@@ -22,10 +21,12 @@ export interface MessageUser {
   user_avatar: string
 }
 
-export interface MessageReply {
-  attachment?: IAttachment
+export type MessageReply = {
   author: AuthorMessage
+  message_id: ObjectId
   message_text: string
+  created_at: Date
+  attachment?: IAttachment | null
 }
 
 export type MessageEmotionType = "like" | "angry" | "sad" | "laugh" | "heart" | "wow"
@@ -39,9 +40,8 @@ export interface IMessage {
   location: Lnglat
   attachments: IAttachment[]
   reply_to: {
-    user_id: string
-    message_id: string
-    attachment_id?: string
+    message_id: ObjectId
+    attachment_id?: ObjectId
   }
   read_by_user_ids: string[]
   is_hidden: boolean
@@ -50,31 +50,25 @@ export interface IMessage {
   liked_by_user_ids: {
     user_id: string
     emotion: MessageEmotionType
-  }
+  }[]
   created_at: Date
   updated_at: Date
 }
 
-export type MessageQuery = Pick<
-  IMessage,
-  | "_id"
-  | "attachments"
-  | "created_at"
-  | "updated_at"
-  | "is_deleted"
-  | "is_edited"
-  | "is_hidden"
-  | "location"
-  | "room_id"
-  | "text"
-> & {
+export type MessagePopulate = Omit<IMessage, "user_id" | "reply_to" | "tags"> & {
+  user_id: IUser
   is_author: boolean
-  author: IUser
   is_liked: boolean
-  like_count: number
-  reply_to?: MessageReply
-  tags?: Tag[]
-  read_by?: IUser[]
+  reply_to?:
+    | {
+        message_id: Omit<IMessage, "user_id"> & {
+          user_id: IUser
+        }
+        attachment_id?: IAttachment
+      }
+    | undefined
+
+  tags?: MessageTag[]
 }
 
 export type MessageRes = Pick<IMessage, "room_id" | "attachments" | "created_at"> & {
@@ -86,7 +80,7 @@ export type MessageRes = Pick<IMessage, "room_id" | "attachments" | "created_at"
   message_text: string
   reply_to?: MessageReply | null
   location?: Lnglat | null
-  tag?: Tag[]
+  tag?: MessageTag[]
 }
 
 export type SendMessage = Pick<IMessage, "text" | "room_id"> & {
@@ -94,9 +88,8 @@ export type SendMessage = Pick<IMessage, "text" | "room_id"> & {
   attachment_ids?: ObjectId[]
   location?: Lnglat
   reply_to?: {
-    user_id: string
-    message_id: string
-    attachment_id?: string
+    message_id: ObjectId
+    attachment_id?: ObjectId
   }
 }
 

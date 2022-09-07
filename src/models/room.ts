@@ -1,45 +1,6 @@
 import Mongoose, { Schema } from "mongoose"
 import { IRoom, LastMessage } from "../types/roomType"
 
-const MemberId = new Schema(
-  {
-    user_id: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    joined_at: {
-      type: Schema.Types.Date,
-      default: Date.now,
-      required: false,
-    },
-  },
-  {
-    _id: false,
-  }
-)
-
-const LastMessage = new Schema<LastMessage>(
-  {
-    message_id: {
-      type: Schema.Types.ObjectId,
-      ref: "Message",
-    },
-    room_id: {
-      type: Schema.Types.ObjectId,
-      ref: "Room",
-    },
-    content: String,
-    created_at: {
-      type: Schema.Types.Date,
-      default: Date.now,
-    },
-  },
-  {
-    _id: false,
-  }
-)
-
 const RoomSchema = new Schema<IRoom>({
   room_name: { type: String, default: "" },
   room_avatar: {
@@ -64,33 +25,77 @@ const RoomSchema = new Schema<IRoom>({
       ref: "Message",
       default: [],
     },
+    {
+      _id: false,
+    },
   ],
   member_ids: [
     {
-      type: MemberId,
+      type: {
+        user_id: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        joined_at: {
+          type: Schema.Types.Date,
+          default: Date.now,
+          required: false,
+        },
+      },
       required: true,
       min: 2,
+    },
+    {
+      _id: false,
     },
   ],
   members_leaved: [
     {
-      member_id: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-      },
-      leaved_at: {
-        type: Number,
-        default: Date.now,
+      type: {
+        user_id: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+        },
+        leaved_at: {
+          type: Number,
+          default: Date.now,
+        },
       },
       default: [],
     },
+    {
+      _id: false,
+    },
   ],
-  leader_member_id: {
-    Type: Schema.Types.ObjectId,
-    required: false,
+  leader_id: {
+    type: String,
+    ref: "User",
+    default: null,
   },
   last_message: {
-    type: LastMessage,
+    type: {
+      message_id: {
+        type: Schema.Types.ObjectId,
+        ref: "Message",
+      },
+      message_text: String,
+      is_author: Boolean,
+      created_at: {
+        type: Schema.Types.Date,
+        default: Date.now,
+      },
+      author: {
+        type: {
+          author_id: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+          },
+          author_name: String,
+          author_avatar: String,
+        },
+      },
+    },
     default: null,
   },
   message_pinned_ids: [

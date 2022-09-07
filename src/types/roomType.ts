@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb"
 import { AttachmentId, QueryCommonParams } from "./commonType"
-import { MessageQuery, MessageRes } from "./messageType"
+import { IMessage, MessagePopulate, MessageRes } from "./messageType"
 import { IUser } from "./userType"
 
 type RoomType = "group" | "private" | "admin"
@@ -10,17 +10,20 @@ export interface RoomMember {
   joined_at: number
 }
 
+export interface MemberLeaved {
+  user_id: ObjectId
+  leaved_at: number
+}
+
 export interface RoomMemberWithId {
   _id: ObjectId
   member_ids: RoomMember[]
 }
 
-export interface LastMessage {
-  message_id: ObjectId
-  room_id: ObjectId
-  created_at: Date
-  content: string
-}
+export type LastMessage = Pick<
+  MessageRes,
+  "message_id" | "message_text" | "is_author" | "author" | "created_at"
+>
 
 export interface IRoom {
   _id: ObjectId
@@ -28,13 +31,10 @@ export interface IRoom {
   room_avatar: AttachmentId
   room_type: RoomType
   member_ids: RoomMember[]
-  leader_member_id: ObjectId
+  leader_id: ObjectId
   last_message: LastMessage
   message_pinned_ids: ObjectId[]
-  members_leaved: {
-    member_id: ObjectId
-    leaved_at: number
-  }
+  members_leaved: MemberLeaved
   message_ids: ObjectId[]
   is_online: boolean
   offline_at: Date
@@ -89,27 +89,42 @@ export interface QueryMembersInRoomService extends QueryCommonParams {
 }
 
 export type RoomServiceParams = Exclude<IRoom, "last_message" | ""> & {
-  message?: MessageQuery
+  message?: MessagePopulate
 }
 
-export type RoomDetailMember = Pick<IUser, "bio" | "date_of_birth" | "gender" | "user_name"> & {
+// export type RoomDetailMember = Pick<IUser, "bio" | "date_of_birth" | "gender" | "user_name"> & {
+//   user_id: ObjectId
+//   avatar: string
+// }
+
+export type RoomMemberRes = Pick<
+  IUser,
+  "avatar" | "bio" | "gender" | "date_of_birth" | "is_online" | "user_name" | "phone"
+> & {
   user_id: ObjectId
-  avatar: string
 }
 
 export interface RoomDetailRes extends RoomRes {
-  pinned_message: MessageRes | null
-  is_online: boolean
-  offline_at: Date
+  pinned_messages?: MessageRes[]
   messages: MessageRes[]
+  members: RoomMemberRes[]
 }
 
 export type RoomDetailQueryRes = IRoom & {
-  pinned_message?: MessageQuery
-  messages: MessageQuery[]
+  pinned_message?: MessagePopulate
+  messages: MessagePopulate[]
 }
 
 export interface GetRoomDetailService {
   room_id: ObjectId
   user: IUser
+}
+
+export type RoomDetailPopulate = Omit<
+  IRoom,
+  "member_ids" | "message_pinned_ids" | "message_ids"
+> & {
+  member_ids: IUser[]
+  message_pinned_ids?: MessagePopulate[]
+  message_ids: MessagePopulate[]
 }

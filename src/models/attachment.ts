@@ -1,7 +1,7 @@
 import Mongoose, { Schema } from "mongoose"
 
 const AttachmentSchema = new Schema({
-  url: { type: String, required: true },
+  url: { type: String, required: true, trim: true },
   thumbnail_url: { type: String, required: true },
   desc: { type: String, required: false, default: null },
   attachment_type: {
@@ -12,7 +12,7 @@ const AttachmentSchema = new Schema({
     required: true,
   },
   created_at: {
-    type: Number,
+    type: Schema.Types.Date,
     default: Date.now,
   },
 })

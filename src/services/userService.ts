@@ -86,7 +86,7 @@ export class UserService {
         $in: user_ids,
       },
     })
-      .select(["_id", "user_name", "user_id", "avatar"])
+      // .select(["_id", "user_name", "user_id", "avatar"])
       .lean()
   }
 

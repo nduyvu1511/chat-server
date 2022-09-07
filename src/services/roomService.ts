@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb"
+import Message from "../models/message"
 import Room from "../models/room"
 import User from "../models/user"
-import Message from "../models/message"
 import {
   CreateGroupChatServicesParams,
   CreatePrivateChatServicesParams,
@@ -9,11 +9,9 @@ import {
   IRoom,
   IUser,
   ListRes,
-  MessageQuery,
   QueryMembersInRoomService,
   QueryRoomServiceParams,
-  RoomDetailQueryRes,
-  RoomDetailRes,
+  RoomDetailPopulate,
   RoomMemberWithId,
 } from "../types"
 
@@ -81,25 +79,21 @@ export class RoomService {
     )
   }
 
-  async getRoomDetail(params: GetRoomDetailService): Promise<RoomDetailQueryRes | null> {
+  async getRoomDetail(params: GetRoomDetailService): Promise<RoomDetailPopulate | null> {
     const room = await Room.findById(params.room_id).lean()
     if (!room) return null
 
-    const messages = await Message.find({ $and: [{}] })
-      .populate("User")
-      .lean()
-    // const messagesQuery: MessageQuery[] = messages.map((item) => ({
-    //   ...item,
-    //   is_author: true,
-    //   author:
-    // }))
+    const users = await User.find({
+      _id: {
+        $in: room.member_ids?.map((item) => item.user_id),
+      },
+    }).lean()
 
-    // const roomd: RoomDetailQueryRes = {
+    const messages = await Message.find({
+      room_id: room._id,
+    }).lean()
 
-    // }
-    console.log(messages)
-
-    return { ...room, messages } as any
+    return { ...room, member_ids: users, message_ids: messages } as any
   }
 
   async getRoomList(params: QueryRoomServiceParams): Promise<ListRes<IRoom[]>> {
