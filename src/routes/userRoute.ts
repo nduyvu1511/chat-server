@@ -49,32 +49,33 @@ const router = Express.Router()
 
 router.post("/register", bodyMiddleware(registerSchema), UserController.register)
 router.post("/login", bodyMiddleware(loginSchema), UserController.login)
-router.post("/create_user", bodyMiddleware(createUserSchema), UserController.createUser)
+router.post("/", bodyMiddleware(createUserSchema), UserController.createUser)
 router.post("/generate_token", bodyMiddleware(GetTokenSchema), UserController.generateToken)
-router.get("/info", verifyToken, UserController.getUserInfo)
-router.patch(
-  "/change_password",
-  verifyToken,
-  bodyMiddleware(changePasswordSchema),
-  checkUserExist,
-  UserController.changePassword
-)
-router.patch(
-  "/update_profile",
-  verifyToken,
-  bodyMiddleware(updateProfleSchema),
-  UserController.updateProfile
-)
 router.get("/check_has_password", verifyToken, checkUserExist, UserController.checkHasPassword)
 router.post(
-  "/create_password",
+  "/password",
   verifyToken,
   bodyMiddleware(createPasswordSchema),
   checkUserExist,
   UserController.createPassword
 )
 router.patch(
-  "/change_status",
+  "/password",
+  verifyToken,
+  bodyMiddleware(changePasswordSchema),
+  checkUserExist,
+  UserController.changePassword
+)
+
+router.get("/profile", verifyToken, UserController.getUserInfo)
+router.patch(
+  "/profile",
+  verifyToken,
+  bodyMiddleware(updateProfleSchema),
+  UserController.updateProfile
+)
+router.patch(
+  "/status",
   verifyToken,
   bodyMiddleware(changeUserStatusSchema),
   checkUserExist,
@@ -88,7 +89,7 @@ router.post(
   UserController.blockOrUnBlockUser
 )
 router.get(
-  "/get_block_user_list",
+  "/block_user_list",
   verifyToken,
   queryMiddleware(queryCommonSchema),
   checkUserExist,

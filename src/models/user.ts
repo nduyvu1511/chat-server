@@ -69,11 +69,11 @@ const UserSchema = new Schema<IUser>({
     },
   ],
   created_at: {
-    type: Number,
+    type: Date,
     default: Date.now,
   },
   updated_at: {
-    type: Number,
+    type: Date,
     default: Date.now,
   },
   is_online: {
@@ -81,7 +81,7 @@ const UserSchema = new Schema<IUser>({
     default: true,
   },
   offline_at: {
-    type: Number,
+    type: Date,
     default: null,
   },
   room_blocked_noti_ids: [{ type: ObjectId, ref: "Room", default: [] }],

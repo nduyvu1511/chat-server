@@ -1,5 +1,21 @@
 import Mongoose, { Schema } from "mongoose"
-import { IMessage } from "../types"
+import { IMessage, LastMessage } from "../types"
+
+const LikedByUserId = new Schema(
+  {
+    user_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    emotion: {
+      type: String,
+      enum: ["like", "angry", "sad", "laugh", "heart", "wow"],
+    },
+  },
+  {
+    _id: false,
+  }
+)
 
 const MessageSchema = new Schema<IMessage>({
   user_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -11,8 +27,10 @@ const MessageSchema = new Schema<IMessage>({
   },
   tag_ids: [{ type: String, ref: "Tag", default: [] }],
   location: {
-    lng: String,
-    lat: String,
+    type: {
+      lng: String,
+      lat: String,
+    },
     default: null,
   },
   attachments: [
@@ -50,13 +68,11 @@ const MessageSchema = new Schema<IMessage>({
       required: false,
       default: null,
     },
-    default: null,
   },
   read_by_user_ids: [
     {
       type: Schema.Types.ObjectId,
       ref: "User",
-      unique: true,
       default: [],
     },
   ],
@@ -72,25 +88,18 @@ const MessageSchema = new Schema<IMessage>({
     type: Boolean,
     default: false,
   },
-  liked_by_member_ids: [
+  liked_by_user_ids: [
     {
-      user_id: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-      },
-      emotion: {
-        type: String,
-        enum: ["like", "angry", "sad", "laugh", "heart", "wow"],
-      },
+      type: LikedByUserId,
       default: [],
     },
   ],
   created_at: {
-    type: Number,
+    type: Schema.Types.Date,
     default: Date.now,
   },
   updated_at: {
-    type: Number,
+    type: Schema.Types.Date,
     default: Date.now,
   },
 })

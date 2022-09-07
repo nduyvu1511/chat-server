@@ -1,7 +1,9 @@
+import { ObjectId } from "mongodb"
+
 export interface ResponseType<T> {
   message: string
   success: boolean
-  error_code: number
+  status_code: number
   data: T
 }
 
@@ -25,11 +27,21 @@ export interface Lnglat {
 
 type AttachmentType = "image" | "video" | "voice"
 
-export interface Attachment {
+export interface IAttachment {
   _id: string
   url: string
   thumbnail_url: string
   desc: string
   attachment_type: AttachmentType
-  created_at: number
+  created_at: Date
+}
+
+export interface AttachmentId {
+  attachment_id: ObjectId
+  url: string
+}
+
+export interface ServiceQueryListRes<T> {
+  total: number
+  data: T
 }

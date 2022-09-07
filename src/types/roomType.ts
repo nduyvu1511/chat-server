@@ -1,28 +1,43 @@
 import { ObjectId } from "mongodb"
-import { QueryCommonParams } from "./commonType"
-import { MessageRes } from "./messageType"
+import { AttachmentId, QueryCommonParams } from "./commonType"
+import { MessageQuery, MessageRes } from "./messageType"
 import { IUser } from "./userType"
 
 type RoomType = "group" | "private" | "admin"
 
+export interface RoomMember {
+  user_id: ObjectId
+  joined_at: number
+}
+
+export interface RoomMemberWithId {
+  _id: ObjectId
+  member_ids: RoomMember[]
+}
+
+export interface LastMessage {
+  message_id: ObjectId
+  room_id: ObjectId
+  created_at: Date
+  content: string
+}
+
 export interface IRoom {
+  _id: ObjectId
   room_name: string
-  room_avatar: {
-    attachment_id: ObjectId
-    url: string
-  }
+  room_avatar: AttachmentId
   room_type: RoomType
-  member_ids: {
-    user_id: ObjectId
-    joined_at: number
-  }[]
+  member_ids: RoomMember[]
   leader_member_id: ObjectId
-  last_message_id: ObjectId
+  last_message: LastMessage
   message_pinned_ids: ObjectId[]
   members_leaved: {
     member_id: ObjectId
     leaved_at: number
   }
+  message_ids: ObjectId[]
+  is_online: boolean
+  offline_at: Date
   is_expired: boolean
   created_at: Date
   deleted_at: Date
@@ -34,16 +49,16 @@ export interface CreateRoomChatParams {
 }
 
 export interface CreateGroupChatParams {
-  room_name?: Pick<IRoom, "room_name">
-  room_avatar?: Pick<IRoom, "room_avatar">
-  member_ids: ObjectId[]
+  room_name: Pick<IRoom, "room_name">
+  room_avatar?: AttachmentId
+  member_ids: number[]
 }
 
 export type CreateGroupChatServicesParams = Pick<
   CreateGroupChatParams,
-  "room_name" | "room_avatar"
+  "room_avatar" | "room_name"
 > & {
-  member_ids: IUser[]
+  member_ids: ObjectId[]
 }
 
 export type CreatePrivateChatServicesParams = {
@@ -54,12 +69,11 @@ export type CreatePrivateChatServicesParams = {
 export interface RoomRes {
   room_id: ObjectId
   room_name: string
-  room_avatar?: Pick<IRoom, "room_avatar">
+  room_avatar?: string
   room_type: RoomType
   member_count: number
-  last_message: MessageRes
-  is_online: boolean
-  offline_at: string
+  last_message?: LastMessage | null
+  create_at: Date
 }
 
 export interface QueryRoomParams extends QueryCommonParams {
@@ -70,4 +84,32 @@ export interface QueryRoomServiceParams extends QueryRoomParams {
   room_ids: string[]
 }
 
-export interface RoomDetailRes {}
+export interface QueryMembersInRoomService extends QueryCommonParams {
+  room_id: ObjectId
+}
+
+export type RoomServiceParams = Exclude<IRoom, "last_message" | ""> & {
+  message?: MessageQuery
+}
+
+export type RoomDetailMember = Pick<IUser, "bio" | "date_of_birth" | "gender" | "user_name"> & {
+  user_id: ObjectId
+  avatar: string
+}
+
+export interface RoomDetailRes extends RoomRes {
+  pinned_message: MessageRes | null
+  is_online: boolean
+  offline_at: Date
+  messages: MessageRes[]
+}
+
+export type RoomDetailQueryRes = IRoom & {
+  pinned_message?: MessageQuery
+  messages: MessageQuery[]
+}
+
+export interface GetRoomDetailService {
+  room_id: ObjectId
+  user: IUser
+}

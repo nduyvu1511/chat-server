@@ -17,6 +17,7 @@ export const bodyMiddleware = (schema: Joi.ObjectSchema<any>) => {
 
 export const queryMiddleware = (schema: Joi.ObjectSchema<any>) => {
   return (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+    console.log(req.query);
     const { error } = schema.validate(req.query)
     if (!error) {
       next()

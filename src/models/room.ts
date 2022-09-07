@@ -1,5 +1,5 @@
 import Mongoose, { Schema } from "mongoose"
-import { IRoom } from "../types/roomType"
+import { IRoom, LastMessage } from "../types/roomType"
 
 const MemberId = new Schema(
   {
@@ -19,11 +19,35 @@ const MemberId = new Schema(
   }
 )
 
+const LastMessage = new Schema<LastMessage>(
+  {
+    message_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Message",
+    },
+    room_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Room",
+    },
+    content: String,
+    created_at: {
+      type: Schema.Types.Date,
+      default: Date.now,
+    },
+  },
+  {
+    _id: false,
+  }
+)
+
 const RoomSchema = new Schema<IRoom>({
   room_name: { type: String, default: "" },
   room_avatar: {
     type: {
-      attachment_id: Number,
+      attachment_id: {
+        type: Schema.Types.ObjectId,
+        ref: "Attachment",
+      },
       url: String,
     },
     default: null,
@@ -34,6 +58,13 @@ const RoomSchema = new Schema<IRoom>({
     enum: ["group", "private", "admin"],
     required: true,
   },
+  message_ids: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Message",
+      default: [],
+    },
+  ],
   member_ids: [
     {
       type: MemberId,
@@ -56,12 +87,10 @@ const RoomSchema = new Schema<IRoom>({
   ],
   leader_member_id: {
     Type: Schema.Types.ObjectId,
-    // ref: "User",
     required: false,
   },
-  last_message_id: {
-    type: Schema.Types.ObjectId,
-    ref: "Message",
+  last_message: {
+    type: LastMessage,
     default: null,
   },
   message_pinned_ids: [

@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb"
 import { QueryCommonParams } from "./commonType"
 
 export type CreateUserParams = Pick<
@@ -13,7 +14,7 @@ export type GetTokenParams = Pick<IUser, "user_id" | "phone">
 
 export type UserRole = "customer" | "active_driver" | "admin" | "in_active_driver"
 
-export type Gender = "male" | "female" | "no_info"
+export type Gender = "male" | "female" | "no_info" | ""
 
 export type UserRes = Pick<
   IUser,
@@ -44,7 +45,7 @@ export type BlockOrUnBlockUserParams = {
 export type getUserBlockListParams = Pick<IUser, "blocked_user_ids"> & QueryCommonParams
 
 export interface IUser {
-  _id: string
+  _id: ObjectId
   user_name: string
   role: UserRole
   avatar?: string
@@ -61,10 +62,10 @@ export interface IUser {
     room_id: string
   }
   message_unread_count: number
-  created_at: number
-  updated_at: number
+  created_at: Date
+  updated_at: Date
   is_online: boolean
-  offline_at: number
+  offline_at: Date
   room_blocked_noti_ids: string[]
 }
 
@@ -98,5 +99,5 @@ export type PartnerRes = Pick<
   IUser,
   "avatar" | "bio" | "gender" | "date_of_birth" | "phone" | "user_name" | "is_online" | "offline_at"
 > & {
-  user_id: string
+  user_id: ObjectId
 }

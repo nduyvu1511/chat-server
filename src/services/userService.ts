@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken"
+import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
 import User from "../models/user"
 import {
@@ -75,13 +76,22 @@ export class UserService {
     return true
   }
 
-  async getUserByUserId(user_id: string): Promise<IUser | null> {
+  async getUserByUserId(user_id: ObjectId): Promise<IUser | null> {
     return await User.findById(user_id).lean()
   }
 
+  async getUserIds(user_ids: number[]): Promise<IUser[]> {
+    return await User.find({
+      user_id: {
+        $in: user_ids,
+      },
+    })
+      .select(["_id", "user_name", "user_id", "avatar"])
+      .lean()
+  }
+
   async getUserByPhoneAndUserId(params: GetTokenParams): Promise<IUser | null> {
-    return await User.findOne({ user_id: params.user_id, phone: params.phone })
-    .lean()
+    return await User.findOne({ user_id: params.user_id, phone: params.phone }).lean()
   }
 
   async getUserByPartnerId(user_id: string): Promise<IUser | null> {
@@ -94,7 +104,7 @@ export class UserService {
 
   async blockOrUnBlockUser(params: BlockOrUnBlockUserParams): Promise<IUser> {
     const { user_id, partner_id, status } = params
-    console.log(params)
+
     const query: FilterQuery<Object> =
       status === "block"
         ? {
