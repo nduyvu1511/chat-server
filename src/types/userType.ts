@@ -1,6 +1,48 @@
 import { ObjectId } from "mongodb"
 import { QueryCommonParams } from "./commonType"
 
+export interface IUser {
+  _id: ObjectId
+  user_name: string
+  role: UserRole
+  avatar?: string
+  password: string
+  bio?: string
+  phone: string
+  user_id: number
+  date_of_birth?: string
+  blocked_user_ids: number[]
+  gender?: Gender
+  room_joined_ids: string[]
+  messages_unread: {
+    room_id: ObjectId
+    message_ids: ObjectId[]
+  }[]
+  message_unread_count: number
+  created_at: Date
+  updated_at: Date
+  is_online: boolean
+  offline_at: Date
+  room_blocked_noti_ids: string[]
+}
+
+export type UserRes = Pick<
+  IUser,
+  | "avatar"
+  | "bio"
+  | "created_at"
+  | "date_of_birth"
+  | "gender"
+  | "is_online"
+  | "offline_at"
+  | "role"
+  | "phone"
+  | "user_name"
+  | "updated_at"
+> & {
+  user_id: ObjectId
+}
+
 export type CreateUserParams = Pick<
   IUser,
   "avatar" | "user_name" | "date_of_birth" | "gender" | "role" | "bio" | "phone" | "user_id"
@@ -16,21 +58,6 @@ export type UserRole = "customer" | "active_driver" | "admin" | "in_active_drive
 
 export type Gender = "male" | "female" | "no_info" | ""
 
-export type UserRes = Pick<
-  IUser,
-  | "_id"
-  | "avatar"
-  | "bio"
-  | "created_at"
-  | "date_of_birth"
-  | "gender"
-  | "is_online"
-  | "role"
-  | "phone"
-  | "user_name"
-  | "updated_at"
-> & { user_id: number }
-
 export type UserLoginRes = UserRes & { token: string }
 
 export type changeUserStatusParams = Pick<IUser, "is_online"> & { user_id: string }
@@ -43,31 +70,6 @@ export type BlockOrUnBlockUserParams = {
 }
 
 export type getUserBlockListParams = Pick<IUser, "blocked_user_ids"> & QueryCommonParams
-
-export interface IUser {
-  _id: ObjectId
-  user_name: string
-  role: UserRole
-  avatar?: string
-  password: string
-  bio?: string
-  phone: string
-  user_id: number
-  date_of_birth?: string
-  blocked_user_ids: number[]
-  gender?: Gender
-  room_joined_ids: string[]
-  messages_unread: {
-    message_id: string
-    room_id: string
-  }
-  message_unread_count: number
-  created_at: Date
-  updated_at: Date
-  is_online: boolean
-  offline_at: Date
-  room_blocked_noti_ids: string[]
-}
 
 export interface LoginParams {
   phone: string
@@ -93,11 +95,4 @@ export type CreatePasswordServiceParams = CreatePasswordParams & {
 
 export type ChangePasswordServiceParams = ChangePasswordParams & {
   _id: string
-}
-
-export type PartnerRes = Pick<
-  IUser,
-  "avatar" | "bio" | "gender" | "date_of_birth" | "phone" | "user_name" | "is_online" | "offline_at"
-> & {
-  user_id: ObjectId
 }

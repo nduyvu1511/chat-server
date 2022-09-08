@@ -1,28 +1,59 @@
-import { IRoom, IUser, RoomDetailPopulate, RoomDetailRes, RoomMemberRes, RoomRes } from "../types"
-import { toMessageListResponse, toMessageResponse } from "./messageResponse"
+import {
+  IUser,
+  RoomDetailRes,
+  RoomMemberRes,
+  RoomRes,
+  ToRoomDetailResponse,
+  ToRoomListResponse,
+  ToRoomRepsonse,
+} from "../types"
+import { toAttachmentResponse } from "./commonResponse"
+import { toLastMessageResponse, toMessageListResponse } from "./messageResponse"
 
-export const toRoomResponse = (data: IRoom): RoomRes => {
+export const toRoomResponse = ({ data, current_user_id }: ToRoomRepsonse): RoomRes => {
   return {
     room_id: data._id,
     room_name: data?.room_name || "",
     room_type: data.room_type,
-    room_avatar: data?.room_avatar?.url || "",
+    room_avatar: data?.room_avatar_id?._id ? toAttachmentResponse(data.room_avatar_id) : null,
     member_count: data.member_ids?.length || 0,
     create_at: data?.created_at,
-    last_message: data?.last_message || null,
+    last_message: data?.last_message_id?._id
+      ? toLastMessageResponse({
+          data: data.last_message_id,
+          current_user_id,
+        })
+      : null,
   }
 }
 
-export const toRoomListResponse = (data: IRoom[]): RoomRes[] => {
-  return data.map((item) => toRoomResponse(item))
+export const toRoomListResponse = ({ current_user_id, data }: ToRoomListResponse): RoomRes[] => {
+  return data.map((item) => toRoomResponse({ data: item, current_user_id }))
 }
 
-export const toRoomDetailResponse = (data: RoomDetailPopulate): RoomDetailRes => {
+export const toRoomDetailResponse = ({
+  data,
+  current_user_id,
+}: ToRoomDetailResponse): RoomDetailRes => {
   return {
-    ...toRoomResponse(data as any),
-    messages: toMessageListResponse(data.message_ids),
-    pinned_messages: data?.message_pinned_ids?.length
-      ? toMessageListResponse(data.message_pinned_ids)
+    create_at: data?.created_at,
+    member_count: data?.member_ids?.length || 0,
+    room_id: data._id,
+    room_name: data?.room_name || null,
+    room_type: data.room_type,
+    room_avatar: data?.room_avatar_id ? toAttachmentResponse(data.room_avatar_id) : null,
+    leader_user_info: data.leader_id ? toRoomMemberResponse(data.leader_id) : null,
+    messages_pinned: data?.message_pinned_ids?.length
+      ? toMessageListResponse({
+          data: data.message_pinned_ids,
+          current_user_id: current_user_id,
+        })
+      : [],
+    messages: data?.message_ids?.length
+      ? toMessageListResponse({
+          data: data.message_ids,
+          current_user_id: current_user_id,
+        })
       : [],
     members: toRoomMemberListResponse(data.member_ids),
   }
@@ -36,7 +67,7 @@ export const toRoomMemberResponse = (data: IUser): RoomMemberRes => ({
   bio: data?.bio || "",
   date_of_birth: data.date_of_birth || "",
   gender: data?.gender || "",
-  is_online: data.is_online,
+  is_online: data?.is_online || false,
 })
 
 export const toRoomMemberListResponse = (data: IUser[]): RoomMemberRes[] => {

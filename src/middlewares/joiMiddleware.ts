@@ -17,8 +17,20 @@ export const bodyMiddleware = (schema: Joi.ObjectSchema<any>) => {
 
 export const queryMiddleware = (schema: Joi.ObjectSchema<any>) => {
   return (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
-    console.log(req.query);
     const { error } = schema.validate(req.query)
+    if (!error) {
+      next()
+    } else {
+      const { details } = error
+      const errorsDetail = details.map((i) => i.message)
+      res.json(new ResponseError(errorsDetail.toString(), 400, false, null))
+    }
+  }
+}
+
+export const paramsMiddleware = (schema: Joi.ObjectSchema<any>) => {
+  return (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+    const { error } = schema.validate(req.params)
     if (!error) {
       next()
     } else {

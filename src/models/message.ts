@@ -9,7 +9,7 @@ const MessageSchema = new Schema<IMessage>({
     trim: true,
     default: null,
   },
-  tag_ids: [{ type: String, ref: "Tag", default: [] }],
+  tag_ids: [{ type: Schema.Types.ObjectId, ref: "Tag", default: [] }],
   location: {
     type: {
       lng: String,
@@ -17,11 +17,11 @@ const MessageSchema = new Schema<IMessage>({
     },
     default: null,
   },
-  attachments: [
+  attachment_ids: [
     {
-      attachment_id: { type: Schema.Types.ObjectId, ref: "Attachment" },
-      is_deleted: Boolean,
-      is_hidden: Boolean,
+      type: Schema.Types.ObjectId,
+      ref: "Attachment",
+      _id: false,
       default: [],
     },
   ],

@@ -1,6 +1,8 @@
+import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
+import { SELECT_USER } from "../constant"
 import User from "../models/user"
 import {
   BlockOrUnBlockUserParams,
@@ -10,16 +12,16 @@ import {
   GetTokenParams,
   getUserBlockListParams,
   IUser,
-  PartnerRes,
   RegisterParams,
   UpdateProfileParams,
+  UserRes,
 } from "../types"
 import { ListRes } from "../types/commonType"
-import { getPartnerListResponse, hashPassword } from "../utils/userResponse"
+import { toUserListResponse } from "../utils"
 
 export class UserService {
   async register(params: RegisterParams): Promise<IUser> {
-    const password = await hashPassword(params.password)
+    const password = await this.hashPassword(params.password)
     const user = new User({
       ...params,
       user_name: params.phone,
@@ -34,10 +36,6 @@ export class UserService {
     return userRes
   }
 
-  async generateToken(user: IUser) {
-    return jwt.sign({ user_id: user._id, role: user.role }, process.env.JWT_SECRET + "")
-  }
-
   async updateProfile(params: UpdateProfileParams): Promise<IUser | null> {
     const { user_id, ...data } = params
     const userRes: IUser | null = await User.findByIdAndUpdate(user_id, data, {
@@ -48,20 +46,21 @@ export class UserService {
 
   async changeStatus(params: changeUserStatusParams): Promise<IUser | null> {
     const { user_id, is_online } = params
-    const userRes: IUser | null = await User.findByIdAndUpdate(user_id, {
-      $set: {
-        is_online,
+    const userRes: IUser | null = await User.findByIdAndUpdate(
+      user_id,
+      {
+        $set: {
+          is_online,
+        },
       },
-    }).lean()
+      { new: true }
+    ).lean()
 
-    if (userRes) {
-      return { ...userRes, is_online }
-    }
     return userRes
   }
 
   async createPassword(params: CreatePasswordServiceParams): Promise<boolean> {
-    const password = await hashPassword(params.new_password)
+    const password = await this.hashPassword(params.new_password)
 
     await User.findByIdAndUpdate(
       params._id,
@@ -85,16 +84,14 @@ export class UserService {
       user_id: {
         $in: user_ids,
       },
-    })
-      // .select(["_id", "user_name", "user_id", "avatar"])
-      .lean()
+    }).lean()
   }
 
   async getUserByPhoneAndUserId(params: GetTokenParams): Promise<IUser | null> {
     return await User.findOne({ user_id: params.user_id, phone: params.phone }).lean()
   }
 
-  async getUserByPartnerId(user_id: string): Promise<IUser | null> {
+  async getUserByPartnerId(user_id: number): Promise<IUser | null> {
     return await User.findOne({ user_id }).lean()
   }
 
@@ -118,10 +115,10 @@ export class UserService {
             },
           }
 
-    return await User.findByIdAndUpdate(user_id, query).lean()
+    return await User.findByIdAndUpdate(user_id, query, { new: true }).lean()
   }
 
-  async getBlockUserList(params: getUserBlockListParams): Promise<ListRes<PartnerRes[]>> {
+  async getBlockUserList(params: getUserBlockListParams): Promise<ListRes<UserRes[]>> {
     const { limit, offset, blocked_user_ids } = params
 
     const query: FilterQuery<Object> = {
@@ -130,28 +127,27 @@ export class UserService {
       },
     }
     const total = await User.countDocuments(query)
-    const userRes = await User.find(query)
-      .select([
-        "avatar",
-        "bio",
-        "gender",
-        "date_of_birth",
-        "phone",
-        "user_name",
-        "is_online",
-        "offline_at",
-      ])
-      .skip(offset)
+    const userRes: IUser[] = await User.find(query)
+      .select(SELECT_USER)
       .limit(limit)
+      .skip(offset)
       .lean()
 
     return {
-      data: getPartnerListResponse(userRes),
+      data: toUserListResponse(userRes),
       hasMore: offset + (userRes || []).length < total,
       limit,
       offset,
       total,
     }
+  }
+
+  async hashPassword(password: string): Promise<string> {
+    return await bcrypt.hash(password, 10)
+  }
+
+  generateToken(user: IUser): string {
+    return jwt.sign({ user_id: user._id, role: user.role }, process.env.JWT_SECRET + "")
   }
 }
 

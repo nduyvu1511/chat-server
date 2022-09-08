@@ -13,15 +13,16 @@ class MessageController {
       const room = await MessageService.getRoomById(params.room_id)
       if (!room) return res.json(new ResponseError("Can not send a message because room not found"))
 
-      const message: IMessage = await MessageService.sendMessage({ message: params, user })
+      const message: IMessage = await MessageService.sendMessage({
+        message: params,
+        user,
+        room_id: room._id,
+      })
       return res.json(
         new ResponseData(
           toMessageResponse({
-            ...message,
-            is_author: true,
-            is_liked: false,
-            reply_to: undefined,
-            user_id: user,
+            data: message as any,
+            current_user_id: user._id,
           })
         )
       )

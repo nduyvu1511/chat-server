@@ -43,6 +43,7 @@
     "esm": "^3.2.25",
     "express": "^4.17.3",
     "joi": "^17.6.0",
+    "joi-objectid": "^4.0.2",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.21",
     "mongodb": "^4.4.1",

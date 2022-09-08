@@ -12,6 +12,13 @@ export interface QueryCommonParams {
   offset: number
 }
 
+export interface ListParams<T> {
+  limit: number
+  offset: number
+  total: number
+  data: T
+}
+
 export interface ListRes<T> {
   hasMore: boolean
   limit: number
@@ -36,6 +43,8 @@ export interface IAttachment {
   created_at: Date
 }
 
+export type AttachmentRes = Pick<IAttachment, "_id" | "thumbnail_url" | "url">
+
 export interface AttachmentId {
   attachment_id: ObjectId
   url: string
@@ -44,4 +53,16 @@ export interface AttachmentId {
 export interface ServiceQueryListRes<T> {
   total: number
   data: T
+}
+
+export interface ITag {
+  _id: ObjectId
+  text: string
+  created_at: Date
+  updated_at: Date
+}
+
+export interface TagRes {
+  tag_id: ObjectId
+  text: string
 }

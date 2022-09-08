@@ -11,3 +11,4 @@ export const YEAR_REGEX = /^(19|20)\d{2}$/
 export const DATE_REGEX =
   /[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1]) (2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9]/
 export const BASE64_READER_REGEX = /^data:image\/\w+;base64,/
+export const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/

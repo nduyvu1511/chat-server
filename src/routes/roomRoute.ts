@@ -1,16 +1,22 @@
 import Express from "express"
 import RoomController from "../controllers/roomController"
-import { bodyMiddleware, checkUserExist, queryMiddleware, verifyToken } from "../middlewares"
-import { createGroupChatSchema, createPrivateChatSchema, getRoomListSchema } from "../validators"
+import {
+  bodyMiddleware,
+  checkUserExist,
+  paramsMiddleware,
+  queryMiddleware,
+  verifyToken,
+} from "../middlewares"
+import {
+  createGroupChatSchema,
+  createPrivateChatSchema,
+  getRoomListSchema,
+  listSchema,
+  roomIdSchema,
+} from "../validators"
+
 const router = Express.Router()
 
-router.get(
-  "/",
-  verifyToken,
-  queryMiddleware(getRoomListSchema),
-  checkUserExist,
-  RoomController.getRoomList
-)
 router.post(
   "/private_chat",
   verifyToken,
@@ -25,7 +31,34 @@ router.post(
   checkUserExist,
   RoomController.createGroupChat
 )
-router.get("/:room_id/members", verifyToken, RoomController.getRoomMembers)
-router.get("/:room_id", verifyToken, RoomController.getRoomDetail)
+router.get(
+  "/",
+  verifyToken,
+  queryMiddleware(getRoomListSchema),
+  checkUserExist,
+  RoomController.getRoomList
+)
+router.get(
+  "/:room_id",
+  verifyToken,
+  paramsMiddleware(roomIdSchema),
+  checkUserExist,
+  RoomController.getRoomDetail
+)
+router.get(
+  "/:room_id/members",
+  paramsMiddleware(roomIdSchema),
+  queryMiddleware(listSchema),
+  verifyToken,
+  checkUserExist,
+  RoomController.getRoomMembers
+)
+router.get(
+  "/:room_id/messages",
+  paramsMiddleware(roomIdSchema),
+  verifyToken,
+  checkUserExist,
+  RoomController.getMessagesInRoom
+)
 
 export default router

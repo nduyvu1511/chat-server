@@ -1,18 +1,12 @@
 import Mongoose, { Schema } from "mongoose"
-import { IRoom, LastMessage } from "../types/roomType"
+import { IRoom } from "../types/roomType"
 
 const RoomSchema = new Schema<IRoom>({
   room_name: { type: String, default: "" },
-  room_avatar: {
-    type: {
-      attachment_id: {
-        type: Schema.Types.ObjectId,
-        ref: "Attachment",
-      },
-      url: String,
-    },
+  room_avatar_id: {
+    type: Schema.Types.ObjectId,
+    ref: "Attachment",
     default: null,
-    _id: false,
   },
   room_type: {
     type: String,
@@ -24,8 +18,6 @@ const RoomSchema = new Schema<IRoom>({
       type: Schema.Types.ObjectId,
       ref: "Message",
       default: [],
-    },
-    {
       _id: false,
     },
   ],
@@ -45,8 +37,6 @@ const RoomSchema = new Schema<IRoom>({
       },
       required: true,
       min: 2,
-    },
-    {
       _id: false,
     },
   ],
@@ -63,8 +53,6 @@ const RoomSchema = new Schema<IRoom>({
         },
       },
       default: [],
-    },
-    {
       _id: false,
     },
   ],
@@ -73,29 +61,9 @@ const RoomSchema = new Schema<IRoom>({
     ref: "User",
     default: null,
   },
-  last_message: {
-    type: {
-      message_id: {
-        type: Schema.Types.ObjectId,
-        ref: "Message",
-      },
-      message_text: String,
-      is_author: Boolean,
-      created_at: {
-        type: Schema.Types.Date,
-        default: Date.now,
-      },
-      author: {
-        type: {
-          author_id: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-          },
-          author_name: String,
-          author_avatar: String,
-        },
-      },
-    },
+  last_message_id: {
+    type: Schema.Types.ObjectId,
+    ref: "Message",
     default: null,
   },
   message_pinned_ids: [
@@ -103,6 +71,7 @@ const RoomSchema = new Schema<IRoom>({
       type: Schema.Types.ObjectId,
       ref: "Message",
       default: [],
+      _id: false,
     },
   ],
   is_expired: {

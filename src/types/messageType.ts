@@ -1,13 +1,72 @@
 import { ObjectId } from "mongodb"
-import { IAttachment, Lnglat } from "./commonType"
+import { AttachmentRes, IAttachment, ITag, Lnglat, QueryCommonParams, TagRes } from "./commonType"
 import { IUser } from "./userType"
 
-export type AttachmentType = "image" | "video" | "voice"
-
-export interface MessageTag {
-  _id: string
+export interface IMessage {
+  _id: ObjectId
+  user_id: ObjectId
+  room_id: ObjectId
   text: string
+  tag_ids: ObjectId[]
+  location: Lnglat
+  attachment_ids: IAttachment[]
+  reply_to: {
+    message_id: ObjectId
+    attachment_id?: ObjectId
+  }
+  read_by_user_ids: string[]
+  is_hidden: boolean
+  is_deleted: boolean
+  is_edited: boolean
+  liked_by_user_ids: {
+    user_id: string
+    emotion: MessageEmotionType
+  }[]
+  created_at: Date
+  updated_at: Date
 }
+
+export type MessagePopulate = Omit<
+  IMessage,
+  "user_id" | "reply_to" | "tag_ids" | "attachment_ids"
+> & {
+  user_id: IUser
+  reply_to?:
+    | {
+        message_id: Omit<IMessage, "user_id"> & {
+          user_id: IUser
+        }
+        attachment_id?: IAttachment
+      }
+    | undefined
+  tags_ids?: ITag[]
+  attachment_ids: IAttachment[]
+}
+
+export type ToMessageResponse = {
+  data: MessagePopulate
+  current_user_id: ObjectId
+}
+
+export type ToMessageListResponse = {
+  data: MessagePopulate[]
+  current_user_id: ObjectId
+}
+
+export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
+  message_id: ObjectId
+  is_author: boolean
+  author: AuthorMessage
+  is_liked: boolean
+  attachments: AttachmentRes[]
+  like_count: number
+  message_text: string
+  reply_to?: MessageReply | null
+  location?: Lnglat | null
+  tag?: TagRes[]
+}
+
+export type AttachmentType = "image" | "video" | "voice"
 
 export interface AuthorMessage {
   author_id: ObjectId
@@ -26,62 +85,10 @@ export type MessageReply = {
   message_id: ObjectId
   message_text: string
   created_at: Date
-  attachment?: IAttachment | null
+  attachment?: AttachmentRes | null
 }
 
 export type MessageEmotionType = "like" | "angry" | "sad" | "laugh" | "heart" | "wow"
-
-export interface IMessage {
-  _id: ObjectId
-  user_id: ObjectId
-  room_id: ObjectId
-  text: string
-  tag_ids: string[]
-  location: Lnglat
-  attachments: IAttachment[]
-  reply_to: {
-    message_id: ObjectId
-    attachment_id?: ObjectId
-  }
-  read_by_user_ids: string[]
-  is_hidden: boolean
-  is_deleted: boolean
-  is_edited: boolean
-  liked_by_user_ids: {
-    user_id: string
-    emotion: MessageEmotionType
-  }[]
-  created_at: Date
-  updated_at: Date
-}
-
-export type MessagePopulate = Omit<IMessage, "user_id" | "reply_to" | "tags"> & {
-  user_id: IUser
-  is_author: boolean
-  is_liked: boolean
-  reply_to?:
-    | {
-        message_id: Omit<IMessage, "user_id"> & {
-          user_id: IUser
-        }
-        attachment_id?: IAttachment
-      }
-    | undefined
-
-  tags?: MessageTag[]
-}
-
-export type MessageRes = Pick<IMessage, "room_id" | "attachments" | "created_at"> & {
-  message_id: ObjectId
-  is_author: boolean
-  author: AuthorMessage
-  is_liked: boolean
-  like_count: number
-  message_text: string
-  reply_to?: MessageReply | null
-  location?: Lnglat | null
-  tag?: MessageTag[]
-}
 
 export type SendMessage = Pick<IMessage, "text" | "room_id"> & {
   tag_ids?: ObjectId[]
@@ -94,6 +101,11 @@ export type SendMessage = Pick<IMessage, "text" | "room_id"> & {
 }
 
 export interface SendMessageServiceParams {
+  room_id: ObjectId
   user: IUser
   message: SendMessage
+}
+
+export interface GetMessagesInRoom extends QueryCommonParams {
+  room_id: ObjectId
 }

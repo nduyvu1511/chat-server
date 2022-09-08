@@ -54,6 +54,7 @@ const UserSchema = new Schema<IUser>({
   password: {
     type: String,
     min: 8,
+    default: null,
   },
   messages_unread: [
     {
@@ -63,8 +64,6 @@ const UserSchema = new Schema<IUser>({
       },
       message_ids: [{ type: Schema.Types.ObjectId, ref: "Message" }],
       default: [],
-    },
-    {
       _id: false,
     },
   ],

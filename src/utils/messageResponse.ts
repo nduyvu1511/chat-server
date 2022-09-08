@@ -1,22 +1,28 @@
-import { LastMessage, MessageRes, MessagePopulate, MessageReply } from "../types"
+import {
+  LastMessage,
+  MessageReply,
+  MessageRes,
+  ToMessageListResponse,
+  ToMessageResponse,
+} from "../types"
+import { toAttachmentListResponse, toAttachmentResponse, toTagListResponse } from "./commonResponse"
+import { toAuthorMessage } from "./userResponse"
 
-export const toMessageResponse = (data: MessagePopulate): MessageRes => {
+export const toMessageResponse = ({ data, current_user_id }: ToMessageResponse): MessageRes => {
   let reply_to: MessageReply | null = null
+  console.log(data)
 
   if (data?.reply_to?.message_id?._id) {
     const { _id: message_id, text: message_text = "", created_at } = data.reply_to.message_id
-    const { _id: author_id, avatar = "", user_name } = data.reply_to.message_id.user_id
 
     reply_to = {
-      author: {
-        author_avatar: avatar,
-        author_name: user_name,
-        author_id,
-      },
+      author: toAuthorMessage(data.reply_to.message_id.user_id),
       created_at,
       message_id,
       message_text,
-      attachment: data?.reply_to?.attachment_id || null,
+      attachment: data?.reply_to?.attachment_id
+        ? toAttachmentResponse(data.reply_to.attachment_id)
+        : null,
     }
   }
 
@@ -30,30 +36,38 @@ export const toMessageResponse = (data: MessagePopulate): MessageRes => {
       author_name: data.user_id?.user_name || "",
     },
     like_count: data.liked_by_user_ids?.length,
-    is_author: data.is_author,
-    is_liked: data.is_liked,
-    attachments: data?.attachments || [],
+    is_author: data.user_id._id.toString() === current_user_id.toString(),
+    is_liked: data.liked_by_user_ids?.some(
+      ({ user_id }) => user_id.toString() === current_user_id.toString()
+    ),
+    attachments: data?.attachment_ids?.length ? toAttachmentListResponse(data?.attachment_ids) : [],
     location: data?.location || null,
     reply_to,
     created_at: data.created_at,
-    tag: data?.tags || [],
+    tag: data?.tags_ids?.length ? toTagListResponse(data.tags_ids) : [],
   }
 }
 
-export const toMessageListResponse = (data: MessagePopulate[]): MessageRes[] => {
-  return data.map((item) => toMessageResponse(item))
+export const toMessageListResponse = ({
+  data,
+  current_user_id,
+}: ToMessageListResponse): MessageRes[] => {
+  return data.map((item) => toMessageResponse({ data: item, current_user_id }))
 }
 
-export const toLastMessageResponse = (data: MessagePopulate): LastMessage => {
+export const toLastMessageResponse = ({
+  current_user_id,
+  data,
+}: ToMessageResponse): LastMessage => {
   return {
     message_id: data._id,
     message_text: data.text,
     created_at: data.created_at,
+    is_author: current_user_id?.toString() === data.user_id._id.toString(),
     author: {
       author_avatar: data.user_id?.avatar || "",
       author_id: data.user_id?._id,
       author_name: data.user_id?.user_name || "",
     },
-    is_author: data.is_author,
   }
 }

@@ -1,4 +1,4 @@
-import { EMAIL_REGEX, PASSWORD_REGEX, PHONE_REGEX, URL_REGEX } from "./regex"
+import { EMAIL_REGEX, OBJECT_ID_REGEX, PASSWORD_REGEX, PHONE_REGEX, URL_REGEX } from "./regex"
 
 export const validateEmail = (email: string) => EMAIL_REGEX.test(email)
 export const validatePassword = (pw: string) => PASSWORD_REGEX.test(pw)
@@ -19,4 +19,8 @@ export function convertViToEn(str: string, toUpperCase = false) {
   str = str.replace(/\u02C6|\u0306|\u031B/g, "") // Â, Ê, Ă, Ơ, Ư
 
   return toUpperCase ? str.toUpperCase() : str
+}
+
+export const isObjectID = (val: string): boolean => {
+  return OBJECT_ID_REGEX.test(val)
 }

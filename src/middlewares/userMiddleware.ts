@@ -12,7 +12,7 @@ export async function checkUserExist(
     if (!data) {
       return res.json(new ResponseError("User not found"))
     }
-    req.locals = { ...data, ...req.locals }
+    req.locals = data
     return next()
   } catch (error) {
     return res.status(400).send(error)
