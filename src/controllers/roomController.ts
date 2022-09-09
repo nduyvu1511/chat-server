@@ -1,6 +1,6 @@
 import Express from "express"
 import _ from "lodash"
-import { MESSAGES_LIMIT, USERS_LIMIT } from "../constant"
+import { MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constant"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
 import { CreateGroupChat, IUser } from "../types"
@@ -34,13 +34,17 @@ class RoomController {
       if (!isValid)
         return res.json(new ResponseError("Create room chat failed because partner is duplicate"))
 
-      const room = await RoomService.createPrivateChat({ partner, user: req.locals })
+      const room = await RoomService.createPrivateChat({
+        partner: partner as any,
+        user: req.locals,
+      })
       if (!room) return res.json(new ResponseError("Create room chat failed"))
 
       const roomRes = await RoomService.getRoomDetail({
         room_id: room._id,
         user: req.locals,
       })
+
       return res.json(new ResponseData(roomRes, "create room chat successfully"))
     } catch (error) {
       return res.status(400).send(error)
@@ -94,7 +98,7 @@ class RoomController {
 
   async getRoomList(req: Express.Request, res: Express.Response) {
     try {
-      const limit = Number(req.query?.limit) || 30
+      const limit = Number(req.query?.limit) || ROOMS_LIMIT
       const offset = Number(req.query?.offset) || 0
       const search_term = req.query?.search_term ? req.query?.search_term + "" : ""
       const rooms = await RoomService.getRoomList({
@@ -102,7 +106,7 @@ class RoomController {
         offset,
         search_term,
         room_ids: req.locals?.room_joined_ids || [],
-        current_user_id: req.locals._id,
+        current_user: req.locals,
       })
       return res.json(new ResponseData(rooms))
     } catch (error) {
@@ -131,12 +135,36 @@ class RoomController {
       const offset = Number(req.query?.offset) || 0
       const { room_id } = req.params
 
-      const messages = await RoomService.getMessagesInRoom({
+      const messages = await RoomService.getMessagesByFilter({
         limit,
         offset,
-        room_id: room_id as any,
+        current_user: req.locals,
+        filter: { room_id },
       })
 
+      return res.json(new ResponseData(messages))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async getRoomMessagesPinned(req: Express.Request, res: Express.Response) {
+    try {
+      const limit = Number(req.query?.limit) || ROOMS_LIMIT
+      const offset = Number(req.query?.offset) || 0
+      const { room_id } = req.params
+
+      const room = await RoomService.getRoomById(room_id as any)
+      const messages = await RoomService.getMessagesByFilter({
+        limit,
+        offset,
+        current_user: req.locals,
+        filter: {
+          _id: {
+            $in: room?.message_pinned_ids || [],
+          },
+        },
+      })
       return res.json(new ResponseData(messages))
     } catch (error) {
       return res.status(400).send(error)

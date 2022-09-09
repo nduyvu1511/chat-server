@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb"
 import { AttachmentId, AttachmentRes, IAttachment, ListRes, QueryCommonParams } from "./commonType"
 import { MessagePopulate, MessageRes } from "./messageType"
-import { IUser } from "./userType"
+import { IUser, UserPopulate } from "./userType"
 
 export interface IRoom {
   _id: ObjectId
@@ -37,12 +37,12 @@ export type RoomPopulate = Omit<IRoom, "last_message_id" | "room_avatar_id"> & {
 
 export type ToRoomRepsonse = {
   data: RoomPopulate
-  current_user_id: ObjectId
+  current_user: IUser
 }
 
 export type ToRoomListResponse = {
   data: RoomPopulate[]
-  current_user_id: ObjectId
+  current_user: IUser
 }
 
 export interface RoomDetailRes extends RoomRes {
@@ -59,26 +59,19 @@ export interface RoomQueryDetailRes extends RoomRes {
   leader_user_info: RoomMemberRes | null
 }
 
-// export interface RoomDetailRes extends RoomRes {
-//   messages_pinned?: MessageRes[]
-//   messages: ListRes<MessageRes[]>
-//   members: ListRes<RoomMemberRes[]>
-//   leader_user_info: RoomMemberRes | null
-// }
-
 export type RoomDetailPopulate = Omit<
   IRoom,
   "member_ids" | "message_pinned_ids" | "message_ids" | "leader_id" | "room_avatar_id"
 > & {
-  member_ids: IUser[]
+  member_ids: UserPopulate[]
   message_pinned_ids?: MessagePopulate[]
   message_ids: MessagePopulate[]
-  leader_id?: IUser
+  leader_id?: UserPopulate
   room_avatar_id?: IAttachment
 }
 
 export type ToRoomDetailResponse = {
-  current_user_id: ObjectId
+  current_user: IUser
   data: RoomDetailPopulate
 }
 
@@ -115,11 +108,14 @@ export interface CreatePrivateChat {
 
 export interface CreateGroupChat {
   room_name: Pick<IRoom, "room_name">
-  room_avatar?: AttachmentId
+  room_avatar_id?: AttachmentId
   member_ids: number[]
 }
 
-export type CreateGroupChatServicesParams = Pick<CreateGroupChat, "room_avatar" | "room_name"> & {
+export type CreateGroupChatServicesParams = Pick<
+  CreateGroupChat,
+  "room_avatar_id" | "room_name"
+> & {
   member_ids: ObjectId[]
 }
 
@@ -138,7 +134,7 @@ export interface QueryMembersInRoomParams extends QueryCommonParams {
 
 export interface QueryRoomServiceParams extends QueryRoomParams {
   room_ids: string[]
-  current_user_id: ObjectId
+  current_user: IUser
 }
 
 export interface QueryMembersInRoomService extends QueryCommonParams {
@@ -151,9 +147,10 @@ export type RoomServiceParams = Exclude<IRoom, "last_message" | ""> & {
 
 export type RoomMemberRes = Pick<
   IUser,
-  "avatar" | "bio" | "gender" | "date_of_birth" | "is_online" | "user_name" | "phone"
+  "bio" | "gender" | "date_of_birth" | "is_online" | "user_name" | "phone"
 > & {
   user_id: ObjectId
+  avatar: AttachmentRes
 }
 
 export type RoomDetailQueryRes = IRoom & {

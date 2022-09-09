@@ -1,5 +1,5 @@
 import Joi from "joi"
-import { PHONE_REGEX } from "../constant"
+import { DATE_REGEX, OBJECT_ID_REGEX, PHONE_REGEX, URL_REGEX } from "../constant"
 import {
   BlockOrUnBlockUserParams,
   ChangePasswordParams,
@@ -9,16 +9,16 @@ import {
   GetTokenParams,
   LoginParams,
   RegisterParams,
-  UpdateProfileParams,
+  UpdateProfile,
 } from "../types"
 
 export const createUserSchema = Joi.object<CreateUserParams>({
   user_name: Joi.string(),
   user_id: Joi.number().required(),
-  avatar: Joi.string().optional(),
-  bio: Joi.string().optional().valid(""),
-  date_of_birth: Joi.string().optional().valid(""),
-  gender: Joi.string().valid("male", "female", "no_info").optional().valid(""),
+  avatar: Joi.string().required(),
+  bio: Joi.string().optional(),
+  date_of_birth: Joi.string().regex(DATE_REGEX).optional(),
+  gender: Joi.string().valid("male", "female", "no_info").optional(),
   phone: Joi.string().regex(PHONE_REGEX, "Phone is invalid").required(),
   role: Joi.string().valid("customer", "active_driver", "admin", "in_active_driver").required(),
 })
@@ -28,11 +28,11 @@ export const GetTokenSchema = Joi.object<GetTokenParams>({
   phone: Joi.string().min(10).required(),
 })
 
-export const updateProfleSchema = Joi.object<UpdateProfileParams>({
+export const updateProfleSchema = Joi.object<UpdateProfile>({
   user_name: Joi.string().optional(),
-  avatar: Joi.string().optional(),
+  avatar: Joi.string().regex(URL_REGEX).optional(),
   bio: Joi.string().optional(),
-  date_of_birth: Joi.string().optional(),
+  date_of_birth: Joi.string().regex(DATE_REGEX).optional(),
   gender: Joi.string().valid("male", "female", "no_info").optional(),
 })
 
@@ -41,7 +41,7 @@ export const changeUserStatusSchema = Joi.object<changeUserStatusParams>({
 })
 
 export const blockOrUnblockUserSchema = Joi.object<BlockOrUnBlockUserParams>({
-  partner_id: Joi.string().min(8).disallow(Joi.ref("user_id")).required(),
+  partner_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
   status: Joi.string().valid("block", "unblock").required(),
 })
 
@@ -55,7 +55,7 @@ export const registerSchema = Joi.object<RegisterParams>({
   phone: Joi.string().regex(PHONE_REGEX).required(),
   password: Joi.string().min(8).required(),
   confirm_password: Joi.string().valid(Joi.ref("password")).required(),
-  role: Joi.string().allow("customer", "active_driver", "admin", "in_active_driver"),
+  role: Joi.string().allow("customer", "driver", "admin"),
 })
 
 export const changePasswordSchema = Joi.object<ChangePasswordParams>({

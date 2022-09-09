@@ -46,6 +46,14 @@ router.get(
   RoomController.getRoomDetail
 )
 router.get(
+  "/:room_id/messages_pinned",
+  verifyToken,
+  paramsMiddleware(roomIdSchema),
+  queryMiddleware(listSchema),
+  checkUserExist,
+  RoomController.getRoomMessagesPinned
+)
+router.get(
   "/:room_id/members",
   paramsMiddleware(roomIdSchema),
   queryMiddleware(listSchema),

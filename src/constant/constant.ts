@@ -2,11 +2,12 @@ export const DEFAULT_MESSAGE = "Congratulation"
 export const MESSAGES_LIMIT = 30
 export const ROOMS_LIMIT = 30
 export const USERS_LIMIT = 30
+export const TAGS_LIMIT = 30
 
 export const SELECT_USER = [
   "_id",
   "phone",
-  "avatar",
+  "avatar_id",
   "gender",
   "bio",
   "role",

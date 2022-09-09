@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb"
 import { AttachmentRes, IAttachment, ITag, Lnglat, QueryCommonParams, TagRes } from "./commonType"
-import { IUser } from "./userType"
+import { IUser, UserPopulate } from "./userType"
 
 export interface IMessage {
   _id: ObjectId
@@ -30,27 +30,32 @@ export type MessagePopulate = Omit<
   IMessage,
   "user_id" | "reply_to" | "tag_ids" | "attachment_ids"
 > & {
-  user_id: IUser
+  user_id: UserPopulate
   reply_to?:
     | {
         message_id: Omit<IMessage, "user_id"> & {
-          user_id: IUser
+          user_id: UserPopulate
         }
         attachment_id?: IAttachment
       }
     | undefined
-  tags_ids?: ITag[]
+  tag_ids?: ITag[]
   attachment_ids: IAttachment[]
 }
 
 export type ToMessageResponse = {
   data: MessagePopulate
-  current_user_id: ObjectId
+  current_user: IUser
+}
+
+export interface GetMessage {
+  message_id: ObjectId
+  current_user: IUser
 }
 
 export type ToMessageListResponse = {
   data: MessagePopulate[]
-  current_user_id: ObjectId
+  current_user: IUser
 }
 
 export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
@@ -63,7 +68,7 @@ export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
   message_text: string
   reply_to?: MessageReply | null
   location?: Lnglat | null
-  tag?: TagRes[]
+  tags?: TagRes[]
 }
 
 export type AttachmentType = "image" | "video" | "voice"
@@ -71,7 +76,7 @@ export type AttachmentType = "image" | "video" | "voice"
 export interface AuthorMessage {
   author_id: ObjectId
   author_name: string
-  author_avatar: string
+  author_avatar: AttachmentRes
 }
 
 export interface MessageUser {

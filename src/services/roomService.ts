@@ -1,35 +1,37 @@
 import { ObjectId } from "mongodb"
-import { MESSAGES_LIMIT, USERS_LIMIT } from "../constant"
+import { MESSAGES_LIMIT, SELECT_USER, USERS_LIMIT } from "../constant"
 import Message from "../models/message"
 import Room from "../models/room"
 import User from "../models/user"
 import {
+  AttachmentRes,
   CreateGroupChatServicesParams,
   CreatePrivateChatServices,
-  GetMessagesInRoom,
   GetRoomDetailService,
   IRoom,
-  IUser,
   ListRes,
   MessagePopulate,
   MessageRes,
   QueryMembersInRoomService,
   QueryRoomServiceParams,
-  RoomDetailRes,
   RoomMemberRes,
   RoomMemberWithId,
+  RoomPopulate,
   RoomQueryDetailRes,
   RoomRes,
+  UserPopulate,
 } from "../types"
 import {
+  toAttachmentResponse,
   toListResponse,
-  toRoomDetailResponse,
   toRoomListResponse,
   toRoomMemberListResponse,
+  toRoomMemberResponse,
 } from "../utils"
 import { toMessageListResponse } from "../utils/messageResponse"
+import { GetMessagesByFilter } from "../validators"
 
-export class RoomService {
+class RoomService {
   async createPrivateChat(params: CreatePrivateChatServices): Promise<IRoom | null> {
     const { partner, user } = params
 
@@ -39,24 +41,23 @@ export class RoomService {
       member_ids: [{ user_id: user._id }, { user_id: partner._id }],
     })
 
-    await room.save()
+    const roomRes: IRoom = (await room.save()).toObject()
     await this.saveRoomToUserIds([partner._id, user._id], room._id)
-
-    return (room as any)._doc
+    return roomRes
   }
 
   async createGroupChat(params: CreateGroupChatServicesParams): Promise<IRoom | null> {
-    const { member_ids, room_avatar, room_name } = params
+    const { member_ids, room_avatar_id, room_name } = params
 
     const room = new Room({
       room_type: "group",
-      room_avatar: room_avatar || null,
+      room_avatar_id: room_avatar_id || null,
       room_name: room_name || "",
       member_ids: member_ids?.map((user_id) => ({ user_id })),
     })
-    await room.save()
+    const roomRes: IRoom = (await room.save()).toObject()
     await this.saveRoomToUserIds(member_ids, room._id)
-    return (room as any)._doc
+    return roomRes
   }
 
   async getPrivateRoomIds(room_ids: string[]): Promise<RoomMemberWithId[]> {
@@ -94,135 +95,66 @@ export class RoomService {
   }
 
   async getRoomDetail(params: GetRoomDetailService): Promise<RoomQueryDetailRes | null> {
-    const room = await Room.findById(params.room_id).lean()
-    if (!room) return null
+    const room: RoomPopulate = await Room.findById(params.room_id).populate("room_avatar_id").lean()
+    if (!room?._id) return null
 
     // Get members in room
-    const usersFilter = {
-      _id: {
-        $in: room.member_ids?.map((item) => item.user_id),
-      },
-    }
-    const user_count = await User.countDocuments(usersFilter)
-    const users: IUser[] = await User.find(usersFilter).lean()
-
-    const messagesFilter = {
+    const members = await this.getMembersInRoom({
+      limit: USERS_LIMIT,
+      offset: 0,
       room_id: room._id,
-    }
-    const messages: MessagePopulate[] = await Message.find(messagesFilter)
-      .populate("user_id")
-      .lean()
-    const message_count = await Message.countDocuments(messagesFilter)
+    })
+
+    // Get messages in room
+    const messages = await this.getMessagesByFilter({
+      limit: MESSAGES_LIMIT,
+      offset: 0,
+      current_user: params.user,
+      filter: { room_id: room._id },
+    })
 
     // Get messages pinned in room
-    const messagesPinnedFilter = {
-      _id: {
-        $in: room.message_pinned_ids,
+    const messages_pinned = await this.getMessagesByFilter({
+      limit: MESSAGES_LIMIT,
+      offset: 0,
+      current_user: params.user,
+      filter: {
+        _id: {
+          $in: room.message_pinned_ids,
+        },
       },
-    }
-    const messagesPinned: MessagePopulate[] = await Message.find(messagesPinnedFilter)
-      .populate("user_id")
-      .lean()
-    const message_pinned_count = await Message.countDocuments(messagesPinnedFilter)
+    })
 
     // Get leader room info
-    const leaderUser: IUser | null = room?.leader_id ? await User.findById(room.leader_id) : null
+    const leader_user_info: UserPopulate | null = room?.leader_id
+      ? await User.findById(room.leader_id).populate("avatar_id")
+      : null
 
-    const room_name =
-      room.room_type === "private"
-        ? users.find((item) => item._id.toString() !== params.user._id.toString())?.user_name || ""
-        : room?.room_name
-
-    const data = {
-      ...toRoomDetailResponse({
-        data: {
-          ...room,
-          member_ids: users,
-          message_ids: messages,
-          message_pinned_ids: messagesPinned,
-          leader_id: leaderUser || undefined,
-          room_avatar_id: undefined,
-        },
-        current_user_id: params.user._id,
-      }),
-      room_name,
+    let room_name: null | string = room?.room_name
+    let room_avatar: AttachmentRes = toAttachmentResponse(room?.room_avatar_id as any)
+    if (room.room_type === "private") {
+      const partner = members.data.find(
+        (item) => item.user_id.toString() !== params.user._id.toString()
+      )
+      if (partner?.user_id) {
+        room_name = partner?.user_name || room.room_name || null
+        room_avatar = partner?.avatar as any
+      }
     }
 
     return {
-      ...data,
-      members: toListResponse({
-        data: data.members,
-        total: user_count,
-        limit: USERS_LIMIT,
-        offset: 0,
-      }),
-      messages: toListResponse({
-        data: data.messages,
-        total: message_count,
-        limit: MESSAGES_LIMIT,
-        offset: 0,
-      }),
-      messages_pinned: toListResponse({
-        data: data.messages_pinned,
-        total: message_pinned_count,
-        limit: MESSAGES_LIMIT,
-        offset: 0,
-      }),
+      room_id: room._id,
+      room_name,
+      room_avatar,
+      member_count: room.member_ids?.length || 0,
+      room_type: room.room_type,
+      last_message: null,
+      leader_user_info: leader_user_info?._id ? toRoomMemberResponse(leader_user_info) : null,
+      create_at: room.created_at,
+      members,
+      messages,
+      messages_pinned,
     }
-  }
-
-  async getRoomList(params: QueryRoomServiceParams): Promise<ListRes<RoomRes[]>> {
-    const { limit, offset, search_term, room_ids, current_user_id } = params
-    const searchQuery = search_term
-      ? {
-          room_name: {
-            $regex: search_term,
-            $options: "i",
-          },
-        }
-      : {}
-
-    const rooms = await Room.find({
-      $and: [
-        {
-          _id: {
-            $in: room_ids,
-          },
-        },
-        searchQuery,
-      ],
-    })
-      .populate({
-        path: "last_message_id",
-        model: "Message",
-        populate: {
-          path: "user_id",
-          model: "User",
-        },
-      })
-      .limit(limit)
-      .skip(offset)
-
-    const total = await Room.countDocuments({
-      _id: {
-        $in: room_ids,
-      },
-      searchQuery,
-    })
-
-    return toListResponse<RoomRes[]>({
-      limit,
-      offset,
-      total,
-      data: toRoomListResponse({ current_user_id, data: rooms as any }),
-    })
-    // return {
-    //   hasMore: rooms.length + offset < total,
-    //   limit,
-    //   offset,
-    //   total,
-    //   data: toRoomListResponse({ current_user_id, data: rooms as any }),
-    // }
   }
 
   async getMembersInRoom(params: QueryMembersInRoomService): Promise<ListRes<RoomMemberRes[]>> {
@@ -234,50 +166,104 @@ export class RoomService {
         $in: room?.member_ids?.map((item) => item.user_id) || [],
       },
     }
-    const members = await User.find(filter)
+    const members: UserPopulate[] = await User.find(filter)
+      .populate("avatar_id")
       .limit(limit)
       .skip(offset)
-      .select([
-        "_id",
-        "avatar",
-        "user_name",
-        "bio",
-        "date_of_birth",
-        "gender",
-        "phone",
-        "is_online",
-      ])
-    const total = await Room.countDocuments(filter)
+      .select(SELECT_USER)
+      .lean()
+    const total = await User.countDocuments(filter)
 
-    return {
-      hasMore: members.length + offset < total,
-      limit,
-      offset,
-      total,
-      data: toRoomMemberListResponse(members),
-    }
+    return toListResponse({ limit, offset, total, data: toRoomMemberListResponse(members) })
   }
 
-  async getMessagesInRoom(params: GetMessagesInRoom): Promise<ListRes<MessageRes[]>> {
-    const { limit, offset, room_id } = params
+  async getRoomList(params: QueryRoomServiceParams): Promise<ListRes<RoomRes[]>> {
+    const { limit, offset, search_term, room_ids, current_user } = params
+    const searchQuery = {
+      $and: [
+        {
+          _id: {
+            $in: room_ids,
+          },
+        },
+        search_term
+          ? {
+              room_name: {
+                $regex: search_term,
+                $options: "i",
+              },
+            }
+          : {},
+      ],
+    }
 
-    const messages = await Message.find({ room_id })
+    const data: RoomPopulate[] = await Room.find(searchQuery)
       .populate({
-        path: "user_id",
-        model: "User",
-        select: ["user_id", "_id", "user_name", "gender", "phone", "avatar", "is_online", "role"],
+        path: "last_message_id",
+        model: "Message",
+        populate: {
+          path: "user_id",
+          model: "User",
+        },
       })
+      .populate({ path: "room_avatar_id", model: "Attachment" })
       .limit(limit)
       .skip(offset)
       .lean()
 
-    return {
-      data: toMessageListResponse(messages as any),
-      hasMore: true,
-      limit: 1,
-      offset: 0,
-      total: 0,
-    }
+    const total = await Room.countDocuments(searchQuery)
+    return toListResponse({
+      limit,
+      offset,
+      total,
+      data: toRoomListResponse({ current_user, data }),
+    })
+  }
+
+  async getRoomById(room_id: ObjectId): Promise<IRoom | null> {
+    return await Room.findById(room_id)
+  }
+
+  async getMessagesByFilter(params: GetMessagesByFilter): Promise<ListRes<MessageRes[]>> {
+    const { limit, offset, current_user, filter } = params
+
+    const messages: MessagePopulate[] = await Message.find(filter)
+      .populate({
+        path: "user_id",
+        model: "User",
+        select: SELECT_USER,
+        populate: {
+          path: "avatar_id",
+          model: "Attachment",
+        },
+      })
+      .populate({
+        path: "reply_to.message_id",
+        populate: {
+          path: "user_id",
+          model: "User",
+          select: SELECT_USER,
+          populate: {
+            path: "avatar_id",
+            model: "Attachment",
+          },
+        },
+      })
+      .populate("reply_to.attachment_id")
+      .populate("tag_ids")
+      .populate("attachment_ids")
+      .limit(limit)
+      .skip(offset)
+      .lean()
+
+    const total = await Message.countDocuments(filter)
+
+    return toListResponse({
+      limit,
+      offset,
+      total,
+      data: toMessageListResponse({ data: messages, current_user }),
+    })
   }
 }
 

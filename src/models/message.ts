@@ -1,5 +1,7 @@
 import Mongoose, { Schema } from "mongoose"
 import { IMessage } from "../types"
+import Attachment from "./attachment"
+import Tag from "./tag"
 
 const MessageSchema = new Schema<IMessage>({
   user_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -9,7 +11,7 @@ const MessageSchema = new Schema<IMessage>({
     trim: true,
     default: null,
   },
-  tag_ids: [{ type: Schema.Types.ObjectId, ref: "Tag", default: [] }],
+  tag_ids: [{ type: Schema.Types.ObjectId, ref: Tag, default: [] }],
   location: {
     type: {
       lng: String,
@@ -20,7 +22,7 @@ const MessageSchema = new Schema<IMessage>({
   attachment_ids: [
     {
       type: Schema.Types.ObjectId,
-      ref: "Attachment",
+      ref: Attachment,
       _id: false,
       default: [],
     },
@@ -87,3 +89,5 @@ const MessageSchema = new Schema<IMessage>({
 })
 
 export default Mongoose.model("Message", MessageSchema)
+
+

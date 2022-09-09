@@ -40,16 +40,9 @@ const router = Express.Router()
  *         author: Alexander K. Dewdney
  */
 
-/**
- * @swagger
- * tags:
- *   name: Books
- *   description: The books managing API
- */
-
+router.post("/", bodyMiddleware(createUserSchema), UserController.createUser)
 router.post("/register", bodyMiddleware(registerSchema), UserController.register)
 router.post("/login", bodyMiddleware(loginSchema), UserController.login)
-router.post("/", bodyMiddleware(createUserSchema), UserController.createUser)
 router.post("/generate_token", bodyMiddleware(GetTokenSchema), UserController.generateToken)
 router.get("/check_has_password", verifyToken, checkUserExist, UserController.checkHasPassword)
 router.post(
@@ -66,12 +59,12 @@ router.patch(
   checkUserExist,
   UserController.changePassword
 )
-
 router.get("/profile", verifyToken, UserController.getUserInfo)
 router.patch(
   "/profile",
   verifyToken,
   bodyMiddleware(updateProfleSchema),
+  checkUserExist,
   UserController.updateProfile
 )
 router.patch(

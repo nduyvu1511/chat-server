@@ -1,11 +1,12 @@
 import Mongoose, { Schema } from "mongoose"
 import { IRoom } from "../types/roomType"
+import Attachment from "./attachment"
 
 const RoomSchema = new Schema<IRoom>({
   room_name: { type: String, default: "" },
   room_avatar_id: {
     type: Schema.Types.ObjectId,
-    ref: "Attachment",
+    ref: Attachment,
     default: null,
   },
   room_type: {

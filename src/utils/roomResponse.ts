@@ -6,11 +6,12 @@ import {
   ToRoomDetailResponse,
   ToRoomListResponse,
   ToRoomRepsonse,
+  UserPopulate,
 } from "../types"
 import { toAttachmentResponse } from "./commonResponse"
 import { toLastMessageResponse, toMessageListResponse } from "./messageResponse"
 
-export const toRoomResponse = ({ data, current_user_id }: ToRoomRepsonse): RoomRes => {
+export const toRoomResponse = ({ data, current_user }: ToRoomRepsonse): RoomRes => {
   return {
     room_id: data._id,
     room_name: data?.room_name || "",
@@ -21,19 +22,19 @@ export const toRoomResponse = ({ data, current_user_id }: ToRoomRepsonse): RoomR
     last_message: data?.last_message_id?._id
       ? toLastMessageResponse({
           data: data.last_message_id,
-          current_user_id,
+          current_user,
         })
       : null,
   }
 }
 
-export const toRoomListResponse = ({ current_user_id, data }: ToRoomListResponse): RoomRes[] => {
-  return data.map((item) => toRoomResponse({ data: item, current_user_id }))
+export const toRoomListResponse = ({ current_user, data }: ToRoomListResponse): RoomRes[] => {
+  return data.map((item) => toRoomResponse({ data: item, current_user }))
 }
 
 export const toRoomDetailResponse = ({
   data,
-  current_user_id,
+  current_user,
 }: ToRoomDetailResponse): RoomDetailRes => {
   return {
     create_at: data?.created_at,
@@ -46,22 +47,22 @@ export const toRoomDetailResponse = ({
     messages_pinned: data?.message_pinned_ids?.length
       ? toMessageListResponse({
           data: data.message_pinned_ids,
-          current_user_id: current_user_id,
+          current_user,
         })
       : [],
     messages: data?.message_ids?.length
       ? toMessageListResponse({
           data: data.message_ids,
-          current_user_id: current_user_id,
+          current_user,
         })
       : [],
     members: toRoomMemberListResponse(data.member_ids),
   }
 }
 
-export const toRoomMemberResponse = (data: IUser): RoomMemberRes => ({
+export const toRoomMemberResponse = (data: UserPopulate): RoomMemberRes => ({
   user_id: data._id,
-  avatar: data?.avatar || "",
+  avatar: toAttachmentResponse(data.avatar_id),
   user_name: data?.user_name || "",
   phone: data.phone,
   bio: data?.bio || "",
@@ -70,6 +71,6 @@ export const toRoomMemberResponse = (data: IUser): RoomMemberRes => ({
   is_online: data?.is_online || false,
 })
 
-export const toRoomMemberListResponse = (data: IUser[]): RoomMemberRes[] => {
+export const toRoomMemberListResponse = (data: UserPopulate[]): RoomMemberRes[] => {
   return data.map((item) => toRoomMemberResponse(item))
 }

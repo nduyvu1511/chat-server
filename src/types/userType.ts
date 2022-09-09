@@ -1,11 +1,12 @@
 import { ObjectId } from "mongodb"
-import { QueryCommonParams } from "./commonType"
+import { FilterQuery } from "mongoose"
+import { AttachmentRes, IAttachment, QueryCommonParams } from "./commonType"
 
 export interface IUser {
   _id: ObjectId
   user_name: string
   role: UserRole
-  avatar?: string
+  avatar_id?: ObjectId
   password: string
   bio?: string
   phone: string
@@ -26,9 +27,12 @@ export interface IUser {
   room_blocked_noti_ids: string[]
 }
 
+export type UserPopulate = Omit<IUser, "avatar_id"> & {
+  avatar_id: IAttachment
+}
+
 export type UserRes = Pick<
   IUser,
-  | "avatar"
   | "bio"
   | "created_at"
   | "date_of_birth"
@@ -41,20 +45,28 @@ export type UserRes = Pick<
   | "updated_at"
 > & {
   user_id: ObjectId
+  avatar: AttachmentRes
 }
 
 export type CreateUserParams = Pick<
   IUser,
-  "avatar" | "user_name" | "date_of_birth" | "gender" | "role" | "bio" | "phone" | "user_id"
-> & { user_id: string }
+  "user_name" | "date_of_birth" | "gender" | "role" | "bio" | "phone" | "user_id"
+> & {
+  user_id: string
+  avatar: string
+}
 
-export type UpdateProfileParams = Partial<
-  Pick<IUser, "avatar" | "user_name" | "date_of_birth" | "gender" | "bio"> & { user_id: string }
+export type UpdateProfile = Partial<
+  Pick<IUser, "user_name" | "date_of_birth" | "gender" | "bio"> & {
+    avatar: string
+  }
 >
+
+export type UpdateProfileService = UpdateProfile & { user: IUser }
 
 export type GetTokenParams = Pick<IUser, "user_id" | "phone">
 
-export type UserRole = "customer" | "active_driver" | "admin" | "in_active_driver"
+export type UserRole = "customer" | "driver" | "admin"
 
 export type Gender = "male" | "female" | "no_info" | ""
 
@@ -95,4 +107,8 @@ export type CreatePasswordServiceParams = CreatePasswordParams & {
 
 export type ChangePasswordServiceParams = ChangePasswordParams & {
   _id: string
+}
+
+export interface GetUserByFilter extends QueryCommonParams {
+  filter: FilterQuery<IUser>
 }

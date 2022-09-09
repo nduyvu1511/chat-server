@@ -2,7 +2,8 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
-import { SELECT_USER } from "../constant"
+import { isObjectID, SELECT_USER } from "../constant"
+import Attachment from "../models/attachment"
 import User from "../models/user"
 import {
   BlockOrUnBlockUserParams,
@@ -10,38 +11,102 @@ import {
   CreatePasswordServiceParams,
   CreateUserParams,
   GetTokenParams,
-  getUserBlockListParams,
+  GetUserByFilter,
   IUser,
   RegisterParams,
-  UpdateProfileParams,
+  UpdateProfile,
+  UpdateProfileService,
+  UserPopulate,
   UserRes,
 } from "../types"
-import { ListRes } from "../types/commonType"
+import { IAttachment, ListRes } from "../types/commonType"
 import { toUserListResponse } from "../utils"
+import { toListResponse } from "./../utils/commonResponse"
+import AttachmentService from "./attachmentService"
 
-export class UserService {
-  async register(params: RegisterParams): Promise<IUser> {
+class UserService {
+  async register(params: RegisterParams): Promise<UserRes> {
     const password = await this.hashPassword(params.password)
+    const avatar = await Attachment.findById(process.env.BLANK_AVATAR_ID)
+
     const user = new User({
       ...params,
       user_name: params.phone,
       password,
+      avatar_id: avatar?._id || null,
     })
-    return await user.save()
+    return (await user.save()).toObject()
   }
 
-  async createUser(user: CreateUserParams): Promise<IUser> {
-    const userRes = new User(user)
-    await userRes.save()
-    return userRes
+  async createUser(user: CreateUserParams): Promise<UserPopulate> {
+    const avatar = await AttachmentService.createAttachment({
+      attachment_type: "image",
+      thumbnail_url: user.avatar,
+      url: user.avatar,
+      desc: "avatar",
+    })
+    const _ = new User({ ...user, avatar_id: avatar?._id || null })
+    const userRes: IUser = (await _.save()).toObject()
+
+    return { ...userRes, avatar_id: avatar }
   }
 
-  async updateProfile(params: UpdateProfileParams): Promise<IUser | null> {
-    const { user_id, ...data } = params
-    const userRes: IUser | null = await User.findByIdAndUpdate(user_id, data, {
+  async updateAvatarProfile(
+    params: UpdateProfile & { _id: ObjectId }
+  ): Promise<UserPopulate | null> {
+    const { _id, ...rest } = params
+
+    return await User.findByIdAndUpdate(_id, rest, {
       new: true,
     })
-    return userRes
+      .populate("avatar_id")
+      .lean()
+  }
+
+  async updateProfile(params: UpdateProfileService): Promise<UserPopulate | null> {
+    const { user, ...data } = params
+    let avatar: IAttachment | null = null
+
+    if (params?.avatar && user?.avatar_id && isObjectID(user.avatar_id.toString())) {
+      const _avatar: IAttachment | null = await Attachment.findById(user?.avatar_id).lean()
+      if (!_avatar?._id) {
+        avatar = await AttachmentService.createAttachment({
+          thumbnail_url: params.avatar,
+          url: params.avatar,
+          attachment_type: "image",
+          desc: "avatar",
+        })
+      } else {
+        if (_avatar.url !== params.avatar && _avatar?.thumbnail_url !== params.avatar)
+          avatar = await AttachmentService.createAttachment({
+            thumbnail_url: params.avatar,
+            url: params.avatar,
+            attachment_type: "image",
+            desc: "avatar",
+          })
+      }
+    } else if (!params?.avatar && user?.avatar_id && isObjectID(user.avatar_id.toString())) {
+      avatar = { _id: user.avatar_id } as any
+    } else if (params?.avatar && !user?.avatar_id) {
+      avatar = await AttachmentService.createAttachment({
+        thumbnail_url: params.avatar,
+        url: params.avatar,
+        attachment_type: "image",
+        desc: "avatar",
+      })
+    } else {
+      avatar = await Attachment.findById(process.env.BLANK_AVATAR_ID)
+    }
+
+    return await User.findByIdAndUpdate(
+      user._id,
+      { ...data, avatar_id: avatar?._id },
+      {
+        new: true,
+      }
+    )
+      .populate("avatar_id")
+      .lean()
   }
 
   async changeStatus(params: changeUserStatusParams): Promise<IUser | null> {
@@ -75,8 +140,8 @@ export class UserService {
     return true
   }
 
-  async getUserByUserId(user_id: ObjectId): Promise<IUser | null> {
-    return await User.findById(user_id).lean()
+  async getUserByUserId(user_id: ObjectId): Promise<UserPopulate | null> {
+    return await User.findById(user_id).populate("avatar_id").lean()
   }
 
   async getUserIds(user_ids: number[]): Promise<IUser[]> {
@@ -87,16 +152,24 @@ export class UserService {
     }).lean()
   }
 
-  async getUserByPhoneAndUserId(params: GetTokenParams): Promise<IUser | null> {
-    return await User.findOne({ user_id: params.user_id, phone: params.phone }).lean()
+  async getUserByPhoneAndUserId(params: GetTokenParams): Promise<UserPopulate | null> {
+    const user: UserPopulate | null = await User.findOne({
+      user_id: params.user_id,
+      phone: params.phone,
+    })
+      .populate("avatar_id")
+      .lean()
+    return user
   }
 
-  async getUserByPartnerId(user_id: number): Promise<IUser | null> {
-    return await User.findOne({ user_id }).lean()
+  async getUserByPartnerId(user_id: number): Promise<UserPopulate | null> {
+    const user: UserPopulate | null = await User.findOne({ user_id }).lean()
+    return user
   }
 
-  async getUserByPhone(phone: string): Promise<IUser | null> {
-    return await User.findOne({ phone }).lean()
+  async getUserByPhone(phone: string): Promise<UserPopulate | null> {
+    const user: UserPopulate | null = await User.findOne({ phone }).populate("avatar_id").lean()
+    return user
   }
 
   async blockOrUnBlockUser(params: BlockOrUnBlockUserParams): Promise<IUser> {
@@ -118,28 +191,23 @@ export class UserService {
     return await User.findByIdAndUpdate(user_id, query, { new: true }).lean()
   }
 
-  async getBlockUserList(params: getUserBlockListParams): Promise<ListRes<UserRes[]>> {
-    const { limit, offset, blocked_user_ids } = params
+  async getUserListByFilter(params: GetUserByFilter): Promise<ListRes<UserRes[]>> {
+    const { limit, offset, filter } = params
 
-    const query: FilterQuery<Object> = {
-      _id: {
-        $in: blocked_user_ids || [],
-      },
-    }
-    const total = await User.countDocuments(query)
-    const userRes: IUser[] = await User.find(query)
+    const total = await User.countDocuments(filter)
+    const userRes: UserPopulate[] = await User.find(filter)
       .select(SELECT_USER)
+      .populate("avatar_id")
       .limit(limit)
       .skip(offset)
       .lean()
 
-    return {
+    return toListResponse({
       data: toUserListResponse(userRes),
-      hasMore: offset + (userRes || []).length < total,
       limit,
       offset,
       total,
-    }
+    })
   }
 
   async hashPassword(password: string): Promise<string> {
@@ -147,7 +215,10 @@ export class UserService {
   }
 
   generateToken(user: IUser): string {
-    return jwt.sign({ user_id: user._id, role: user.role }, process.env.JWT_SECRET + "")
+    return jwt.sign(
+      { _id: user._id, user_id: user.user_id, role: user.role },
+      process.env.JWT_SECRET + ""
+    )
   }
 }
 

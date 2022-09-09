@@ -1,8 +1,16 @@
 import Joi from "joi"
 // import Jois from "joi-objectid"
 import { ObjectId } from "mongodb"
+import { FilterQuery } from "mongoose"
 import { OBJECT_ID_REGEX } from "../constant"
-import { CreateGroupChat, CreatePrivateChat, QueryCommonParams, QueryRoomParams } from "../types"
+import {
+  CreateGroupChat,
+  CreatePrivateChat,
+  IMessage,
+  IUser,
+  QueryCommonParams,
+  QueryRoomParams,
+} from "../types"
 
 export const createPrivateChatSchema = Joi.object<CreatePrivateChat>({
   partner_id: Joi.number().required(),
@@ -10,7 +18,7 @@ export const createPrivateChatSchema = Joi.object<CreatePrivateChat>({
 
 export const createGroupChatSchema = Joi.object<CreateGroupChat>({
   member_ids: Joi.array().items(Joi.number()).required().min(1),
-  room_avatar: Joi.string().optional(),
+  room_avatar_id: Joi.string().regex(OBJECT_ID_REGEX).optional(),
   room_name: Joi.string().required(),
 })
 
@@ -28,3 +36,8 @@ export const getRoomListSchema = Joi.object<QueryRoomParams>({
 export const roomIdSchema = Joi.object<{ room_id: ObjectId }>({
   room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
 })
+
+export interface GetMessagesByFilter extends QueryCommonParams {
+  current_user: IUser
+  filter: FilterQuery<IMessage>
+}

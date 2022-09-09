@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb"
 import Mongoose, { Schema } from "mongoose"
 import { IUser } from "../types"
+import Attachment from "./attachment"
 
 const UserSchema = new Schema<IUser>({
   phone: {
@@ -25,10 +26,14 @@ const UserSchema = new Schema<IUser>({
   },
   role: {
     type: String,
-    enum: ["customer", "active_driver", "admin", "in_active_driver"],
+    enum: ["customer", "car_driver", "admin"],
     required: true,
   },
-  avatar: { type: String, default: "" },
+  avatar_id: {
+    type: Schema.Types.ObjectId,
+    ref: Attachment,
+    default: null,
+  },
   bio: {
     type: String,
     default: "",

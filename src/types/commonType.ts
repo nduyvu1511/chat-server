@@ -1,4 +1,6 @@
 import { ObjectId } from "mongodb"
+import { FilterQuery } from "mongoose"
+import { UserRole } from "./userType"
 
 export interface ResponseType<T> {
   message: string
@@ -35,15 +37,18 @@ export interface Lnglat {
 type AttachmentType = "image" | "video" | "voice"
 
 export interface IAttachment {
-  _id: string
+  _id: ObjectId
   url: string
   thumbnail_url: string
   desc: string
   attachment_type: AttachmentType
   created_at: Date
+  updated_at: Date
 }
 
-export type AttachmentRes = Pick<IAttachment, "_id" | "thumbnail_url" | "url">
+export type AttachmentRes = Pick<IAttachment, "thumbnail_url" | "url" | "attachment_type"> & {
+  attachment_id: ObjectId
+}
 
 export interface AttachmentId {
   attachment_id: ObjectId
@@ -58,6 +63,7 @@ export interface ServiceQueryListRes<T> {
 export interface ITag {
   _id: ObjectId
   text: string
+  role: UserRole
   created_at: Date
   updated_at: Date
 }
@@ -65,4 +71,27 @@ export interface ITag {
 export interface TagRes {
   tag_id: ObjectId
   text: string
+}
+
+export type CreateAttachment = Pick<IAttachment, "attachment_type" | "url" | "thumbnail_url"> & {
+  desc?: string
+}
+
+export type UpdateAttachment = Partial<
+  Pick<IAttachment, "attachment_type" | "url" | "thumbnail_url" | "desc" | "updated_at">
+> & {
+  attachment_id: ObjectId
+}
+
+export interface GetTagMessageList extends QueryCommonParams {
+  filter: FilterQuery<ITag>
+}
+
+export interface CreateTagMessage {
+  role: UserRole
+  text: string
+}
+
+export type UpdateTagMessage = Partial<CreateTagMessage> & {
+  tag_id: string
 }
