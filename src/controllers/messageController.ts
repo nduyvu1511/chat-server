@@ -29,7 +29,7 @@ class MessageController {
 
       if (params.reply_to?.message_id) {
         const message = await MessageService.getMessage(params.reply_to.message_id)
-        if (!message)
+        if (!message || message.room_id.toString() !== room._id.toString())
           return res.json(new ResponseError("Reply message not found, Reply message ID is invalid"))
       }
 

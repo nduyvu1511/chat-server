@@ -9,9 +9,19 @@ const RoomSchema = new Schema<IRoom>({
     ref: Attachment,
     default: null,
   },
+  room_single_member_ids: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: [],
+    },
+    {
+      _id: false,
+    },
+  ],
   room_type: {
     type: String,
-    enum: ["group", "private", "admin"],
+    enum: ["group", "single", "admin"],
     required: true,
   },
   message_ids: [
@@ -19,6 +29,8 @@ const RoomSchema = new Schema<IRoom>({
       type: Schema.Types.ObjectId,
       ref: "Message",
       default: [],
+    },
+    {
       _id: false,
     },
   ],
@@ -35,9 +47,20 @@ const RoomSchema = new Schema<IRoom>({
           default: Date.now,
           required: false,
         },
+        message_unread_ids: [
+          {
+            type: Schema.Types.ObjectId,
+            ref: "Message",
+          },
+          {
+            _id: false,
+          },
+        ],
       },
       required: true,
       min: 2,
+    },
+    {
       _id: false,
     },
   ],
@@ -54,6 +77,8 @@ const RoomSchema = new Schema<IRoom>({
         },
       },
       default: [],
+    },
+    {
       _id: false,
     },
   ],
@@ -72,6 +97,8 @@ const RoomSchema = new Schema<IRoom>({
       type: Schema.Types.ObjectId,
       ref: "Message",
       default: [],
+    },
+    {
       _id: false,
     },
   ],

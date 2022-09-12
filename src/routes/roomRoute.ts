@@ -9,7 +9,7 @@ import {
 } from "../middlewares"
 import {
   createGroupChatSchema,
-  createPrivateChatSchema,
+  createSingleChatSchema,
   getRoomListSchema,
   listSchema,
   roomIdSchema,
@@ -18,11 +18,11 @@ import {
 const router = Express.Router()
 
 router.post(
-  "/private_chat",
+  "/single_chat",
   verifyToken,
-  bodyMiddleware(createPrivateChatSchema),
+  bodyMiddleware(createSingleChatSchema),
   checkUserExist,
-  RoomController.createPrivateChat
+  RoomController.createSingleChat
 )
 router.post(
   "/group_chat",
@@ -38,6 +38,7 @@ router.get(
   checkUserExist,
   RoomController.getRoomList
 )
+router.get("/ids", verifyToken, checkUserExist, RoomController.getUserJoinedRoomIds)
 router.get(
   "/:room_id",
   verifyToken,

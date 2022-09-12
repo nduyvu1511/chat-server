@@ -1,7 +1,7 @@
 import Express from "express"
 import MessageController from "../controllers/messageController"
 import { bodyMiddleware, checkUserExist, verifyToken } from "../middlewares"
-import { SendMessageSchema } from "./../validators/message"
+import { SendMessageSchema } from "../validators"
 const router = Express.Router()
 
 router.post(

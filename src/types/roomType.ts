@@ -7,6 +7,7 @@ export interface IRoom {
   _id: ObjectId
   room_name: string
   room_avatar_id: ObjectId
+  room_single_member_ids: ObjectId[]
   room_type: RoomType
   member_ids: RoomMember[]
   leader_id: ObjectId
@@ -27,12 +28,20 @@ export interface RoomRes {
   room_type: RoomType
   member_count: number
   last_message?: LastMessage | null
-  create_at: Date
+  created_at: Date
 }
 
-export type RoomPopulate = Omit<IRoom, "last_message_id" | "room_avatar_id"> & {
+export type RoomPopulate = Omit<
+  IRoom,
+  "last_message_id" | "room_avatar_id" | "room_single_member_ids"
+> & {
   last_message_id?: MessagePopulate
   room_avatar_id?: IAttachment
+  room_single_member_ids: {
+    _id: ObjectId
+    user_name: string
+    avatar_id: IAttachment
+  }[]
 }
 
 export type ToRoomRepsonse = {
@@ -80,11 +89,12 @@ export interface GetRoomDetailService {
   user: IUser
 }
 
-type RoomType = "group" | "private" | "admin"
+type RoomType = "group" | "single" | "admin"
 
 export interface RoomMember {
   user_id: ObjectId
   joined_at: number
+  message_unread_ids: ObjectId[]
 }
 
 export interface MemberLeaved {
@@ -102,7 +112,7 @@ export type LastMessage = Pick<
   "message_id" | "message_text" | "is_author" | "author" | "created_at"
 >
 
-export interface CreatePrivateChat {
+export interface createSingleChat {
   partner_id: number
 }
 
@@ -119,7 +129,7 @@ export type CreateGroupChatServicesParams = Pick<
   member_ids: ObjectId[]
 }
 
-export type CreatePrivateChatServices = {
+export type createSingleChatServices = {
   partner: IUser
   user: IUser
 }

@@ -5,14 +5,14 @@ import { FilterQuery } from "mongoose"
 import { OBJECT_ID_REGEX } from "../constant"
 import {
   CreateGroupChat,
-  CreatePrivateChat,
+  createSingleChat,
   IMessage,
   IUser,
   QueryCommonParams,
   QueryRoomParams,
 } from "../types"
 
-export const createPrivateChatSchema = Joi.object<CreatePrivateChat>({
+export const createSingleChatSchema = Joi.object<createSingleChat>({
   partner_id: Joi.number().required(),
 })
 

@@ -6,7 +6,7 @@ import User from "../models/user"
 import {
   AttachmentRes,
   CreateGroupChatServicesParams,
-  CreatePrivateChatServices,
+  createSingleChatServices,
   GetRoomDetailService,
   IRoom,
   ListRes,
@@ -32,13 +32,14 @@ import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"
 
 class RoomService {
-  async createPrivateChat(params: CreatePrivateChatServices): Promise<IRoom | null> {
+  async createSingleChat(params: createSingleChatServices): Promise<IRoom | null> {
     const { partner, user } = params
 
     const room = new Room({
-      room_type: "private",
+      room_type: "single",
       room_name: null,
       member_ids: [{ user_id: user._id }, { user_id: partner._id }],
+      room_single_member_ids: [user._id, partner._id],
     })
 
     const roomRes: IRoom = (await room.save()).toObject()
@@ -60,9 +61,9 @@ class RoomService {
     return roomRes
   }
 
-  async getPrivateRoomIds(room_ids: string[]): Promise<RoomMemberWithId[]> {
+  async getSingleRoomIds(room_ids: string[]): Promise<RoomMemberWithId[]> {
     return await Room.find({
-      $and: [{ _id: { $in: room_ids } }, { room_type: "private" }],
+      $and: [{ _id: { $in: room_ids } }, { room_type: "single" }],
     })
       .select(["member_ids"])
       .lean()
@@ -132,7 +133,7 @@ class RoomService {
 
     let room_name: null | string = room?.room_name
     let room_avatar: AttachmentRes = toAttachmentResponse(room?.room_avatar_id as any)
-    if (room.room_type === "private") {
+    if (room.room_type === "single") {
       const partner = members.data.find(
         (item) => item.user_id.toString() !== params.user._id.toString()
       )
@@ -150,7 +151,7 @@ class RoomService {
       room_type: room.room_type,
       last_message: null,
       leader_user_info: leader_user_info?._id ? toRoomMemberResponse(leader_user_info) : null,
-      create_at: room.created_at,
+      created_at: room.created_at,
       members,
       messages,
       messages_pinned,
@@ -204,9 +205,23 @@ class RoomService {
         populate: {
           path: "user_id",
           model: "User",
+          select: SELECT_USER,
+          populate: {
+            path: "avatar_id",
+            model: "Attachment",
+          },
         },
       })
       .populate({ path: "room_avatar_id", model: "Attachment" })
+      .populate({
+        path: "room_single_member_ids",
+        model: "User",
+        select: ["_id", "avatar_id", "user_name"],
+        populate: {
+          path: "avatar_id",
+          model: "Attachment",
+        },
+      })
       .limit(limit)
       .skip(offset)
       .lean()
@@ -254,6 +269,7 @@ class RoomService {
       .populate("attachment_ids")
       .limit(limit)
       .skip(offset)
+      .sort({ created_at: -1 })
       .lean()
 
     const total = await Message.countDocuments(filter)

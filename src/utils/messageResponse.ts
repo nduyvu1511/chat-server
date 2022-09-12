@@ -46,7 +46,7 @@ export const toMessageListResponse = ({
   data,
   current_user,
 }: ToMessageListResponse): MessageRes[] => {
-  return data.map((item) => toMessageResponse({ data: item, current_user }))
+  return data.map((item) => toMessageResponse({ data: item, current_user })).reverse()
 }
 
 export const toLastMessageResponse = ({ current_user, data }: ToMessageResponse): LastMessage => {

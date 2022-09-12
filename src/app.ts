@@ -2,12 +2,15 @@ import cookieParser from "cookie-parser"
 import cors from "cors"
 import dotenv from "dotenv"
 import express from "express"
+import { createServer } from "http"
 import morgan from "morgan"
 import path from "path"
+import { Server } from "socket.io"
 import swaggerJsDoc from "swagger-jsdoc"
 import swaggerUI from "swagger-ui-express"
 import db from "./config"
 import route from "./routes"
+import { MessageRes } from "./types"
 
 dotenv.config()
 
@@ -18,19 +21,41 @@ app.use(express.static(path.join(__dirname, "public")))
 app.use(cookieParser())
 app.use(express.urlencoded({ extended: true, limit: "10mb" }))
 app.use(express.json({ limit: "10mb" }))
-
 db.connect()
-
 app.use(morgan("combined"))
-
 const corsConfig = {
   origin: true,
   Credential: true,
 }
-
 app.use(cors(corsConfig))
-
 route(app)
+
+const httpServer = createServer(app)
+
+httpServer.listen(process.env.CHAT_SOCKET_PORT, () => {
+  console.log("chat server is running")
+})
+
+export const io = new Server(httpServer, {
+  cors: corsConfig,
+})
+
+io.on("connection", (socket) => {
+  socket.on(`join_room`, (roomId: string) => {
+    socket.join(roomId)
+  })
+
+  socket.on("send_message", (payload: MessageRes) => {
+    console.log("server send message to room", payload.room_id)
+    socket
+      .to(payload.room_id.toString())
+      // receive_message_in_room_${payload.room_id.toString()}
+      .emit(`receive_message`, {
+        ...payload,
+        is_author: false,
+      })
+  })
+})
 
 const options = {
   definition: {

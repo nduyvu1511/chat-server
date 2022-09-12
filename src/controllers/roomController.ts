@@ -8,7 +8,7 @@ import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
 
 class RoomController {
-  async createPrivateChat(req: Express.Request, res: Express.Response) {
+  async createSingleChat(req: Express.Request, res: Express.Response) {
     try {
       const { user_id } = req.locals
       const { partner_id } = req.body
@@ -21,7 +21,7 @@ class RoomController {
         return res.json(new ResponseError("Create room chat failed because partner ID is invalid"))
 
       // Check partner id exists
-      const roomIds = await RoomService.getPrivateRoomIds(req.locals.room_joined_ids)
+      const roomIds = await RoomService.getSingleRoomIds(req.locals.room_joined_ids)
       let isValid = true
       roomIds.forEach((room) => {
         room.member_ids.forEach((item) => {
@@ -34,7 +34,7 @@ class RoomController {
       if (!isValid)
         return res.json(new ResponseError("Create room chat failed because partner is duplicate"))
 
-      const room = await RoomService.createPrivateChat({
+      const room = await RoomService.createSingleChat({
         partner: partner as any,
         user: req.locals,
       })
@@ -143,6 +143,14 @@ class RoomController {
       })
 
       return res.json(new ResponseData(messages))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async getUserJoinedRoomIds(req: Express.Request, res: Express.Response) {
+    try {
+      return res.json(new ResponseData(req.locals?.room_joined_ids || []))
     } catch (error) {
       return res.status(400).send(error)
     }

@@ -1,5 +1,4 @@
 import {
-  IUser,
   RoomDetailRes,
   RoomMemberRes,
   RoomRes,
@@ -12,13 +11,24 @@ import { toAttachmentResponse } from "./commonResponse"
 import { toLastMessageResponse, toMessageListResponse } from "./messageResponse"
 
 export const toRoomResponse = ({ data, current_user }: ToRoomRepsonse): RoomRes => {
+  let room_name = data.room_name || ""
+  let room_avatar = data?.room_avatar_id?._id ? toAttachmentResponse(data.room_avatar_id) : null
+
+  if (data.room_type === "single" && data.room_single_member_ids?.[0]?._id) {
+    const partner = data.room_single_member_ids.find(
+      (item) => item._id.toString() !== current_user._id.toString()
+    )
+    room_name = partner?.user_name || ""
+    room_avatar = partner?.avatar_id ? toAttachmentResponse(partner?.avatar_id) : null
+  }
+
   return {
     room_id: data._id,
-    room_name: data?.room_name || "",
+    room_name,
     room_type: data.room_type,
-    room_avatar: data?.room_avatar_id?._id ? toAttachmentResponse(data.room_avatar_id) : null,
+    room_avatar,
     member_count: data.member_ids?.length || 0,
-    create_at: data?.created_at,
+    created_at: data?.created_at,
     last_message: data?.last_message_id?._id
       ? toLastMessageResponse({
           data: data.last_message_id,
@@ -37,7 +47,7 @@ export const toRoomDetailResponse = ({
   current_user,
 }: ToRoomDetailResponse): RoomDetailRes => {
   return {
-    create_at: data?.created_at,
+    created_at: data?.created_at,
     member_count: data?.member_ids?.length || 0,
     room_id: data._id,
     room_name: data?.room_name || null,
