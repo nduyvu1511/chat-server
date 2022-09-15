@@ -1,10 +1,14 @@
+import _ from "lodash"
+import { ObjectId } from "mongodb"
 import {
+  IRoom,
   RoomDetailRes,
   RoomMemberRes,
   RoomRes,
   ToRoomDetailResponse,
   ToRoomListResponse,
   ToRoomRepsonse,
+  ToRoomStatus,
   UserPopulate,
 } from "../types"
 import { toAttachmentResponse } from "./commonResponse"
@@ -22,6 +26,10 @@ export const toRoomResponse = ({ data, current_user }: ToRoomRepsonse): RoomRes 
     room_avatar = partner?.avatar_id ? toAttachmentResponse(partner?.avatar_id) : null
   }
 
+  const message_unread_count: number =
+    data.member_ids.find((item) => item.user_id._id.toString() === current_user._id.toString())
+      ?.message_unread_ids?.length || 0
+
   return {
     room_id: data._id,
     room_name,
@@ -35,11 +43,33 @@ export const toRoomResponse = ({ data, current_user }: ToRoomRepsonse): RoomRes 
           current_user,
         })
       : null,
+    is_online: toRoomStatus({ data: data.member_ids.map((item) => item.user_id), current_user }),
+    message_unread_count,
   }
 }
 
+export const toMessageUnreadCount = ({
+  current_user_id,
+  data,
+}: {
+  current_user_id: ObjectId
+  data: IRoom
+}): number => {
+  return (
+    data.member_ids?.find((item) => item.user_id.toString() === current_user_id.toString())
+      ?.message_unread_ids?.length || 0
+  )
+}
+
+export const toRoomStatus = ({ current_user, data }: ToRoomStatus): boolean => {
+  return data
+    .filter((item) => item._id.toString() !== current_user._id.toString())
+    .some((item) => item.is_online)
+}
+
 export const toRoomListResponse = ({ current_user, data }: ToRoomListResponse): RoomRes[] => {
-  return data.map((item) => toRoomResponse({ data: item, current_user }))
+  const list = data.map((item) => toRoomResponse({ data: item, current_user }))
+  return _.orderBy(list, (item) => item.last_message?.created_at || "", ["desc"])
 }
 
 export const toRoomDetailResponse = ({
@@ -67,6 +97,7 @@ export const toRoomDetailResponse = ({
         })
       : [],
     members: toRoomMemberListResponse(data.member_ids),
+    is_online: true,
   }
 }
 

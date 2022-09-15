@@ -56,6 +56,14 @@ const UserSchema = new Schema<IUser>({
       default: [],
     },
   ],
+  user_chatted_with_ids: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: [],
+    },
+    { _id: false },
+  ],
   password: {
     type: String,
     min: 8,
@@ -89,6 +97,7 @@ const UserSchema = new Schema<IUser>({
     default: null,
   },
   room_blocked_noti_ids: [{ type: ObjectId, ref: "Room", default: [] }],
+  socket_id: { type: String, default: null },
 })
 
 export default Mongoose.model("User", UserSchema)

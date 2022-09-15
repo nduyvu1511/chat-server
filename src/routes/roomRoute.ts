@@ -8,6 +8,8 @@ import {
   verifyToken,
 } from "../middlewares"
 import {
+  addMessageUnReadSchema,
+  clearMessageUnReadSchema,
   createGroupChatSchema,
   createSingleChatSchema,
   getRoomListSchema,
@@ -23,6 +25,18 @@ router.post(
   bodyMiddleware(createSingleChatSchema),
   checkUserExist,
   RoomController.createSingleChat
+)
+router.post(
+  "/message_unread",
+  verifyToken,
+  bodyMiddleware(addMessageUnReadSchema),
+  RoomController.addMessageUnReadToRoom
+)
+router.delete(
+  "/:room_id/message_unread",
+  verifyToken,
+  paramsMiddleware(roomIdSchema),
+  RoomController.clearMessageUnreadFromRoom
 )
 router.post(
   "/group_chat",

@@ -26,14 +26,16 @@ export interface RoomRes {
   room_name: string | null
   room_avatar?: AttachmentRes | null
   room_type: RoomType
+  is_online: boolean
   member_count: number
+  message_unread_count: number
   last_message?: LastMessage | null
   created_at: Date
 }
 
 export type RoomPopulate = Omit<
   IRoom,
-  "last_message_id" | "room_avatar_id" | "room_single_member_ids"
+  "last_message_id" | "room_avatar_id" | "room_single_member_ids" | "member_ids"
 > & {
   last_message_id?: MessagePopulate
   room_avatar_id?: IAttachment
@@ -42,6 +44,13 @@ export type RoomPopulate = Omit<
     user_name: string
     avatar_id: IAttachment
   }[]
+  member_ids: MemberRoomPopulate[]
+}
+
+export type MemberRoomPopulate = {
+  user_id: IUser
+  joined_at: Date
+  message_unread_ids: ObjectId[]
 }
 
 export type ToRoomRepsonse = {
@@ -54,14 +63,15 @@ export type ToRoomListResponse = {
   current_user: IUser
 }
 
-export interface RoomDetailRes extends RoomRes {
+export type RoomDetailRes = Omit<RoomRes, "message_unread_count"> & {
+  // offline_at: Date
   messages_pinned: MessageRes[]
   messages: MessageRes[]
   members: RoomMemberRes[]
   leader_user_info: RoomMemberRes | null
 }
 
-export interface RoomQueryDetailRes extends RoomRes {
+export type RoomQueryDetailRes = Omit<RoomRes, "message_unread_count"> & {
   messages_pinned: ListRes<MessageRes[]>
   messages: ListRes<MessageRes[]>
   members: ListRes<RoomMemberRes[]>
@@ -109,7 +119,7 @@ export interface RoomMemberWithId {
 
 export type LastMessage = Pick<
   MessageRes,
-  "message_id" | "message_text" | "is_author" | "author" | "created_at"
+  "message_id" | "message_text" | "is_author" | "author" | "created_at" | "room_id"
 >
 
 export interface createSingleChat {
@@ -166,4 +176,26 @@ export type RoomMemberRes = Pick<
 export type RoomDetailQueryRes = IRoom & {
   pinned_message?: MessagePopulate
   messages: MessagePopulate[]
+}
+
+export interface ToRoomStatus {
+  data: IUser[]
+  current_user: IUser
+}
+
+export interface ClearMessageUnread {
+  room_id: ObjectId
+}
+
+export interface ClearMessageUnreadService extends ClearMessageUnread {
+  user_id: ObjectId
+}
+
+export interface AddMessageUnread {
+  message_id: ObjectId
+}
+
+export interface AddMessageUnreadService extends AddMessageUnread {
+  room_id: ObjectId
+  user_id: ObjectId
 }

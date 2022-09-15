@@ -51,6 +51,7 @@ export const toMessageListResponse = ({
 
 export const toLastMessageResponse = ({ current_user, data }: ToMessageResponse): LastMessage => {
   return {
+    room_id: data.room_id,
     message_id: data._id,
     message_text: data.text,
     created_at: data.created_at,

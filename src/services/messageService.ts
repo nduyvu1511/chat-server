@@ -39,7 +39,7 @@ class MessageService {
     return await Message.findById(id).lean()
   }
 
-  async queryMessageRes({ current_user, message_id }: GetMessage): Promise<MessageRes | null> {
+  async getMessageRes({ current_user, message_id }: GetMessage): Promise<MessageRes | null> {
     const message: MessagePopulate | null = await Message.findById(message_id)
       .populate({
         path: "user_id",

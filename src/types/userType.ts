@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
+import { Socket } from "socket.io"
 import { AttachmentRes, IAttachment, QueryCommonParams } from "./commonType"
 
 export interface IUser {
@@ -14,6 +15,7 @@ export interface IUser {
   date_of_birth?: string
   blocked_user_ids: number[]
   gender?: Gender
+  user_chatted_with_ids: ObjectId[]
   room_joined_ids: string[]
   messages_unread: {
     room_id: ObjectId
@@ -25,6 +27,7 @@ export interface IUser {
   is_online: boolean
   offline_at: Date
   room_blocked_noti_ids: string[]
+  socket_id: string
 }
 
 export type UserPopulate = Omit<IUser, "avatar_id"> & {
@@ -46,6 +49,12 @@ export type UserRes = Pick<
 > & {
   user_id: ObjectId
   avatar: AttachmentRes
+}
+
+export type UserData = UserRes & {
+  user_chatted_with_ids: string[]
+  room_joined_ids: string[]
+  room_blocked_noti_ids: string[]
 }
 
 export type CreateUserParams = Pick<
@@ -72,7 +81,10 @@ export type Gender = "male" | "female" | "no_info" | ""
 
 export type UserLoginRes = UserRes & { token: string }
 
-export type changeUserStatusParams = Pick<IUser, "is_online"> & { user_id: string }
+export type changeUserStatusParams = Pick<IUser, "is_online"> & {
+  user_id: string
+  socket_id: string
+}
 
 export type BlockUserStatus = "block" | "unblock"
 export type BlockOrUnBlockUserParams = {
@@ -86,6 +98,10 @@ export type getUserBlockListParams = Pick<IUser, "blocked_user_ids"> & QueryComm
 export interface LoginParams {
   phone: string
   password: string
+}
+
+export interface LoginSocket {
+  socket_id: string
 }
 
 export type RegisterParams = Pick<IUser, "user_id" | "phone" | "password" | "role"> & {
@@ -111,4 +127,29 @@ export type ChangePasswordServiceParams = ChangePasswordParams & {
 
 export interface GetUserByFilter extends QueryCommonParams {
   filter: FilterQuery<IUser>
+}
+
+export interface ChangeUserStatusBySocketId {
+  socket_id: string
+  is_online: boolean
+}
+
+export interface AddUserSocketId {
+  user_id: string
+  socket_id: string
+}
+
+export interface AddUserIdsChattedWith {
+  user_ids: ObjectId[]
+}
+
+export interface LoginToSocket {
+  socket_id: string
+  user_id: string
+  // socket: Socket<any>
+}
+
+export interface UserSocketId {
+  user_id: ObjectId
+  socket_id: string
 }

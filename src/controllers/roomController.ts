@@ -1,9 +1,12 @@
 import Express from "express"
 import _ from "lodash"
 import { MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constant"
+import message from "../models/message"
+import MessageService from "../services/messageService"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import { CreateGroupChat, IUser } from "../types"
+import { AddMessageUnread, CreateGroupChat, IUser } from "../types"
+import { toMessageUnreadCount } from "../utils"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
 
@@ -40,6 +43,11 @@ class RoomController {
       })
       if (!room) return res.json(new ResponseError("Create room chat failed"))
 
+      // Add partner id to user chatted with field
+      await UserService.addUserIdsChattedWith({
+        user_ids: [req.locals._id, partner._id],
+      })
+
       const roomRes = await RoomService.getRoomDetail({
         room_id: room._id,
         user: req.locals,
@@ -63,21 +71,26 @@ class RoomController {
         )
       }
 
-      const userIds = await UserService.getUserIds(memberIds)
-      if (userIds?.length === 1) {
+      const partnerObjectIds = await UserService.getUserIds(memberIds)
+      if (partnerObjectIds?.length === 1) {
         return res.json(
           new ResponseError("Missing member id, can not create group chat without partner")
         )
       }
 
+      const partnerIds = partnerObjectIds.map((item) => item._id)
       const room = await RoomService.createGroupChat({
         ...params,
-        member_ids: userIds.map((item) => item._id),
+        member_ids: partnerIds,
       })
 
       if (!room) return new ResponseError("Create group chat failed")
 
+      await UserService.addUserIdsChattedWith({
+        user_ids: partnerIds,
+      })
       const roomRes = await RoomService.getRoomDetail({ room_id: room._id, user: req.locals })
+
       return res.json(new ResponseData(roomRes, "Create group chat successfully"))
     } catch (error) {
       return res.status(400).send(error)
@@ -91,6 +104,51 @@ class RoomController {
       if (!room)
         return res.json(new ResponseError("Room not found, the room has been deleted or changed"))
       return res.json(new ResponseData(room))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async addMessageUnReadToRoom(req: Express.Request, res: Express.Response) {
+    try {
+      const messageRes = await MessageService.getMessageRes({
+        current_user: req.locals,
+        message_id: req.body.message_id,
+      })
+      if (!messageRes?.message_id) return res.json(new ResponseError("Message not found"))
+
+      const room = await RoomService.addMessageUnreadToRoom({
+        message_id: messageRes.message_id,
+        room_id: messageRes.room_id,
+        user_id: req.locals._id,
+      })
+      if (!room) return res.json(new ResponseError("Failed to add message unread to room"))
+
+      return res.json(
+        new ResponseData(
+          {
+            message_unread_count: toMessageUnreadCount({
+              data: room,
+              current_user_id: req.locals._id,
+            }),
+          },
+          "Added message unread to room"
+        )
+      )
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async clearMessageUnreadFromRoom(req: Express.Request, res: Express.Response) {
+    try {
+      const data = await RoomService.clearMessageUnreadFromRoom({
+        room_id: req.params.room_id as any,
+        user_id: req.locals._id,
+      })
+      if (!data) return res.json(new ResponseError("Failed to clear message unread from room"))
+
+      return res.json(new ResponseData(null, "Cleared message unread from room"))
     } catch (error) {
       return res.status(400).send(error)
     }

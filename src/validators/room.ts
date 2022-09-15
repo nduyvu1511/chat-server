@@ -4,12 +4,14 @@ import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
 import { OBJECT_ID_REGEX } from "../constant"
 import {
+  AddMessageUnread,
+  ClearMessageUnread,
   CreateGroupChat,
   createSingleChat,
   IMessage,
   IUser,
   QueryCommonParams,
-  QueryRoomParams,
+  QueryRoomParams
 } from "../types"
 
 export const createSingleChatSchema = Joi.object<createSingleChat>({
@@ -34,6 +36,14 @@ export const getRoomListSchema = Joi.object<QueryRoomParams>({
 })
 
 export const roomIdSchema = Joi.object<{ room_id: ObjectId }>({
+  room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+})
+
+export const addMessageUnReadSchema = Joi.object<AddMessageUnread>({
+  message_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+})
+
+export const clearMessageUnReadSchema = Joi.object<ClearMessageUnread>({
   room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
 })
 

@@ -1,10 +1,13 @@
 import { ObjectId } from "mongodb"
-import { MESSAGES_LIMIT, SELECT_USER, USERS_LIMIT } from "../constant"
+import { MESSAGES_LIMIT, SELECT_ROOM, SELECT_USER, USERS_LIMIT } from "../constant"
 import Message from "../models/message"
 import Room from "../models/room"
 import User from "../models/user"
 import {
+  AddMessageUnread,
+  AddMessageUnreadService,
   AttachmentRes,
+  ClearMessageUnreadService,
   CreateGroupChatServicesParams,
   createSingleChatServices,
   GetRoomDetailService,
@@ -20,6 +23,7 @@ import {
   RoomQueryDetailRes,
   RoomRes,
   UserPopulate,
+  UserSocketId,
 } from "../types"
 import {
   toAttachmentResponse,
@@ -30,6 +34,7 @@ import {
 } from "../utils"
 import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"
+import UserService from "./userService"
 
 class RoomService {
   async createSingleChat(params: createSingleChatServices): Promise<IRoom | null> {
@@ -45,6 +50,14 @@ class RoomService {
     const roomRes: IRoom = (await room.save()).toObject()
     await this.saveRoomToUserIds([partner._id, user._id], room._id)
     return roomRes
+  }
+
+  async getSocketIdsFromRoom(room_id: string): Promise<UserSocketId[]> {
+    const room: IRoom | null = await Room.findById(room_id)
+    if (!room?.member_ids?.length) return []
+    return await UserService.getSocketIdsByUserIds(
+      room.member_ids.map((item) => item.user_id.toString())
+    )
   }
 
   async createGroupChat(params: CreateGroupChatServicesParams): Promise<IRoom | null> {
@@ -95,8 +108,49 @@ class RoomService {
     )
   }
 
+  async addMessageUnreadToRoom(params: AddMessageUnreadService): Promise<IRoom | null> {
+    const { message_id, room_id, user_id } = params
+    try {
+      return await Room.findByIdAndUpdate(
+        room_id,
+        {
+          $addToSet: {
+            "member_ids.$[e1].message_unread_ids": message_id,
+          },
+        },
+        {
+          arrayFilters: [{ "e1.user_id": user_id }],
+          new: true,
+        }
+      ).select(["member_ids"])
+    } catch (error) {
+      return null
+    }
+  }
+
+  async clearMessageUnreadFromRoom(params: ClearMessageUnreadService): Promise<IRoom | null> {
+    const { room_id, user_id } = params
+    try {
+      return await Room.findByIdAndUpdate(
+        room_id,
+        {
+          "member_ids.$[e1].message_unread_ids": [],
+        },
+        {
+          arrayFilters: [{ "e1.user_id": user_id }],
+          new: true,
+        }
+      )
+    } catch (error) {
+      return null
+    }
+  }
+
   async getRoomDetail(params: GetRoomDetailService): Promise<RoomQueryDetailRes | null> {
-    const room: RoomPopulate = await Room.findById(params.room_id).populate("room_avatar_id").lean()
+    const room: RoomPopulate = await Room.findById(params.room_id)
+      .select(SELECT_ROOM)
+      .populate("room_avatar_id")
+      .lean()
     if (!room?._id) return null
 
     // Get members in room
@@ -155,13 +209,16 @@ class RoomService {
       members,
       messages,
       messages_pinned,
+      is_online: members.data
+        .filter((item) => item.user_id.toString() !== params.user.user_id.toString())
+        .some((item) => item.is_online),
     }
   }
 
   async getMembersInRoom(params: QueryMembersInRoomService): Promise<ListRes<RoomMemberRes[]>> {
     const { limit, offset, room_id } = params
 
-    const room = await Room.findById(room_id)
+    const room = await Room.findById(room_id).select(SELECT_ROOM)
     const filter = {
       _id: {
         $in: room?.member_ids?.map((item) => item.user_id) || [],
@@ -199,6 +256,7 @@ class RoomService {
     }
 
     const data: RoomPopulate[] = await Room.find(searchQuery)
+      .select(SELECT_ROOM)
       .populate({
         path: "last_message_id",
         model: "Message",
@@ -212,6 +270,7 @@ class RoomService {
           },
         },
       })
+      .populate({ path: "member_ids.user_id", model: "User", select: ["_id", "is_online"] })
       .populate({ path: "room_avatar_id", model: "Attachment" })
       .populate({
         path: "room_single_member_ids",
@@ -236,7 +295,7 @@ class RoomService {
   }
 
   async getRoomById(room_id: ObjectId): Promise<IRoom | null> {
-    return await Room.findById(room_id)
+    return await Room.findById(room_id).select(SELECT_ROOM)
   }
 
   async getMessagesByFilter(params: GetMessagesByFilter): Promise<ListRes<MessageRes[]>> {

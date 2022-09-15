@@ -39,7 +39,7 @@ class MessageController {
         room_id: room._id,
       })
 
-      const messageRes = await MessageService.queryMessageRes({
+      const messageRes = await MessageService.getMessageRes({
         message_id: message._id,
         current_user: req.locals,
       })

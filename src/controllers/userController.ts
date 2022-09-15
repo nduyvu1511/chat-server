@@ -5,7 +5,7 @@ import UserService from "../services/userService"
 import { IUser, UserLoginRes, UserRes } from "../types"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
-import { toUserResponse } from "../utils/userResponse"
+import { toUserDataReponse, toUserResponse } from "../utils/userResponse"
 
 class UserController {
   async register(req: Express.Request, res: Express.Response) {
@@ -89,6 +89,20 @@ class UserController {
     }
   }
 
+  async loginToSocket(req: Express.Request, res: Express.Response) {
+    try {
+      const user_id = req.locals._id
+      // const { socket_id } = req.body
+      const user = await UserService.getUserByUserId(user_id)
+      if (!user) return res.json(new ResponseError("User not found"))
+      // await UserService.addUserSocketId({ user_id, socket_id })
+      // socket.emit(`user_login_${user.user_id}`, user)
+      return res.json(new ResponseData(toUserDataReponse(user)))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
   async changePassword(req: Express.Request, res: Express.Response) {
     try {
       if (!(await bcrypt.compare(req.body.current_password, req.locals.password))) {
@@ -132,6 +146,7 @@ class UserController {
   }
 
   async changeStatus(req: Express.Request, res: Express.Response) {
+    console.log("call to change status of user")
     try {
       const data = await UserService.changeStatus({ ...req.body, user_id: req.locals._id })
       if (!data) return res.json(new ResponseError("User not found"))

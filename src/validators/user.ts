@@ -8,6 +8,7 @@ import {
   CreateUserParams,
   GetTokenParams,
   LoginParams,
+  LoginSocket,
   RegisterParams,
   UpdateProfile,
 } from "../types"
@@ -38,6 +39,7 @@ export const updateProfleSchema = Joi.object<UpdateProfile>({
 
 export const changeUserStatusSchema = Joi.object<changeUserStatusParams>({
   is_online: Joi.boolean().required(),
+  socket_id: Joi.string().required(),
 })
 
 export const blockOrUnblockUserSchema = Joi.object<BlockOrUnBlockUserParams>({
@@ -48,6 +50,10 @@ export const blockOrUnblockUserSchema = Joi.object<BlockOrUnBlockUserParams>({
 export const loginSchema = Joi.object<LoginParams>({
   phone: Joi.string().min(10).required(),
   password: Joi.string().min(8).required(),
+})
+
+export const loginSocketSchema = Joi.object<LoginSocket>({
+  socket_id: Joi.string().required(),
 })
 
 export const registerSchema = Joi.object<RegisterParams>({

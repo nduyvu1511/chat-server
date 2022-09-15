@@ -6,6 +6,8 @@ import { isObjectID, SELECT_USER } from "../constant"
 import Attachment from "../models/attachment"
 import User from "../models/user"
 import {
+  AddUserIdsChattedWith,
+  AddUserSocketId,
   BlockOrUnBlockUserParams,
   changeUserStatusParams,
   CreatePasswordServiceParams,
@@ -13,14 +15,17 @@ import {
   GetTokenParams,
   GetUserByFilter,
   IUser,
+  LoginToSocket,
   RegisterParams,
   UpdateProfile,
   UpdateProfileService,
+  UserData,
   UserPopulate,
   UserRes,
+  UserSocketId,
 } from "../types"
 import { IAttachment, ListRes } from "../types/commonType"
-import { toUserListResponse } from "../utils"
+import { toUserDataReponse, toUserListResponse, toUserResponse } from "../utils"
 import { toListResponse } from "./../utils/commonResponse"
 import AttachmentService from "./attachmentService"
 
@@ -125,18 +130,113 @@ class UserService {
   }
 
   async createPassword(params: CreatePasswordServiceParams): Promise<boolean> {
-    const password = await this.hashPassword(params.new_password)
+    try {
+      const password = await this.hashPassword(params.new_password)
 
-    await User.findByIdAndUpdate(
-      params._id,
+      await User.findByIdAndUpdate(
+        params._id,
+        {
+          $set: {
+            password: password,
+          },
+        },
+        { new: true }
+      ).lean()
+
+      return true
+    } catch (error) {
+      return false
+    }
+  }
+
+  async addUserSocketId({ socket_id, user_id }: AddUserSocketId): Promise<UserRes | null> {
+    const data: UserPopulate | null = await User.findByIdAndUpdate(
+      user_id,
       {
         $set: {
-          password: password,
+          socket_id,
+          is_online: true,
+          offline_at: null,
         },
       },
-      { new: true }
-    ).lean()
+      {
+        new: true,
+      }
+    )
+      .populate("avatar_id")
+      .lean()
 
+    if (!data) return null
+    return toUserResponse(data)
+  }
+
+  async loginToSocket({ socket_id, user_id }: LoginToSocket): Promise<UserData | null> {
+    try {
+      const user = await this.getUserByUserId(user_id as any)
+      if (!user) return null
+      await this.addUserSocketId({ user_id, socket_id })
+      return toUserDataReponse(user)
+    } catch (error) {
+      return null
+    }
+  }
+
+  async getSocketIdsByUserIds(user_ids: string[]): Promise<UserSocketId[]> {
+    try {
+      const users: IUser[] = await User.find({
+        _id: {
+          $in: user_ids,
+        },
+      })
+        .select(["socket_id"])
+        .lean()
+
+      if (!users?.length) return []
+      // .filter((item) => item.socket_id)
+      return users.map((item) => ({ socket_id: item.socket_id, user_id: item._id }))
+    } catch (error) {
+      return []
+    }
+  }
+
+  async removeUserSocketId({ socket_id }: { socket_id: string }): Promise<UserData | null> {
+    const data: UserPopulate | null = await User.findOneAndUpdate(
+      { socket_id },
+      {
+        $set: {
+          socket_id: null,
+          is_online: false,
+          offline_at: Date.now(),
+        },
+      },
+      {
+        new: true,
+      }
+    )
+      .populate("avatar_id")
+      .lean()
+
+    if (!data) return null
+    return toUserDataReponse(data)
+  }
+
+  async addUserIdsChattedWith({ user_ids }: AddUserIdsChattedWith): Promise<boolean> {
+    await Promise.all(
+      user_ids.map(async (user_id) => {
+        const partner_ids = user_ids.filter((id) => id !== user_id)
+        return await User.findByIdAndUpdate(
+          user_id,
+          {
+            $addToSet: {
+              user_chatted_with_ids: { $each: partner_ids },
+            },
+          },
+          {
+            new: true,
+          }
+        )
+      })
+    )
     return true
   }
 
@@ -153,18 +253,16 @@ class UserService {
   }
 
   async getUserByPhoneAndUserId(params: GetTokenParams): Promise<UserPopulate | null> {
-    const user: UserPopulate | null = await User.findOne({
+    return await User.findOne({
       user_id: params.user_id,
       phone: params.phone,
     })
       .populate("avatar_id")
       .lean()
-    return user
   }
 
   async getUserByPartnerId(user_id: number): Promise<UserPopulate | null> {
-    const user: UserPopulate | null = await User.findOne({ user_id }).lean()
-    return user
+    return await User.findOne({ user_id }).lean()
   }
 
   async getUserByPhone(phone: string): Promise<UserPopulate | null> {

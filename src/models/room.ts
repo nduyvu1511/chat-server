@@ -53,6 +53,7 @@ const RoomSchema = new Schema<IRoom>({
             ref: "Message",
           },
           {
+            default: [],
             _id: false,
           },
         ],
