@@ -1,11 +1,10 @@
 import Express from "express"
 import _ from "lodash"
 import { MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constant"
-import message from "../models/message"
 import MessageService from "../services/messageService"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import { AddMessageUnread, CreateGroupChat, IUser } from "../types"
+import { CreateGroupChat, IUser } from "../types"
 import { toMessageUnreadCount } from "../utils"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
@@ -227,11 +226,39 @@ class RoomController {
         current_user: req.locals,
         filter: {
           _id: {
-            $in: room?.message_pinned_ids || [],
+            $in: room?.pinned_message_ids || [],
           },
         },
       })
       return res.json(new ResponseData(messages))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async pinMessageToRoom(req: Express.Request, res: Express.Response) {
+    try {
+      const { message_id } = req.body
+      const message = await MessageService.getMessageById(message_id as any)
+      if (!message) return res.json(new ResponseError("Message not found"))
+      const room = await RoomService.pinMessageToRoom(message)
+      if (!room) return res.json(new ResponseError("Failed to pin message to room"))
+
+      return res.json(new ResponseData(message))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async deleteMessagePinnedFromRoom(req: Express.Request, res: Express.Response) {
+    try {
+      const { message_id } = req.params
+      const message = await MessageService.getMessageById(message_id as any)
+      if (!message) return res.json(new ResponseError("Message not found"))
+      const room = await RoomService.deleteMessagePinnedFromRoom(message)
+      if (!room) return res.json(new ResponseError("Failed to pin message to room"))
+
+      return res.json(new ResponseData(message))
     } catch (error) {
       return res.status(400).send(error)
     }

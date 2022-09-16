@@ -17,6 +17,7 @@ export const SELECT_USER = [
   "updated_at",
   "created_at",
   "offline_at",
+  "socket_id",
 ]
 
 export const SELECT_ROOM = [
@@ -28,7 +29,7 @@ export const SELECT_ROOM = [
   "member_ids",
   "leader_id",
   "last_message_id",
-  "message_pinned_ids",
+  "pinned_message_ids",
   "is_expired",
   "members_leaved",
   "created_at",

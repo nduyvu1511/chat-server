@@ -69,6 +69,7 @@ export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
   reply_to?: MessageReply | null
   location?: Lnglat | null
   tags?: TagRes[]
+  is_read: boolean
 }
 
 export type AttachmentType = "image" | "video" | "voice"
@@ -77,6 +78,7 @@ export interface AuthorMessage {
   author_id: ObjectId
   author_name: string
   author_avatar: AttachmentRes
+  author_socket_id: string
 }
 
 export interface MessageUser {
@@ -112,5 +114,15 @@ export interface SendMessageServiceParams {
 }
 
 export interface GetMessagesInRoom extends QueryCommonParams {
+  room_id: ObjectId
+}
+
+export interface UserReadMessage {
+  user_id: ObjectId
+  message_id: ObjectId
+}
+
+export interface UserReadLastMessage {
+  user_id: ObjectId
   room_id: ObjectId
 }

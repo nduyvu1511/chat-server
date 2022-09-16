@@ -8,8 +8,8 @@ import {
   verifyToken,
 } from "../middlewares"
 import {
+  addMessagePinnedSchema,
   addMessageUnReadSchema,
-  clearMessageUnReadSchema,
   createGroupChatSchema,
   createSingleChatSchema,
   getRoomListSchema,
@@ -61,12 +61,26 @@ router.get(
   RoomController.getRoomDetail
 )
 router.get(
-  "/:room_id/messages_pinned",
+  "/:room_id/pinned_messages",
   verifyToken,
   paramsMiddleware(roomIdSchema),
   queryMiddleware(listSchema),
   checkUserExist,
   RoomController.getRoomMessagesPinned
+)
+router.post(
+  "/pinned_message",
+  verifyToken,
+  bodyMiddleware(addMessagePinnedSchema),
+  checkUserExist,
+  RoomController.pinMessageToRoom
+)
+router.delete(
+  "/pinned_message/:message_id",
+  verifyToken,
+  paramsMiddleware(addMessagePinnedSchema),
+  checkUserExist,
+  RoomController.deleteMessagePinnedFromRoom
 )
 router.get(
   "/:room_id/members",

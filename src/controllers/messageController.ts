@@ -1,9 +1,9 @@
 import Express from "express"
 import { ObjectId } from "mongodb"
-import Attachment from "../models/attachment"
-import Tag from "../models/tag"
+import { USERS_LIMIT } from "../constant"
 import MessageService from "../services/messageService"
-import { IMessage, ITag, IUser, SendMessage } from "../types"
+import UserService from "../services/userService"
+import { IMessage, IUser, SendMessage } from "../types"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
 
@@ -28,7 +28,7 @@ class MessageController {
       }
 
       if (params.reply_to?.message_id) {
-        const message = await MessageService.getMessage(params.reply_to.message_id)
+        const message = await MessageService.getMessageById(params.reply_to.message_id)
         if (!message || message.room_id.toString() !== room._id.toString())
           return res.json(new ResponseError("Reply message not found, Reply message ID is invalid"))
       }
@@ -50,20 +50,63 @@ class MessageController {
     }
   }
 
-  async getTags(tag_ids: string[]): Promise<ITag[]> {
-    return await Tag.find({
-      _id: {
-        $in: tag_ids,
-      },
-    }).lean()
+  async confirmReadMessage(req: Express.Request, res: Express.Response) {
+    try {
+      const message = await MessageService.confirmReadMessage({
+        message_id: req.body.message_id,
+        user_id: req.locals._id,
+      })
+      if (!message) return res.json(new ResponseError("Failed to read message"))
+      return res.json(new ResponseData({ message_id: message._id }, "Confirmed read message"))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
   }
 
-  async getAttachments(attachment_ids: string[]): Promise<ITag[]> {
-    return await Attachment.find({
-      _id: {
-        $in: attachment_ids,
-      },
-    }).lean()
+  async confirmReadAllMessageInRoom(req: Express.Request, res: Express.Response) {
+    try {
+      const message = await MessageService.confirmReadAllMessageInRoom({
+        room_id: req.body.room_id,
+        user_id: req.locals._id,
+      })
+      if (!message) return res.json(new ResponseError("Failed to read last message"))
+      return res.json(new ResponseData(message, "Confirmed read last message"))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async getUsersReadMessage(req: Express.Request, res: Express.Response) {
+    try {
+      const limit = Number(req.query?.limit) || USERS_LIMIT
+      const offset = Number(req.query?.offset) || 0
+      const { message_id } = req.params
+      const message = await MessageService.getMessageById(message_id as any)
+      if (!message) return res.json(new ResponseError("Message not found"))
+
+      const users = await UserService.getUserListByFilter({
+        filter: {
+          $and: [
+            {
+              _id: {
+                $in: message.read_by_user_ids,
+              },
+            },
+            {
+              _id: {
+                $ne: req.locals._id,
+              },
+            },
+          ],
+        },
+        limit,
+        offset,
+      })
+
+      return res.json(new ResponseData(users))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
   }
 }
 

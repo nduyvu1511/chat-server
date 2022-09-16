@@ -69,17 +69,10 @@ const UserSchema = new Schema<IUser>({
     min: 8,
     default: null,
   },
-  messages_unread: [
-    {
-      room_id: {
-        type: Schema.Types.ObjectId,
-        ref: "Room",
-      },
-      message_ids: [{ type: Schema.Types.ObjectId, ref: "Message" }],
-      default: [],
-      _id: false,
-    },
-  ],
+  message_unread_count: {
+    type: Number,
+    default: 0,
+  },
   created_at: {
     type: Date,
     default: Date.now,

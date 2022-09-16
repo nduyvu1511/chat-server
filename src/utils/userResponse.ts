@@ -32,6 +32,7 @@ export const toAuthorMessage = (data: UserPopulate): AuthorMessage => {
     author_id: data._id,
     author_name: data?.user_name || "",
     author_avatar: toAttachmentResponse(data?.avatar_id),
+    author_socket_id: data.socket_id,
   }
 }
 

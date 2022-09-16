@@ -1,6 +1,6 @@
 import Joi from "joi"
 import { OBJECT_ID_REGEX } from "../constant"
-import { SendMessage } from "../types"
+import { SendMessage, UserReadLastMessage, UserReadMessage } from "../types"
 import { LngLatSchema } from "./common"
 
 export const SendMessageSchema = Joi.object<SendMessage>({
@@ -15,7 +15,7 @@ export const SendMessageSchema = Joi.object<SendMessage>({
     .when("tag_ids", {
       then: Joi.string().optional(),
     }),
-  room_id: Joi.string().required(),
+  room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
   location: LngLatSchema.optional(),
   attachment_ids: Joi.array().items(Joi.string().regex(OBJECT_ID_REGEX)).optional(),
   reply_to: Joi.object({
@@ -23,4 +23,16 @@ export const SendMessageSchema = Joi.object<SendMessage>({
     attachment_id: Joi.string().regex(OBJECT_ID_REGEX).optional(),
   }).optional(),
   tag_ids: Joi.array().items(Joi.string().regex(OBJECT_ID_REGEX).required()).optional(),
+})
+
+export const readMessageSchema = Joi.object<UserReadMessage>({
+  message_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+})
+
+export const readLastMessageSchema = Joi.object<UserReadLastMessage>({
+  room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+})
+
+export const messageIdSchema = Joi.object<{ message_id: string }>({
+  message_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
 })

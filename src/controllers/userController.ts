@@ -92,11 +92,10 @@ class UserController {
   async loginToSocket(req: Express.Request, res: Express.Response) {
     try {
       const user_id = req.locals._id
-      // const { socket_id } = req.body
+      const { socket_id } = req.body
       const user = await UserService.getUserByUserId(user_id)
       if (!user) return res.json(new ResponseError("User not found"))
-      // await UserService.addUserSocketId({ user_id, socket_id })
-      // socket.emit(`user_login_${user.user_id}`, user)
+      await UserService.addUserSocketId({ user_id, socket_id })
       return res.json(new ResponseData(toUserDataReponse(user)))
     } catch (error) {
       return res.status(400).send(error)

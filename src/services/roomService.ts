@@ -4,13 +4,13 @@ import Message from "../models/message"
 import Room from "../models/room"
 import User from "../models/user"
 import {
-  AddMessageUnread,
   AddMessageUnreadService,
   AttachmentRes,
   ClearMessageUnreadService,
   CreateGroupChatServicesParams,
   createSingleChatServices,
   GetRoomDetailService,
+  IMessage,
   IRoom,
   ListRes,
   MessagePopulate,
@@ -31,6 +31,7 @@ import {
   toRoomListResponse,
   toRoomMemberListResponse,
   toRoomMemberResponse,
+  toRoomOfflineAt,
 } from "../utils"
 import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"
@@ -175,7 +176,7 @@ class RoomService {
       current_user: params.user,
       filter: {
         _id: {
-          $in: room.message_pinned_ids,
+          $in: room.pinned_message_ids,
         },
       },
     })
@@ -199,19 +200,19 @@ class RoomService {
 
     return {
       room_id: room._id,
+      room_type: room.room_type,
       room_name,
       room_avatar,
-      member_count: room.member_ids?.length || 0,
-      room_type: room.room_type,
-      last_message: null,
       leader_user_info: leader_user_info?._id ? toRoomMemberResponse(leader_user_info) : null,
-      created_at: room.created_at,
+      member_count: room.member_ids?.length || 0,
+      member_online_count: members?.data?.reduce((a, b) => a + (b.is_online ? 1 : 0), 0) || 1,
+      is_online: members.data
+        ?.filter((item) => item.user_id.toString() !== params.user._id.toString())
+        ?.some((item) => item.is_online),
+      offline_at: toRoomOfflineAt({ current_user_id: params.user._id, data: members.data }),
       members,
       messages,
       messages_pinned,
-      is_online: members.data
-        .filter((item) => item.user_id.toString() !== params.user.user_id.toString())
-        .some((item) => item.is_online),
     }
   }
 
@@ -270,7 +271,11 @@ class RoomService {
           },
         },
       })
-      .populate({ path: "member_ids.user_id", model: "User", select: ["_id", "is_online"] })
+      .populate({
+        path: "member_ids.user_id",
+        model: "User",
+        select: ["_id", "is_online", "offline_at"],
+      })
       .populate({ path: "room_avatar_id", model: "Attachment" })
       .populate({
         path: "room_single_member_ids",
@@ -296,6 +301,22 @@ class RoomService {
 
   async getRoomById(room_id: ObjectId): Promise<IRoom | null> {
     return await Room.findById(room_id).select(SELECT_ROOM)
+  }
+
+  async pinMessageToRoom(params: IMessage): Promise<IRoom | null> {
+    return await Room.findByIdAndUpdate(params.room_id, {
+      $addToSet: {
+        pinned_message_ids: params._id,
+      },
+    })
+  }
+
+  async deleteMessagePinnedFromRoom(params: IMessage): Promise<IRoom | null> {
+    return await Room.findByIdAndUpdate(params.room_id, {
+      $pull: {
+        pinned_message_ids: params._id,
+      },
+    })
   }
 
   async getMessagesByFilter(params: GetMessagesByFilter): Promise<ListRes<MessageRes[]>> {

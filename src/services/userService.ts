@@ -2,7 +2,7 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
-import { isObjectID, SELECT_USER } from "../constant"
+import { isObjectID, SELECT_USER, USERS_LIMIT } from "../constant"
 import Attachment from "../models/attachment"
 import User from "../models/user"
 import {
@@ -149,7 +149,7 @@ class UserService {
     }
   }
 
-  async addUserSocketId({ socket_id, user_id }: AddUserSocketId): Promise<UserRes | null> {
+  async addUserSocketId({ socket_id, user_id }: AddUserSocketId): Promise<UserData | null> {
     const data: UserPopulate | null = await User.findByIdAndUpdate(
       user_id,
       {
@@ -167,7 +167,7 @@ class UserService {
       .lean()
 
     if (!data) return null
-    return toUserResponse(data)
+    return toUserDataReponse(data)
   }
 
   async loginToSocket({ socket_id, user_id }: LoginToSocket): Promise<UserData | null> {
@@ -290,7 +290,7 @@ class UserService {
   }
 
   async getUserListByFilter(params: GetUserByFilter): Promise<ListRes<UserRes[]>> {
-    const { limit, offset, filter } = params
+    const { limit = USERS_LIMIT, offset = 0, filter } = params
 
     const total = await User.countDocuments(filter)
     const userRes: UserPopulate[] = await User.find(filter)

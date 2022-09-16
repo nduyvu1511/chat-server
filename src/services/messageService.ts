@@ -13,6 +13,8 @@ import {
   MessagePopulate,
   MessageRes,
   SendMessageServiceParams,
+  UserReadLastMessage,
+  UserReadMessage,
 } from "../types"
 import { toMessageResponse } from "../utils"
 
@@ -24,7 +26,7 @@ interface appendLastMessageIdToRoomParams {
 class MessageService {
   async sendMessage(params: SendMessageServiceParams): Promise<IMessage> {
     const { message, user } = params
-    const msg = new Message({ ...message, user_id: user._id })
+    const msg = new Message({ ...message, user_id: user._id, read_by_user_ids: [user._id] })
     const msgRes: IMessage = (await msg.save()).toObject()
 
     await this.appendLastMessageIdToRoom({
@@ -35,7 +37,7 @@ class MessageService {
     return msgRes
   }
 
-  async getMessage(id: ObjectId): Promise<IMessage | null> {
+  async getMessageById(id: ObjectId): Promise<IMessage | null> {
     return await Message.findById(id).lean()
   }
 
@@ -105,6 +107,34 @@ class MessageService {
       last_message_id: message_id,
     })
   }
+
+  async confirmReadMessage({ user_id, message_id }: UserReadMessage): Promise<null | IMessage> {
+    return await Message.findByIdAndUpdate(message_id, {
+      $addToSet: {
+        read_by_user_ids: user_id,
+      },
+    })
+  }
+
+  async confirmReadAllMessageInRoom({ user_id, room_id }: UserReadLastMessage): Promise<boolean> {
+    await Message.updateMany(
+      { $and: [{ room_id, read_by_user_ids: { $nin: [user_id] } }] },
+      {
+        ["$addToSet" as any]: {
+          read_by_user_ids: user_id,
+        },
+      }
+    )
+    return true
+  }
+
+  // async getUsersReadMessage(user_ids: ObjectId[]) {
+  //   const users = await User.find({
+  //     _id: {
+  //       $in: user_ids,
+  //     },
+  //   }).lean()
+  // }
 }
 
 export default new MessageService()

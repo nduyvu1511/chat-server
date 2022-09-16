@@ -11,7 +11,7 @@ import {
   IMessage,
   IUser,
   QueryCommonParams,
-  QueryRoomParams
+  QueryRoomParams,
 } from "../types"
 
 export const createSingleChatSchema = Joi.object<createSingleChat>({
@@ -27,6 +27,10 @@ export const createGroupChatSchema = Joi.object<CreateGroupChat>({
 export const listSchema = Joi.object<QueryCommonParams>({
   limit: Joi.number().optional(),
   offset: Joi.number().optional(),
+})
+
+export const addMessagePinnedSchema = Joi.object({
+  message_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
 })
 
 export const getRoomListSchema = Joi.object<QueryRoomParams>({

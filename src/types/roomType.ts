@@ -12,7 +12,7 @@ export interface IRoom {
   member_ids: RoomMember[]
   leader_id: ObjectId
   last_message_id?: ObjectId
-  message_pinned_ids: ObjectId[]
+  pinned_message_ids: ObjectId[]
   members_leaved: MemberLeaved
   message_ids: ObjectId[]
   is_expired: boolean
@@ -27,10 +27,11 @@ export interface RoomRes {
   room_avatar?: AttachmentRes | null
   room_type: RoomType
   is_online: boolean
+  member_online_count: number
+  offline_at: Date | null
   member_count: number
   message_unread_count: number
   last_message?: LastMessage | null
-  created_at: Date
 }
 
 export type RoomPopulate = Omit<
@@ -71,7 +72,7 @@ export type RoomDetailRes = Omit<RoomRes, "message_unread_count"> & {
   leader_user_info: RoomMemberRes | null
 }
 
-export type RoomQueryDetailRes = Omit<RoomRes, "message_unread_count"> & {
+export type RoomQueryDetailRes = Omit<RoomRes, "message_unread_count" | "last_message"> & {
   messages_pinned: ListRes<MessageRes[]>
   messages: ListRes<MessageRes[]>
   members: ListRes<RoomMemberRes[]>
@@ -80,10 +81,10 @@ export type RoomQueryDetailRes = Omit<RoomRes, "message_unread_count"> & {
 
 export type RoomDetailPopulate = Omit<
   IRoom,
-  "member_ids" | "message_pinned_ids" | "message_ids" | "leader_id" | "room_avatar_id"
+  "member_ids" | "pinned_message_ids" | "message_ids" | "leader_id" | "room_avatar_id"
 > & {
   member_ids: UserPopulate[]
-  message_pinned_ids?: MessagePopulate[]
+  pinned_message_ids?: MessagePopulate[]
   message_ids: MessagePopulate[]
   leader_id?: UserPopulate
   room_avatar_id?: IAttachment
@@ -167,7 +168,7 @@ export type RoomServiceParams = Exclude<IRoom, "last_message" | ""> & {
 
 export type RoomMemberRes = Pick<
   IUser,
-  "bio" | "gender" | "date_of_birth" | "is_online" | "user_name" | "phone"
+  "bio" | "gender" | "date_of_birth" | "is_online" | "user_name" | "phone" | "offline_at"
 > & {
   user_id: ObjectId
   avatar: AttachmentRes

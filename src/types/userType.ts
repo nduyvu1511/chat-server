@@ -1,6 +1,5 @@
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
-import { Socket } from "socket.io"
 import { AttachmentRes, IAttachment, QueryCommonParams } from "./commonType"
 
 export interface IUser {
@@ -17,10 +16,6 @@ export interface IUser {
   gender?: Gender
   user_chatted_with_ids: ObjectId[]
   room_joined_ids: string[]
-  messages_unread: {
-    room_id: ObjectId
-    message_ids: ObjectId[]
-  }[]
   message_unread_count: number
   created_at: Date
   updated_at: Date
@@ -125,7 +120,7 @@ export type ChangePasswordServiceParams = ChangePasswordParams & {
   _id: string
 }
 
-export interface GetUserByFilter extends QueryCommonParams {
+export type GetUserByFilter = Partial<QueryCommonParams> & {
   filter: FilterQuery<IUser>
 }
 

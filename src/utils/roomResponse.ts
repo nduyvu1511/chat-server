@@ -2,6 +2,7 @@ import _ from "lodash"
 import { ObjectId } from "mongodb"
 import {
   IRoom,
+  IUser,
   RoomDetailRes,
   RoomMemberRes,
   RoomRes,
@@ -35,17 +36,41 @@ export const toRoomResponse = ({ data, current_user }: ToRoomRepsonse): RoomRes 
     room_name,
     room_type: data.room_type,
     room_avatar,
+    is_online: toRoomStatus({ data: data.member_ids.map((item) => item.user_id), current_user }),
+    offline_at: toRoomOfflineAt({
+      current_user_id: current_user._id,
+      data: data.member_ids?.map((item) => item.user_id),
+    }),
+    message_unread_count,
     member_count: data.member_ids?.length || 0,
-    created_at: data?.created_at,
+    member_online_count: toRoomMemberOnlineCount(
+      data?.member_ids?.map((item) => item.user_id) || []
+    ),
     last_message: data?.last_message_id?._id
       ? toLastMessageResponse({
           data: data.last_message_id,
           current_user,
         })
       : null,
-    is_online: toRoomStatus({ data: data.member_ids.map((item) => item.user_id), current_user }),
-    message_unread_count,
   }
+}
+
+export const toRoomOfflineAt = ({
+  current_user_id,
+  data,
+}: {
+  data: IUser[] | UserPopulate[] | RoomMemberRes[]
+  current_user_id: ObjectId
+}): Date | null => {
+  return (
+    _.orderBy(
+      [...data].filter(
+        (item) => ((item as IUser)._id || item.user_id).toString() !== current_user_id.toString()
+      ),
+      (item) => item?.offline_at || "",
+      ["desc"]
+    )[0]?.offline_at || null
+  )
 }
 
 export const toMessageUnreadCount = ({
@@ -77,16 +102,15 @@ export const toRoomDetailResponse = ({
   current_user,
 }: ToRoomDetailResponse): RoomDetailRes => {
   return {
-    created_at: data?.created_at,
     member_count: data?.member_ids?.length || 0,
     room_id: data._id,
     room_name: data?.room_name || null,
     room_type: data.room_type,
     room_avatar: data?.room_avatar_id ? toAttachmentResponse(data.room_avatar_id) : null,
     leader_user_info: data.leader_id ? toRoomMemberResponse(data.leader_id) : null,
-    messages_pinned: data?.message_pinned_ids?.length
+    messages_pinned: data?.pinned_message_ids?.length
       ? toMessageListResponse({
-          data: data.message_pinned_ids,
+          data: data.pinned_message_ids,
           current_user,
         })
       : [],
@@ -98,7 +122,13 @@ export const toRoomDetailResponse = ({
       : [],
     members: toRoomMemberListResponse(data.member_ids),
     is_online: true,
+    offline_at: toRoomOfflineAt({ data: data.member_ids, current_user_id: current_user._id }),
+    member_online_count: toRoomMemberOnlineCount(data?.member_ids || []),
   }
+}
+
+export const toRoomMemberOnlineCount = (params: { is_online: boolean }[]) => {
+  return params.reduce((a, b) => a + (b.is_online ? 1 : 0), 0) || 1
 }
 
 export const toRoomMemberResponse = (data: UserPopulate): RoomMemberRes => ({
@@ -110,6 +140,7 @@ export const toRoomMemberResponse = (data: UserPopulate): RoomMemberRes => ({
   date_of_birth: data.date_of_birth || "",
   gender: data?.gender || "",
   is_online: data?.is_online || false,
+  offline_at: data?.offline_at || null,
 })
 
 export const toRoomMemberListResponse = (data: UserPopulate[]): RoomMemberRes[] => {

@@ -89,5 +89,3 @@ const MessageSchema = new Schema<IMessage>({
 })
 
 export default Mongoose.model("Message", MessageSchema)
-
-

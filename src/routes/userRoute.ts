@@ -44,7 +44,12 @@ const router = Express.Router()
 router.post("/", bodyMiddleware(createUserSchema), UserController.createUser)
 router.post("/register", bodyMiddleware(registerSchema), UserController.register)
 router.post("/login", bodyMiddleware(loginSchema), UserController.login)
-router.post("/login_to_socket", verifyToken, UserController.loginToSocket)
+router.post(
+  "/login_to_socket",
+  bodyMiddleware(loginSocketSchema),
+  verifyToken,
+  UserController.loginToSocket
+)
 router.post("/generate_token", bodyMiddleware(GetTokenSchema), UserController.generateToken)
 router.get("/check_has_password", verifyToken, checkUserExist, UserController.checkHasPassword)
 router.post(

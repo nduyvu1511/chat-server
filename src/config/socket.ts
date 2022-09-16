@@ -7,12 +7,8 @@ import { MessageRes, UserData } from "../types"
 const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) => {
   io.on("connection", (socket) => {
     // User login to our system
-    socket.on("login", async (params: UserData) => {
-      const user = await UserService.addUserSocketId({
-        user_id: params.user_id.toString(),
-        socket_id: socket.id,
-      })
-      const socketIds = await UserService.getSocketIdsByUserIds(params.user_chatted_with_ids)
+    socket.on("login", async (user: UserData) => {
+      const socketIds = await UserService.getSocketIdsByUserIds(user.user_chatted_with_ids)
       socketIds.forEach((item) => {
         if (item.socket_id) {
           socket.to(item.socket_id).emit("login", user)
@@ -26,6 +22,7 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
         socket_id: socket.id,
       })
       if (!data?.user_id) return
+
       const socketIds = await UserService.getSocketIdsByUserIds(data.user_chatted_with_ids)
       socketIds.forEach((item) => {
         if (item.socket_id) {
@@ -65,6 +62,12 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
           })
         }
       })
+    })
+
+    socket.on("read_message", async (payload: MessageRes) => {
+      console.log("read message: ", payload?.author?.author_socket_id)
+      if (!payload?.author?.author_socket_id) return
+      socket.to(payload.author.author_socket_id.toString()).emit("confirm_read_message", payload)
     })
 
     // Typing handler

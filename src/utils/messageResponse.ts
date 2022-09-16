@@ -24,13 +24,15 @@ export const toMessageResponse = ({ data, current_user }: ToMessageResponse): Me
     }
   }
 
+  const is_author = data.user_id._id.toString() === current_user._id.toString()
+
   return {
     message_id: data._id,
     room_id: data.room_id,
     message_text: data?.text || "",
     author: toAuthorMessage(data.user_id),
     like_count: data.liked_by_user_ids?.length,
-    is_author: data.user_id._id.toString() === current_user._id.toString(),
+    is_author,
     is_liked: data.liked_by_user_ids?.some(
       ({ user_id }) => user_id.toString() === current_user._id.toString()
     ),
@@ -39,6 +41,9 @@ export const toMessageResponse = ({ data, current_user }: ToMessageResponse): Me
     reply_to,
     created_at: data.created_at,
     tags: data?.tag_ids?.length ? toTagListResponse(data.tag_ids) : [],
+    is_read: is_author
+      ? data?.read_by_user_ids?.length >= 2
+      : data?.read_by_user_ids?.some((id) => id.toString() === current_user._id.toString()),
   }
 }
 

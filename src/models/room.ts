@@ -93,7 +93,7 @@ const RoomSchema = new Schema<IRoom>({
     ref: "Message",
     default: null,
   },
-  message_pinned_ids: [
+  pinned_message_ids: [
     {
       type: Schema.Types.ObjectId,
       ref: "Message",
