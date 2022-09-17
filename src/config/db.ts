@@ -1,4 +1,5 @@
 import mongoose from "mongoose"
+import log from "./logger"
 
 const connect = async () => {
   try {
@@ -9,9 +10,10 @@ const connect = async () => {
         useUnifiedTopology: true,
       } as mongoose.ConnectOptions
     )
+    log.info("DB connected")
   } catch (error) {
-    console.log(error)
-    console.log("failed to connect")
+    log.error("Could not connect to db")
+    // process.exit(1)
   }
 }
 

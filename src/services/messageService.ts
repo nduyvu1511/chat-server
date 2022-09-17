@@ -127,14 +127,6 @@ class MessageService {
     )
     return true
   }
-
-  // async getUsersReadMessage(user_ids: ObjectId[]) {
-  //   const users = await User.find({
-  //     _id: {
-  //       $in: user_ids,
-  //     },
-  //   }).lean()
-  // }
 }
 
 export default new MessageService()

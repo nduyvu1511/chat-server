@@ -46,6 +46,30 @@ export interface IAttachment {
   updated_at: Date
 }
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    AttachmentRes:
+ *      type: object
+ *      required:
+ *        - attachment_id
+ *        - thumbnail_url
+ *        - url
+ *        - attachment_type
+ *      properties:
+ *        attachment_id:
+ *          type: string
+ *        thumbnail_url:
+ *          type: string
+ *          summary: Lower image quality used to render a small image
+ *        url:
+ *          type: string
+ *          summary: Higher image quality used to render a big image
+ *        attachment_type:
+ *          type: string
+ *          enum: [image, video, voice]
+ */
 export type AttachmentRes = Pick<IAttachment, "thumbnail_url" | "url" | "attachment_type"> & {
   attachment_id: ObjectId
 }

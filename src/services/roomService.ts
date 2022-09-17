@@ -148,71 +148,76 @@ class RoomService {
   }
 
   async getRoomDetail(params: GetRoomDetailService): Promise<RoomQueryDetailRes | null> {
-    const room: RoomPopulate = await Room.findById(params.room_id)
-      .select(SELECT_ROOM)
-      .populate("room_avatar_id")
-      .lean()
-    if (!room?._id) return null
+    try {
+      const room: RoomPopulate = await Room.findById(params.room_id)
+        .select(SELECT_ROOM)
+        .populate("room_avatar_id")
+        .lean()
+      if (!room?._id) return null
 
-    // Get members in room
-    const members = await this.getMembersInRoom({
-      limit: USERS_LIMIT,
-      offset: 0,
-      room_id: room._id,
-    })
+      // Get members in room
+      const members = await this.getMembersInRoom({
+        limit: USERS_LIMIT,
+        offset: 0,
+        room_id: room._id,
+      })
 
-    // Get messages in room
-    const messages = await this.getMessagesByFilter({
-      limit: MESSAGES_LIMIT,
-      offset: 0,
-      current_user: params.user,
-      filter: { room_id: room._id },
-    })
+      // Get messages in room
+      const messages = await this.getMessagesByFilter({
+        limit: MESSAGES_LIMIT,
+        offset: 0,
+        current_user: params.user,
+        filter: { room_id: room._id },
+      })
 
-    // Get messages pinned in room
-    const messages_pinned = await this.getMessagesByFilter({
-      limit: MESSAGES_LIMIT,
-      offset: 0,
-      current_user: params.user,
-      filter: {
-        _id: {
-          $in: room.pinned_message_ids,
+      // Get messages pinned in room
+      const pinned_messages = await this.getMessagesByFilter({
+        limit: MESSAGES_LIMIT,
+        offset: 0,
+        current_user: params.user,
+        filter: {
+          _id: {
+            $in: room.pinned_message_ids,
+          },
         },
-      },
-    })
+      })
 
-    // Get leader room info
-    const leader_user_info: UserPopulate | null = room?.leader_id
-      ? await User.findById(room.leader_id).populate("avatar_id")
-      : null
+      // Get leader room info
+      const leader_info: UserPopulate | null = room?.leader_id
+        ? await User.findById(room.leader_id).populate("avatar_id")
+        : null
 
-    let room_name: null | string = room?.room_name
-    let room_avatar: AttachmentRes = toAttachmentResponse(room?.room_avatar_id as any)
-    if (room.room_type === "single") {
-      const partner = members.data.find(
-        (item) => item.user_id.toString() !== params.user._id.toString()
-      )
-      if (partner?.user_id) {
-        room_name = partner?.user_name || room.room_name || null
-        room_avatar = partner?.avatar as any
+      let room_name: null | string = room?.room_name
+      let room_avatar: AttachmentRes = toAttachmentResponse(room?.room_avatar_id as any)
+      if (room.room_type === "single") {
+        const partner = members.data.find(
+          (item) => item.user_id.toString() !== params.user._id.toString()
+        )
+        if (partner?.user_id) {
+          room_name = partner?.user_name || room.room_name || null
+          room_avatar = partner?.avatar as any
+        }
       }
-    }
 
-    return {
-      room_id: room._id,
-      room_type: room.room_type,
-      room_name,
-      room_avatar,
-      leader_user_info: leader_user_info?._id ? toRoomMemberResponse(leader_user_info) : null,
-      member_count: room.member_ids?.length || 0,
-      member_online_count: members?.data?.reduce((a, b) => a + (b.is_online ? 1 : 0), 0) || 1,
-      is_online: members.data
-        ?.filter((item) => item.user_id.toString() !== params.user._id.toString())
-        ?.some((item) => item.is_online),
-      offline_at: toRoomOfflineAt({ current_user_id: params.user._id, data: members.data }),
-      members,
-      messages,
-      messages_pinned,
+      return {
+        room_id: room._id,
+        room_type: room.room_type,
+        room_name,
+        room_avatar,
+        leader_info: leader_info?._id ? toRoomMemberResponse(leader_info) : null,
+        member_count: room.member_ids?.length || 0,
+        member_online_count: members?.data?.reduce((a, b) => a + (b.is_online ? 1 : 0), 0) || 1,
+        is_online: members.data
+          ?.filter((item) => item.user_id.toString() !== params.user._id.toString())
+          ?.some((item) => item.is_online),
+        offline_at: toRoomOfflineAt({ current_user_id: params.user._id, data: members.data }),
+        members,
+        messages,
+        pinned_messages,
+      }
+    } catch (error) {
+      console.log(error)
+      return null
     }
   }
 

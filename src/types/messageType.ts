@@ -58,6 +58,108 @@ export type ToMessageListResponse = {
   current_user: IUser
 }
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    LngLatRes:
+ *      type: object
+ *      required:
+ *        - lng
+ *        - lat
+ *      properties:
+ *        lng:
+ *          type: string
+ *        lat:
+ *          type: string
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    TagListRes:
+ *     type: object
+ *     properties:
+ *       hasMore:
+ *        type: boolean
+ *       limit:
+ *        type: number
+ *       offset:
+ *        type: number
+ *       total:
+ *        type: number
+ *       data:
+ *         type: array
+ *         items:
+ *          $ref: '#components/schema/TagRes'
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    TagRes:
+ *      type: object
+ *      required:
+ *        - tag_id
+ *        - text
+ *      properties:
+ *        tag_id:
+ *          type: string
+ *        text:
+ *          type: string
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    MessageRes:
+ *      type: object
+ *      required:
+ *        - message_id
+ *        - is_author
+ *        - author
+ *        - like_count
+ *        - message_text
+ *        - is_read
+ *        - room_id
+ *        - created_at
+ *      properties:
+ *        message_id:
+ *          type: string
+ *          example: 631d56c54a20bef82e479f0d
+ *        room_id:
+ *          type: string
+ *          example: 631d56c54a20bef82e479f0d
+ *        created_at:
+ *          type: date
+ *        is_author:
+ *          type: boolean
+ *        author:
+ *          $ref: '#/components/schema/AuthorMessageRes'
+ *        is_liked:
+ *          type: boolean
+ *        attachments:
+ *          type: array
+ *          items:
+ *            $ref: '#/components/schema/AttachmentRes'
+ *        like_count:
+ *          type: number
+ *        message_text:
+ *          type: string
+ *        reply_to:
+ *          $ref: '#/components/schema/MessageReplyRes'
+ *        location:
+ *          $ref: '#/components/schema/LngLatRes'
+ *        tags:
+ *          type: array
+ *          items:
+ *            $ref: '#/components/schema/TagRes'
+ *        is_read:
+ *          type: boolean
+ */
 export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
   message_id: ObjectId
   is_author: boolean
@@ -72,8 +174,85 @@ export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
   is_read: boolean
 }
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    MessageListRes:
+ *     type: object
+ *     properties:
+ *       hasMore:
+ *        type: boolean
+ *       limit:
+ *        type: number
+ *       offset:
+ *        type: number
+ *       total:
+ *        type: number
+ *       data:
+ *         type: array
+ *         items:
+ *          $ref: '#components/schema/MessageRes'
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    LastMessageRes:
+ *      type: object
+ *      required:
+ *        - message_id
+ *        - is_author
+ *        - author
+ *        - message_text
+ *        - room_id
+ *        - created_at
+ *      properties:
+ *        room_id:
+ *          type: string
+ *          example: 631d56c54a20bef82e479f0d
+ *        message_id:
+ *          type: string
+ *          example: 631d56c54a20bef82e479f0d
+ *        is_author:
+ *          type: boolean
+ *        author:
+ *          $ref: '#/components/schema/AuthorMessageRes'
+ *        message_text:
+ *          type: string
+ *        created_at:
+ *          type: date
+ *          format: YYYY-MM-DD
+ */
+export type LastMessage = Pick<
+  MessageRes,
+  "message_id" | "message_text" | "is_author" | "author" | "created_at" | "room_id"
+>
+
 export type AttachmentType = "image" | "video" | "voice"
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    AuthorMessageRes:
+ *      type: object
+ *      required:
+ *        - author_id
+ *        - author_name
+ *        - author_avatar:
+ *      properties:
+ *        author_id:
+ *          type: string
+ *          example: 631d56c54a20bef82e479f0d
+ *        author_name:
+ *          type: string
+ *        author_avatar:
+ *          $ref: '#/components/schema/AttachmentRes'
+ *        author_socket_id:
+ *          type: string
+ */
 export interface AuthorMessage {
   author_id: ObjectId
   author_name: string
@@ -87,6 +266,28 @@ export interface MessageUser {
   user_avatar: string
 }
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    MessageReplyRes:
+ *      type: object
+ *      required:
+ *        - author
+ *        - message_id
+ *        - created_at
+ *      properties:
+ *        author:
+ *          $ref: '#/components/schema/AuthorMessageRes'
+ *        message_id:
+ *          type: string
+ *        message_text:
+ *          type: string
+ *        created_at:
+ *          type: date
+ *        attachment:
+ *          $ref: '#/components/schema/AttachmentRes'
+ */
 export type MessageReply = {
   author: AuthorMessage
   message_id: ObjectId

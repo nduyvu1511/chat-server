@@ -13,8 +13,6 @@ export const toUserResponse = (data: UserPopulate): UserRes => {
     date_of_birth: data?.date_of_birth,
     is_online: data?.is_online,
     offline_at: data.offline_at,
-    updated_at: data?.updated_at,
-    created_at: data?.created_at,
   }
 }
 

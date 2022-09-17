@@ -10,7 +10,7 @@ const verifyToken = async (
   const token = req.headers["authorization"]?.split("Bearer ")[1]
 
   if (!token) {
-    return res.json(new ResponseError("No token provided!", 403, false, null))
+    return res.json(new ResponseError("No token provided!", 401, false, null))
   }
 
   try {
@@ -18,7 +18,7 @@ const verifyToken = async (
     req.locals = authUser
     return next()
   } catch (error) {
-    return res.json(new ResponseError("Unauthorized Token!", 401, false, null))
+    return res.json(new ResponseError("Unauthorized Token!", 403, false, null))
   }
 }
 

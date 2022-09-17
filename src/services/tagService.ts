@@ -1,9 +1,28 @@
 import Tag from "../models/tag"
-import { CreateTagMessage, GetTagMessageList, ITag, UpdateTagMessage } from "../types"
+import {
+  CreateTagMessage,
+  GetTagMessageList,
+  ITag,
+  ListRes,
+  TagRes,
+  UpdateTagMessage,
+} from "../types"
+import { toListResponse, toTagListResponse, toTagResponse } from "../utils"
 
 export class TagService {
-  async getTagMessageList({ filter, limit, offset }: GetTagMessageList): Promise<ITag[]> {
-    return await Tag.find(filter).limit(limit).skip(offset).lean()
+  async getTagMessageList({
+    filter,
+    limit,
+    offset,
+  }: GetTagMessageList): Promise<ListRes<TagRes[]>> {
+    const data: ITag[] = await Tag.find(filter).limit(limit).skip(offset).lean()
+    const total = await Tag.countDocuments(filter)
+    return toListResponse({
+      total,
+      limit,
+      offset,
+      data: toTagListResponse(data),
+    })
   }
 
   async deleteTagMesasge(tag_id: string): Promise<any> {

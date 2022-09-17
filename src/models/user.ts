@@ -83,7 +83,7 @@ const UserSchema = new Schema<IUser>({
   },
   is_online: {
     type: Boolean,
-    default: true,
+    default: false,
   },
   offline_at: {
     type: Date,

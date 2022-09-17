@@ -57,6 +57,7 @@ class MessageController {
         user_id: req.locals._id,
       })
       if (!message) return res.json(new ResponseError("Failed to read message"))
+
       return res.json(new ResponseData({ message_id: message._id }, "Confirmed read message"))
     } catch (error) {
       return res.status(400).send(error)
@@ -69,8 +70,11 @@ class MessageController {
         room_id: req.body.room_id,
         user_id: req.locals._id,
       })
-      if (!message) return res.json(new ResponseError("Failed to read last message"))
-      return res.json(new ResponseData(message, "Confirmed read last message"))
+      if (!message) return res.json(new ResponseError("Failed to read all messages in room"))
+
+      return res.json(
+        new ResponseData({ room_id: req.body.room_id }, "Confirmed read all messages in room")
+      )
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -78,9 +82,10 @@ class MessageController {
 
   async getUsersReadMessage(req: Express.Request, res: Express.Response) {
     try {
+      const { message_id } = req.params
       const limit = Number(req.query?.limit) || USERS_LIMIT
       const offset = Number(req.query?.offset) || 0
-      const { message_id } = req.params
+
       const message = await MessageService.getMessageById(message_id as any)
       if (!message) return res.json(new ResponseError("Message not found"))
 

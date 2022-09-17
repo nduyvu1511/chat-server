@@ -2,6 +2,7 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
+import log from "../config/logger"
 import { isObjectID, SELECT_USER, USERS_LIMIT } from "../constant"
 import Attachment from "../models/attachment"
 import User from "../models/user"
@@ -25,7 +26,7 @@ import {
   UserSocketId,
 } from "../types"
 import { IAttachment, ListRes } from "../types/commonType"
-import { toUserDataReponse, toUserListResponse, toUserResponse } from "../utils"
+import { toUserDataReponse, toUserListResponse } from "../utils"
 import { toListResponse } from "./../utils/commonResponse"
 import AttachmentService from "./attachmentService"
 
@@ -310,12 +311,15 @@ class UserService {
 
   async hashPassword(password: string): Promise<string> {
     return await bcrypt.hash(password, 10)
-  }
+  } 
 
-  generateToken(user: IUser): string {
+  generateToken(user: IUser | UserPopulate): string {
     return jwt.sign(
       { _id: user._id, user_id: user.user_id, role: user.role },
-      process.env.JWT_SECRET + ""
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: "7d",
+      }
     )
   }
 }

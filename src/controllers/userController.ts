@@ -5,7 +5,7 @@ import UserService from "../services/userService"
 import { IUser, UserLoginRes, UserRes } from "../types"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
-import { toUserDataReponse, toUserResponse } from "../utils/userResponse"
+import { toUserResponse } from "../utils/userResponse"
 
 class UserController {
   async register(req: Express.Request, res: Express.Response) {
@@ -25,7 +25,7 @@ class UserController {
       return res.json(
         new ResponseData<UserLoginRes>({
           ...toUserResponse(user),
-          token: UserService.generateToken(user as any),
+          token: UserService.generateToken(user),
         })
       )
     } catch (error) {
@@ -61,7 +61,9 @@ class UserController {
   async createUser(req: Express.Request, res: Express.Response) {
     try {
       const data = await UserService.createUser(req.body)
-      return res.json(new ResponseData<UserRes>(toUserResponse(data)))
+      return res.json(
+        new ResponseData({ ...toUserResponse(data), token: UserService.generateToken(data) })
+      )
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -93,10 +95,9 @@ class UserController {
     try {
       const user_id = req.locals._id
       const { socket_id } = req.body
-      const user = await UserService.getUserByUserId(user_id)
-      if (!user) return res.json(new ResponseError("User not found"))
-      await UserService.addUserSocketId({ user_id, socket_id })
-      return res.json(new ResponseData(toUserDataReponse(user)))
+
+      const user = await UserService.addUserSocketId({ user_id, socket_id })
+      return res.json(new ResponseData(user))
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -117,12 +118,9 @@ class UserController {
   async checkHasPassword(req: Express.Request, res: Express.Response) {
     try {
       return res.json(
-        new ResponseData(
-          {
-            has_password: !!req?.locals?.password,
-          },
-          "Change password successfully"
-        )
+        new ResponseData({
+          has_password: !!req?.locals?.password,
+        })
       )
     } catch (error) {
       return res.status(400).send(error)

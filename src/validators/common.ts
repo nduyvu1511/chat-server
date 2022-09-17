@@ -30,3 +30,4 @@ export const updateTagMessageSchema = Joi.object<UpdateTagMessage>({
 export const tagIdParamsSchema = Joi.object<{ tag_id: string }>({
   tag_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
 })
+

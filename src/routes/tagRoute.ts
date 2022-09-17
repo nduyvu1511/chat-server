@@ -9,6 +9,33 @@ import {
 } from "../validators"
 const router = Express.Router()
 
+/**
+ * @openapi
+ * '/api/v1/tag':
+ *  get:
+ *     tags:
+ *      - Tag
+ *     summary: Lấy danh sách tin nhắn nhanh
+ *     security:
+ *      - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schema/TagListRes'
+ *       400:
+ *         description: Bad Request
+ */
 router.get(
   "/",
   queryMiddleware(getTagMessageListSchema),

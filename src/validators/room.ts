@@ -14,12 +14,47 @@ import {
   QueryRoomParams,
 } from "../types"
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    CreateSingleChat:
+ *      type: object
+ *      required:
+ *        - partner_id
+ *      properties:
+ *        partner_id:
+ *          type: number
+ */
 export const createSingleChatSchema = Joi.object<createSingleChat>({
   partner_id: Joi.number().required(),
 })
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    CreateGroupChat:
+ *      type: object
+ *      required:
+ *        - member_ids
+ *        - room_name
+ *      properties:
+ *        member_ids:
+ *          type: array
+ *          items:
+ *            type: number
+ *            summary: Lấy id này từ parner_id của Odoo, Phải có ít nhất 3 người thì mới tạo được nhóm chat
+ *            example: [1,2,3]
+ *        room_avatar_id:
+ *          type: string
+ *          example: 631a99cc79c11fc36845e297
+ *          summary: Lấy id này từ kết quả trả về của API POST '/api/v1/attachment'
+ *        room_name:
+ *          type: string
+ */
 export const createGroupChatSchema = Joi.object<CreateGroupChat>({
-  member_ids: Joi.array().items(Joi.number()).required().min(1),
+  member_ids: Joi.array().items(Joi.number()).required().min(2),
   room_avatar_id: Joi.string().regex(OBJECT_ID_REGEX).optional(),
   room_name: Joi.string().required(),
 })
@@ -33,6 +68,34 @@ export const addMessagePinnedSchema = Joi.object({
   message_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
 })
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    QueryList:
+ *      type: object
+ *      properties:
+ *        limit:
+ *          type: number
+ *        offset:
+ *          type: number
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    GetRoomList:
+ *      type: object
+ *      properties:
+ *        limit:
+ *          type: number
+ *        offset:
+ *          type: number
+ *        search_term:
+ *          type: string
+ *          summary: Tìm kiếm nhóm chat theo tên
+ */
 export const getRoomListSchema = Joi.object<QueryRoomParams>({
   limit: Joi.number().optional(),
   offset: Joi.number().optional(),
@@ -43,6 +106,33 @@ export const roomIdSchema = Joi.object<{ room_id: ObjectId }>({
   room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
 })
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    MessageId:
+ *      type: object
+ *      required:
+ *        - message_id
+ *      properties:
+ *        message_id:
+ *          type: string
+ *          example: 631a99cc79c11fc36845e297
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    RoomId:
+ *      type: object
+ *      required:
+ *        - room_id
+ *      properties:
+ *        room_id:
+ *          type: string
+ *          example: 631a99cc79c11fc36845e297
+ */
 export const addMessageUnReadSchema = Joi.object<AddMessageUnread>({
   message_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
 })

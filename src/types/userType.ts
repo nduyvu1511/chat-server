@@ -29,22 +29,115 @@ export type UserPopulate = Omit<IUser, "avatar_id"> & {
   avatar_id: IAttachment
 }
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    UserListRes:
+ *      type: object
+ *      required:
+ *       offset
+ *       limit
+ *       total
+ *       data
+ *      properties:
+ *        hasMore:
+ *         type: boolean
+ *        limit:
+ *         type: number
+ *        offset:
+ *         type: number
+ *        total:
+ *         type: number
+ *        data:
+ *          type: array
+ *          items:
+ *           $ref: '#components/schema/UserRes'
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    UserRes:
+ *      type: object
+ *      properties:
+ *        user_id:
+ *          type: string
+ *          example: 631d56c54a20bef82e479f0d
+ *        user_name:
+ *          type: string
+ *        avatar:
+ *          type: string
+ *          $ref: '#/components/schema/AttachmentRes'
+ *        bio:
+ *          type: string
+ *        date_of_birth:
+ *          type: date
+ *          format: YYYY-MM-DD
+ *          example: 2000-11-15
+ *          regex: /\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$/
+ *        gender:
+ *          type: string
+ *          enum: [male, female, no_info]
+ *        is_online:
+ *          type: boolean
+ *        offline_at:
+ *          type: date
+ *          format: YYYY-MM-DD
+ *          example: 2000-11-15
+ *        role:
+ *          type: string
+ *          enum: [customer, driver, admin]
+ *        phone:
+ *          type: string
+ *          regex: /((^(\+84|84|0|0084){1})(3|5|7|8|9))+([0-9]{8})$/
+ *          default: '0977066211'
+ */
 export type UserRes = Pick<
   IUser,
-  | "bio"
-  | "created_at"
-  | "date_of_birth"
-  | "gender"
-  | "is_online"
-  | "offline_at"
-  | "role"
-  | "phone"
-  | "user_name"
-  | "updated_at"
+  "bio" | "date_of_birth" | "gender" | "is_online" | "offline_at" | "role" | "phone" | "user_name"
 > & {
   user_id: ObjectId
   avatar: AttachmentRes
 }
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    CreateUserRes:
+ *      type: object
+ *      properties:
+ *        user_id:
+ *          type: string
+ *          default: 631d56c54a20bef82e479f0d
+ *        user_name:
+ *          type: string
+ *        avatar:
+ *          type: string
+ *          $ref: '#/components/schema/AttachmentRes'
+ *        bio:
+ *          type: string
+ *        date_of_birth:
+ *          type: date
+ *          format: YYYY-MM-DD
+ *        gender:
+ *          type: string
+ *          enum: [male, female, no_info]
+ *        is_online:
+ *          type: boolean
+ *        offline_at:
+ *          type: date
+ *          format: YYYY-MM-DD
+ *        role:
+ *          type: string
+ *          enum: [customer, driver, admin]
+ *        phone:
+ *          type: string
+ *          pattern: '((^(\+84|84|0|0084){1})(3|5|7|8|9))+([0-9]{8})$'
+ *          default: '0977066211'
+ */
 
 export type UserData = UserRes & {
   user_chatted_with_ids: string[]

@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb"
 import { AttachmentId, AttachmentRes, IAttachment, ListRes, QueryCommonParams } from "./commonType"
-import { MessagePopulate, MessageRes } from "./messageType"
+import { LastMessage, MessagePopulate, MessageRes } from "./messageType"
 import { IUser, UserPopulate } from "./userType"
 
 export interface IRoom {
@@ -21,6 +21,65 @@ export interface IRoom {
   updated_at: Date
 }
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    RoomListRes:
+ *      type: object
+ *      properties:
+ *        hasMore:
+ *         type: boolean
+ *        limit:
+ *         type: number
+ *        offset:
+ *         type: number
+ *        total:
+ *         type: number
+ *        data:
+ *          type: array
+ *          items:
+ *           $ref: '#components/schema/RoomRes'
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    RoomRes:
+ *      type: object
+ *      required:
+ *       room_id
+ *       room_name
+ *       room_type
+ *       is_online
+ *       member_online_count
+ *       member_count
+ *       message_unread_count
+ *      properties:
+ *       room_id:
+ *        type: string
+ *       room_name:
+ *        type: string
+ *       room_avatar:
+ *        $ref: '#/components/schema/AttachmentRes'
+ *       room_type:
+ *        type: string
+ *        enum: [group, single, admin]
+ *       is_online:
+ *        type: boolean
+ *       member_online_count:
+ *        type: number
+ *       offline_at:
+ *        type: date,
+ *        format: YYYY-MM-DD
+ *       member_count:
+ *        type: number
+ *       message_unread_count:
+ *        type: number
+ *       last_message:
+ *        $ref: '#/components/schema/LastMessageRes'
+ */
 export interface RoomRes {
   room_id: ObjectId
   room_name: string | null
@@ -64,19 +123,87 @@ export type ToRoomListResponse = {
   current_user: IUser
 }
 
-export type RoomDetailRes = Omit<RoomRes, "message_unread_count"> & {
-  // offline_at: Date
-  messages_pinned: MessageRes[]
+export type RoomDetailRes = Omit<RoomRes, "message_unread_count" | "last_message"> & {
+  pinned_messages: MessageRes[]
   messages: MessageRes[]
   members: RoomMemberRes[]
-  leader_user_info: RoomMemberRes | null
+  leader_info: RoomMemberRes | null
 }
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    RoomDetailRes:
+ *      type: object
+ *      required:
+ *       room_id
+ *       room_name
+ *       room_type
+ *       is_online
+ *       member_online_count
+ *       member_count
+ *       message_unread_count
+ *      properties:
+ *       room_id:
+ *        type: string
+ *       room_name:
+ *        type: string
+ *       room_avatar:
+ *        $ref: '#/components/schema/AttachmentRes'
+ *       room_type:
+ *        type: string
+ *        enum: [group, single, admin]
+ *       is_online:
+ *        type: boolean
+ *       member_online_count:
+ *        type: number
+ *       offline_at:
+ *        type: date,
+ *        format: YYYY-MM-DD
+ *       member_count:
+ *        type: number
+ *        messages:
+ *          $ref: '#components/schema/MessageListRes'
+ *        pinned_messages:
+ *          $ref: '#components/schema/MessageListRes'
+ *        members:
+ *          $ref: '#components/schema/RoomMemberListRes'
+ *        leader_info:
+ *          $ref: '#components/schema/RoomMemberListRes'
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    RoomMemberListRes:
+ *      type: object
+ *      required:
+ *       offset
+ *       limit
+ *       total
+ *       data
+ *      properties:
+ *        hasMore:
+ *         type: boolean
+ *        limit:
+ *         type: number
+ *        offset:
+ *         type: number
+ *        total:
+ *         type: number
+ *        data:
+ *          type: array
+ *          items:
+ *           $ref: '#components/schema/RoomMemberRes'
+ */
+
 export type RoomQueryDetailRes = Omit<RoomRes, "message_unread_count" | "last_message"> & {
-  messages_pinned: ListRes<MessageRes[]>
+  pinned_messages: ListRes<MessageRes[]>
   messages: ListRes<MessageRes[]>
   members: ListRes<RoomMemberRes[]>
-  leader_user_info: RoomMemberRes | null
+  leader_info: RoomMemberRes | null
 }
 
 export type RoomDetailPopulate = Omit<
@@ -117,11 +244,6 @@ export interface RoomMemberWithId {
   _id: ObjectId
   member_ids: RoomMember[]
 }
-
-export type LastMessage = Pick<
-  MessageRes,
-  "message_id" | "message_text" | "is_author" | "author" | "created_at" | "room_id"
->
 
 export interface createSingleChat {
   partner_id: number
@@ -166,6 +288,44 @@ export type RoomServiceParams = Exclude<IRoom, "last_message" | ""> & {
   message?: MessagePopulate
 }
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    RoomMemberRes:
+ *      type: object
+ *      required:
+ *        - user_id
+ *        - bio
+ *        - avatar
+ *        - gender
+ *        - date_of_birth
+ *        - is_online
+ *        - user_name
+ *        - phone
+ *        - offline_at
+ *      properties:
+ *       user_id:
+ *        type: string
+ *       bio:
+ *        type: string
+ *       avatar:
+ *        $ref: '#/components/schema/AttachmentRes'
+ *       date_of_birth:
+ *        type: string
+ *        format: YYYY-MM-DD
+ *       gender:
+ *        type: string
+ *        enum: [male, female, no_info]
+ *       is_online:
+ *        type: boolean
+ *       user_name:
+ *        type: string
+ *       phone:
+ *        type: string
+ *       offline_at:
+ *        type: date
+ */
 export type RoomMemberRes = Pick<
   IUser,
   "bio" | "gender" | "date_of_birth" | "is_online" | "user_name" | "phone" | "offline_at"

@@ -24,17 +24,26 @@ class RoomController {
 
       // Check partner id exists
       const roomIds = await RoomService.getSingleRoomIds(req.locals.room_joined_ids)
-      let isValid = true
+      let room_id
       roomIds.forEach((room) => {
         room.member_ids.forEach((item) => {
           if (item.user_id.toString() === partner._id.toString()) {
-            isValid = false
+            room_id = room._id
             return
           }
         })
       })
-      if (!isValid)
-        return res.json(new ResponseError("Create room chat failed because partner is duplicate"))
+
+      // Return room detail if partner_id is already exists in room
+      if (room_id) {
+        const roomRes = await RoomService.getRoomDetail({
+          room_id,
+          user: req.locals,
+        })
+        if (roomRes) {
+          return res.json(new ResponseData(roomRes))
+        }
+      }
 
       const room = await RoomService.createSingleChat({
         partner: partner as any,
@@ -64,17 +73,13 @@ class RoomController {
       const params: CreateGroupChat = req.body
       const memberIds: number[] = _.uniq([...params.member_ids, user.user_id])
 
-      if (memberIds?.length === 1) {
-        return res.json(
-          new ResponseError("Missing member id, can not create group chat without partner")
-        )
+      if (memberIds?.length <= 2) {
+        return res.json(new ResponseError("Group chat must has atleast three members"))
       }
 
       const partnerObjectIds = await UserService.getUserIds(memberIds)
-      if (partnerObjectIds?.length === 1) {
-        return res.json(
-          new ResponseError("Missing member id, can not create group chat without partner")
-        )
+      if (partnerObjectIds?.length <= 2) {
+        return res.json(new ResponseError("Group chat must has atleast three members"))
       }
 
       const partnerIds = partnerObjectIds.map((item) => item._id)
@@ -102,6 +107,12 @@ class RoomController {
       const room = await RoomService.getRoomDetail({ room_id: room_id as any, user: req.locals })
       if (!room)
         return res.json(new ResponseError("Room not found, the room has been deleted or changed"))
+
+      if (
+        !room.members?.data?.some((item) => item.user_id.toString() === req.locals._id.toString())
+      )
+        return res.json(new ResponseError("You are not in this room, so you can not get detail"))
+
       return res.json(new ResponseData(room))
     } catch (error) {
       return res.status(400).send(error)
@@ -147,7 +158,9 @@ class RoomController {
       })
       if (!data) return res.json(new ResponseError("Failed to clear message unread from room"))
 
-      return res.json(new ResponseData(null, "Cleared message unread from room"))
+      return res.json(
+        new ResponseData({ message_unread_count: 0 }, "Cleared message unread from room")
+      )
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -239,12 +252,19 @@ class RoomController {
   async pinMessageToRoom(req: Express.Request, res: Express.Response) {
     try {
       const { message_id } = req.body
+
       const message = await MessageService.getMessageById(message_id as any)
       if (!message) return res.json(new ResponseError("Message not found"))
+
       const room = await RoomService.pinMessageToRoom(message)
       if (!room) return res.json(new ResponseError("Failed to pin message to room"))
 
-      return res.json(new ResponseData(message))
+      const messageRes = await MessageService.getMessageRes({
+        current_user: req.locals,
+        message_id,
+      })
+
+      return res.json(new ResponseData(messageRes))
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -258,7 +278,7 @@ class RoomController {
       const room = await RoomService.deleteMessagePinnedFromRoom(message)
       if (!room) return res.json(new ResponseError("Failed to pin message to room"))
 
-      return res.json(new ResponseData(message))
+      return res.json(new ResponseData({ message_id: message._id }))
     } catch (error) {
       return res.status(400).send(error)
     }

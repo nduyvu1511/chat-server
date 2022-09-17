@@ -11,6 +11,7 @@ class TagController {
       const limit = Number(req.query?.limit) || TAGS_LIMIT
       const offset = Number(req.query?.offset) || 0
       const role: UserRole = req.locals.role
+
       const tags = await TagService.getTagMessageList({
         filter: {
           role,
@@ -18,6 +19,7 @@ class TagController {
         limit,
         offset,
       })
+      
       return res.json(new ResponseData(tags))
     } catch (error) {
       return res.status(400).send(error)
