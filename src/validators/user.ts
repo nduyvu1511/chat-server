@@ -31,7 +31,7 @@ import {
  *        user_id:
  *          type: number
  *          unique: true
- *          summary: Unique value, Take from partner_id of partner response
+ *          summary: Lấy từ partner_id của server Exxe
  *          default: 1
  *        avatar:
  *          type: string
@@ -83,7 +83,7 @@ export const createUserSchema = Joi.object<CreateUserParams>({
  *        user_id:
  *          type: number
  *          unique: true
- *          summary: Lấy từ parner_id của server Odoo
+ *          summary: Lấy từ parner_id của server server Exxe
  *          example: 1
  *        phone:
  *          type: string
@@ -138,9 +138,43 @@ export const blockOrUnblockUserSchema = Joi.object<BlockOrUnBlockUserParams>({
   status: Joi.string().valid("block", "unblock").required(),
 })
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    Login:
+ *      type: object
+ *      required:
+ *       - phone
+ *       - password
+ *      properties:
+ *        phone:
+ *          type: string
+ *          min: 10
+ *          summary: Lấy từ phone của server Exxe
+ *        password:
+ *          type: string
+ *          min: 8
+ */
 export const loginSchema = Joi.object<LoginParams>({
   phone: Joi.string().min(10).required(),
   password: Joi.string().min(8).required(),
+})
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    RefreshToken:
+ *      type: object
+ *      required:
+ *        - refresh_token
+ *      properties:
+ *        refresh_token:
+ *          type: string
+ */
+export const refreshTokenSchema = Joi.object<{ refresh_token: string }>({
+  refresh_token: Joi.string().required(),
 })
 
 /**
@@ -165,7 +199,7 @@ export const registerSchema = Joi.object<RegisterParams>({
   phone: Joi.string().regex(PHONE_REGEX).required(),
   password: Joi.string().min(8).required(),
   confirm_password: Joi.string().valid(Joi.ref("password")).required(),
-  role: Joi.string().allow("customer", "driver", "admin"),
+  role: Joi.string().allow("customer", "driver", "admin").required(),
 })
 
 /**

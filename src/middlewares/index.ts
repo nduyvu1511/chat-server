@@ -1,3 +1,5 @@
 export * from "./joiMiddleware"
 export * from "./userMiddleware"
 export * from "./tokenMiddleware"
+export * from "./roomMiddleware"
+export * from "./messageMiddleware"

@@ -44,12 +44,12 @@ export const createSingleChatSchema = Joi.object<createSingleChat>({
  *          type: array
  *          items:
  *            type: number
- *            summary: Lấy id này từ parner_id của Odoo, Phải có ít nhất 3 người thì mới tạo được nhóm chat
+ *            summary: Lấy id này từ parner_id của server Exxe, Phải có ít nhất 3 người thì mới tạo được nhóm chat
  *            example: [1,2,3]
  *        room_avatar_id:
  *          type: string
  *          example: 631a99cc79c11fc36845e297
- *          summary: Lấy id này từ kết quả trả về của API POST '/api/v1/attachment'
+ *          summary: Lấy id này từ kết quả trả về của API POST '/api/attachment'
  *        room_name:
  *          type: string
  */

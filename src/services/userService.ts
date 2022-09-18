@@ -2,9 +2,15 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
-import log from "../config/logger"
-import { isObjectID, SELECT_USER, USERS_LIMIT } from "../constant"
+import {
+  ACCESS_TOKEN_EXPIRED,
+  isObjectID,
+  REFRESH_TOKEN_EXPIRED,
+  SELECT_USER,
+  USERS_LIMIT
+} from "../constant"
 import Attachment from "../models/attachment"
+import Token from "../models/token"
 import User from "../models/user"
 import {
   AddUserIdsChattedWith,
@@ -18,12 +24,13 @@ import {
   IUser,
   LoginToSocket,
   RegisterParams,
+  RequestRefreshToken,
   UpdateProfile,
   UpdateProfileService,
   UserData,
   UserPopulate,
   UserRes,
-  UserSocketId,
+  UserSocketId
 } from "../types"
 import { IAttachment, ListRes } from "../types/commonType"
 import { toUserDataReponse, toUserListResponse } from "../utils"
@@ -311,16 +318,60 @@ class UserService {
 
   async hashPassword(password: string): Promise<string> {
     return await bcrypt.hash(password, 10)
-  } 
+  }
+
+  async generateRefreshToken(user: IUser | UserPopulate): Promise<string> {
+    const token = jwt.sign(
+      { _id: user._id, user_id: user.user_id, role: user.role },
+      process.env.JWT_REFRESH_SECRET as string,
+      {
+        expiresIn: REFRESH_TOKEN_EXPIRED,
+      }
+    )
+
+    const data = new Token({ token, user_id: user._id })
+    await data.save()
+
+    return token
+  }
+
+  async deleteRefreshToken(user_id: string): Promise<boolean> {
+    await Token.findOneAndDelete({ user_id })
+    return true
+  }
 
   generateToken(user: IUser | UserPopulate): string {
     return jwt.sign(
       { _id: user._id, user_id: user.user_id, role: user.role },
       process.env.JWT_SECRET as string,
       {
-        expiresIn: "7d",
+        expiresIn: ACCESS_TOKEN_EXPIRED,
       }
     )
+  }
+
+  async requestRefreshToken({ user, refresh_token }: RequestRefreshToken): Promise<{
+    refresh_token: string
+    access_token: string
+  } | null> {
+    const token = await Token.findOne({ token: refresh_token })
+    if (!token) return null
+
+    jwt.sign(
+      { _id: user._id, user_id: user.user_id, role: user.role },
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: REFRESH_TOKEN_EXPIRED,
+      }
+    )
+
+    const access_token = this.generateToken(user)
+    const _refresh_token = await this.generateRefreshToken(user)
+
+    return {
+      access_token,
+      refresh_token: _refresh_token,
+    }
   }
 }
 

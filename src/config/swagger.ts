@@ -9,6 +9,8 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: "Chat API Docs",
       version: "1.0.0",
+      description: "Đây là document của phần chat",
+      author: "Nduyvu",
     },
     components: {
       securitySchemas: {

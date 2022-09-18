@@ -1,6 +1,12 @@
 import Express from "express"
 import MessageController from "../controllers/messageController"
-import { bodyMiddleware, checkUserExist, paramsMiddleware, verifyToken } from "../middlewares"
+import {
+  bodyMiddleware,
+  checkMessageParamsExist,
+  checkUserExist,
+  paramsMiddleware,
+  verifyToken,
+} from "../middlewares"
 import {
   messageIdSchema,
   readLastMessageSchema,
@@ -11,7 +17,7 @@ const router = Express.Router()
 
 /**
  * @openapi
- * '/api/v1/message/{message_id}/users_read':
+ * '/api/message/{message_id}/users_read':
  *  get:
  *     tags:
  *      - Message
@@ -46,12 +52,13 @@ router.get(
   "/:message_id/users_read",
   verifyToken,
   paramsMiddleware(messageIdSchema),
+  checkMessageParamsExist,
   MessageController.getUsersReadMessage
 )
 
 /**
  * @openapi
- * '/api/v1/message/read':
+ * '/api/message/read':
  *  patch:
  *     tags:
  *      - Message
@@ -85,7 +92,7 @@ router.patch(
 
 /**
  * @openapi
- * '/api/v1/message/read_all':
+ * '/api/message/read_all':
  *  patch:
  *     tags:
  *      - Message
@@ -119,11 +126,12 @@ router.patch(
 
 /**
  * @openapi
- * '/api/v1/message':
+ * '/api/message':
  *  post:
  *     tags:
  *      - Message
- *     summary: Xác nhận đã đọc hết tin nhắn trong room chat
+ *     summary: Gửi tin nhắn
+ *     description: Lưu ý phần parameters
  *     security:
  *      - BearerAuth: []
  *     requestBody:

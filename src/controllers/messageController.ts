@@ -11,7 +11,7 @@ class MessageController {
   async sendMessage(req: Express.Request, res: Express.Response) {
     try {
       const params: SendMessage = req.body
-      const user: IUser = req.locals
+      const user: IUser = req.user
       const room = await MessageService.getRoomById(params.room_id)
       if (!room) return res.json(new ResponseError("Can not send a message because room not found"))
 
@@ -41,7 +41,7 @@ class MessageController {
 
       const messageRes = await MessageService.getMessageRes({
         message_id: message._id,
-        current_user: req.locals,
+        current_user: req.user,
       })
 
       return res.json(new ResponseData(messageRes))
@@ -54,7 +54,7 @@ class MessageController {
     try {
       const message = await MessageService.confirmReadMessage({
         message_id: req.body.message_id,
-        user_id: req.locals._id,
+        user_id: req.user._id,
       })
       if (!message) return res.json(new ResponseError("Failed to read message"))
 
@@ -68,7 +68,7 @@ class MessageController {
     try {
       const message = await MessageService.confirmReadAllMessageInRoom({
         room_id: req.body.room_id,
-        user_id: req.locals._id,
+        user_id: req.user._id,
       })
       if (!message) return res.json(new ResponseError("Failed to read all messages in room"))
 
@@ -82,24 +82,20 @@ class MessageController {
 
   async getUsersReadMessage(req: Express.Request, res: Express.Response) {
     try {
-      const { message_id } = req.params
       const limit = Number(req.query?.limit) || USERS_LIMIT
       const offset = Number(req.query?.offset) || 0
-
-      const message = await MessageService.getMessageById(message_id as any)
-      if (!message) return res.json(new ResponseError("Message not found"))
 
       const users = await UserService.getUserListByFilter({
         filter: {
           $and: [
             {
               _id: {
-                $in: message.read_by_user_ids,
+                $in: req.message.read_by_user_ids,
               },
             },
             {
               _id: {
-                $ne: req.locals._id,
+                $ne: req.user._id,
               },
             },
           ],

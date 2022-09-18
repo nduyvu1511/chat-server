@@ -6,7 +6,7 @@ const router = Express.Router()
 
 /**
  * @openapi
- * '/api/v1/attachment':
+ * '/api/attachment':
  *  post:
  *     tags:
  *      - Attachment

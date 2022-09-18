@@ -35,3 +35,7 @@ export const SELECT_ROOM = [
   "created_at",
   "updated_at",
 ]
+
+export const ACCESS_TOKEN_EXPIRED = "30s"
+export const REFRESH_TOKEN_EXPIRED = "600s"
+export const REFRESH_TOKEN_EXPIRED_NUMBER = 600

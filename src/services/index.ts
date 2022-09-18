@@ -1,1 +1,5 @@
 export * from "./userService"
+export * from "./messageService"
+export * from "./roomService"
+export * from "./tagService"
+export * from "./attachmentService"

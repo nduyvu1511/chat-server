@@ -1,6 +1,12 @@
 import Express from "express"
 import UserController from "../controllers/userController"
-import { bodyMiddleware, checkUserExist, queryMiddleware, verifyToken } from "../middlewares"
+import {
+  bodyMiddleware,
+  checkUserExist,
+  queryMiddleware,
+  verifyRefreshToken,
+  verifyToken,
+} from "../middlewares"
 import {
   blockOrUnblockUserSchema,
   changePasswordSchema,
@@ -11,6 +17,7 @@ import {
   loginSchema,
   loginSocketSchema,
   queryCommonSchema,
+  refreshTokenSchema,
   registerSchema,
   updateProfleSchema,
 } from "../validators"
@@ -18,12 +25,12 @@ const router = Express.Router()
 
 /**
  * @openapi
- * '/api/v1/user':
+ * '/api/user':
  *  post:
  *     tags:
  *      - User
  *     summary: Tạo mới user
- *     description: tạo ra 1 user mới, lấy dữ liệu từ Odoo
+ *     description: tạo ra 1 user mới, lấy dữ liệu từ thông tin người dùng của server Exxe, API này sẽ được gọi sau khi đăng ký thành công 1 user trên server Exxe
  *     security:
  *      - BearerAuth: []
  *     requestBody:
@@ -37,14 +44,79 @@ const router = Express.Router()
  *         content:
  *          application/json:
  *            schema:
- *              $ref: '#/components/schema/UserRes'
+ *              $ref: '#/components/schema/CreateUserRes'
  *       400:
  *         description: Bad Request
  */
 router.post("/", bodyMiddleware(createUserSchema), UserController.createUser)
 
 router.post("/register", bodyMiddleware(registerSchema), UserController.register)
+
+/**
+ * @openapi
+ * '/api/user/login':
+ *  post:
+ *     tags:
+ *      - User
+ *     summary: Đăng nhập
+ *     requestBody:
+ *       required: true
+ *       content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schema/Login'
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schema/CreateUserRes'
+ *       400:
+ *         description: Bad Request
+ */
 router.post("/login", bodyMiddleware(loginSchema), UserController.login)
+
+/**
+ * @openapi
+ * '/api/user/logout':
+ *  post:
+ *     tags:
+ *      - User
+ *     summary: Đăng xuất
+ *     description: Dùng để xóa refresh token ra hỏi Database, Client đồng thời xóa refresh token và access token
+ *     security:
+ *      - BearerAuth: []
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *            schema:
+ *            type: object
+ *       400:
+ *         description: Bad Request
+ */
+router.post("/logout", verifyToken, UserController.logout)
+
+/**
+ * @openapi
+ * '/api/user/refresh':
+ *  post:
+ *     tags:
+ *      - User
+ *     security:
+ *      - BearerAuth: []
+ *     summary: Tạo access token và refresh token mới từ refresh token
+ *     description: Dùng API này trong trường hợp access token đã hết hạn, kết quả trả về sẽ là 1 access token mới và 1 refresh token mới, Lấy refresh token chèn vào header
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schema/TokenRes'
+ *       400:
+ *         description: Bad Request
+ */
+router.post("/refresh", verifyRefreshToken, checkUserExist, UserController.requestRefreshToken)
 
 /**
  * @openapi
@@ -53,11 +125,12 @@ router.post("/login", bodyMiddleware(loginSchema), UserController.login)
  *     BearerAuth:
  *      type: http
  *      scheme: bearer
+ *      bearerFormat: JWT
  */
 
 /**
  * @openapi
- * '/api/v1/user/login_to_socket':
+ * '/api/user/login_to_socket':
  *  post:
  *     tags:
  *       - User
@@ -89,7 +162,7 @@ router.post(
 
 /**
  * @openapi
- * '/api/v1/user/generate_token':
+ * '/api/user/generate_token':
  *  post:
  *     tags:
  *       - User
@@ -106,7 +179,7 @@ router.post(
  *         content:
  *          application/json:
  *           schema:
- *             $ref: '#/components/schema/UserRes'
+ *             $ref: '#/components/schema/TokenRes'
  *       400:
  *         description: Bad Request
  */
@@ -114,7 +187,7 @@ router.post("/generate_token", bodyMiddleware(GetTokenSchema), UserController.ge
 
 /**
  * @openapi
- * '/api/v1/user/password':
+ * '/api/user/password':
  *  get:
  *     tags:
  *       - User
@@ -138,7 +211,7 @@ router.get("/password", verifyToken, checkUserExist, UserController.checkHasPass
 
 /**
  * @openapi
- * '/api/v1/user/password':
+ * '/api/user/password':
  *  post:
  *     tags:
  *       - User
@@ -174,7 +247,7 @@ router.post(
 
 /**
  * @openapi
- * '/api/v1/user/password':
+ * '/api/user/password':
  *  patch:
  *     tags:
  *       - User
@@ -210,7 +283,7 @@ router.patch(
 
 /**
  * @openapi
- * '/api/v1/user/profile':
+ * '/api/user/profile':
  *  get:
  *     tags:
  *       - User
@@ -238,7 +311,7 @@ router.get("/profile", verifyToken, UserController.getUserInfo)
 
 /**
  * @openapi
- * '/api/v1/user/profile':
+ * '/api/user/profile':
  *  patch:
  *     tags:
  *       - User

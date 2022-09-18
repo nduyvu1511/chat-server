@@ -119,3 +119,9 @@ export interface CreateTagMessage {
 export type UpdateTagMessage = Partial<CreateTagMessage> & {
   tag_id: string
 }
+
+export interface IToken {
+  token: string
+  user_id: ObjectId
+  expired_at: Date
+}

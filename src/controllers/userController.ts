@@ -21,11 +21,13 @@ class UserController {
     try {
       const user = await UserService.getUserByPhoneAndUserId(req.body)
       if (!user) return res.json(new ResponseError("User not found, please register first"))
+      const access_token = UserService.generateToken(user)
+      const refresh_token = await UserService.generateRefreshToken(user)
 
       return res.json(
-        new ResponseData<UserLoginRes>({
-          ...toUserResponse(user),
-          token: UserService.generateToken(user),
+        new ResponseData({
+          access_token,
+          refresh_token,
         })
       )
     } catch (error) {
@@ -47,12 +49,39 @@ class UserController {
       if (!(await bcrypt.compare(password, user?.password || "")))
         return res.json(new ResponseError("Password is not match"))
 
+      const access_token = UserService.generateToken(user)
+      const refresh_token = await UserService.generateRefreshToken(user)
+
       return res.json(
         new ResponseData<UserLoginRes>({
           ...toUserResponse(user),
-          token: UserService.generateToken(user as any),
+          access_token,
+          refresh_token,
         })
       )
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async logout(req: Express.Request, res: Express.Response) {
+    try {
+      await UserService.deleteRefreshToken(req.user._id.toString())
+      return res.json(new ResponseData(null, "logout successfully"))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async requestRefreshToken(req: Express.Request, res: Express.Response) {
+    try {
+      const data = await UserService.requestRefreshToken({
+        user: req.user,
+        refresh_token: req.body.refresh_token,
+      })
+      if (!data) return res.json(new ResponseError("Refresh token is not valid or expired"))
+
+      return res.json(new ResponseData(data))
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -61,9 +90,10 @@ class UserController {
   async createUser(req: Express.Request, res: Express.Response) {
     try {
       const data = await UserService.createUser(req.body)
-      return res.json(
-        new ResponseData({ ...toUserResponse(data), token: UserService.generateToken(data) })
-      )
+      const access_token = UserService.generateToken(data)
+      const refresh_token = await UserService.generateRefreshToken(data)
+
+      return res.json(new ResponseData({ ...toUserResponse(data), access_token, refresh_token }))
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -71,7 +101,7 @@ class UserController {
 
   async updateProfile(req: Express.Request, res: Express.Response) {
     try {
-      const data = await UserService.updateProfile({ ...req.body, user: req.locals })
+      const data = await UserService.updateProfile({ ...req.body, user: req.user })
       if (!data) return res.json(new ResponseError("User not found"))
 
       return res.json(new ResponseData<UserRes>(toUserResponse(data)))
@@ -82,7 +112,7 @@ class UserController {
 
   async getUserInfo(req: Express.Request, res: Express.Response) {
     try {
-      const data = await UserService.getUserByUserId(req?.query?.user_id || req.locals._id)
+      const data = await UserService.getUserByUserId((req?.query?.user_id || req.user._id) as any)
       if (!data) return res.json(new ResponseError("User not found"))
 
       return res.json(new ResponseData<UserRes>(toUserResponse(data)))
@@ -93,7 +123,7 @@ class UserController {
 
   async loginToSocket(req: Express.Request, res: Express.Response) {
     try {
-      const user_id = req.locals._id
+      const user_id = req.user._id
       const { socket_id } = req.body
 
       const user = await UserService.addUserSocketId({ user_id, socket_id })
@@ -105,10 +135,10 @@ class UserController {
 
   async changePassword(req: Express.Request, res: Express.Response) {
     try {
-      if (!(await bcrypt.compare(req.body.current_password, req.locals.password))) {
+      if (!(await bcrypt.compare(req.body.current_password, req.user.password))) {
         return res.json(new ResponseError("Password is not match"))
       }
-      await UserService.createPassword({ ...req.body, _id: req.locals._id })
+      await UserService.createPassword({ ...req.body, _id: req.user._id })
       return res.json(new ResponseData(null, "Change password successfully"))
     } catch (error) {
       return res.status(400).send(error)
@@ -119,7 +149,7 @@ class UserController {
     try {
       return res.json(
         new ResponseData({
-          has_password: !!req?.locals?.password,
+          has_password: !!req?.user?.password,
         })
       )
     } catch (error) {
@@ -129,13 +159,13 @@ class UserController {
 
   async createPassword(req: Express.Request, res: Express.Response) {
     try {
-      if (req.locals?.password?.length) {
+      if (req.user?.password?.length) {
         return res.json(
           new ResponseError("This account already has password, use change password instead")
         )
       }
 
-      await UserService.createPassword({ ...req.body, _id: req.locals._id })
+      await UserService.createPassword({ ...req.body, _id: req.user._id })
       return res.json(new ResponseData(null, "Create password successfully"))
     } catch (error) {
       return res.status(400).send(error)
@@ -145,7 +175,7 @@ class UserController {
   async changeStatus(req: Express.Request, res: Express.Response) {
     console.log("call to change status of user")
     try {
-      const data = await UserService.changeStatus({ ...req.body, user_id: req.locals._id })
+      const data = await UserService.changeStatus({ ...req.body, user_id: req.user._id })
       if (!data) return res.json(new ResponseError("User not found"))
 
       return res.json(
@@ -161,7 +191,7 @@ class UserController {
 
   async blockOrUnBlockUser(req: Express.Request, res: Express.Response) {
     try {
-      if (req.locals._id.toString() === req.body.partner_id.toString())
+      if (req.user._id.toString() === req.body.partner_id.toString())
         return res.json(new ResponseError("You cannot pass your id into a block list!"))
 
       const partner = await UserService.getUserByUserId(req.body.partner_id)
@@ -169,7 +199,7 @@ class UserController {
 
       await UserService.blockOrUnBlockUser({
         ...req.body,
-        user_id: req.locals._id,
+        user_id: req.user._id,
       })
 
       return res.json(
@@ -186,7 +216,7 @@ class UserController {
   async getBlockUserList(req: Express.Request, res: Express.Response) {
     const offset = Number(req.query?.offset) || 0
     const limit = Number(req.query?.limit) || USERS_LIMIT
-    const user: IUser = req.locals
+    const user: IUser = req.user
     try {
       const data = await UserService.getUserListByFilter({
         limit,

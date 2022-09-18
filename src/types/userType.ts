@@ -59,6 +59,67 @@ export type UserPopulate = Omit<IUser, "avatar_id"> & {
  * @openapi
  * components:
  *  schema:
+ *    CreateUserRes:
+ *      type: object
+ *      properties:
+ *        user_id:
+ *          type: string
+ *          example: 631d56c54a20bef82e479f0d
+ *        user_name:
+ *          type: string
+ *        avatar:
+ *          type: string
+ *          $ref: '#/components/schema/AttachmentRes'
+ *        bio:
+ *          type: string
+ *        date_of_birth:
+ *          type: date
+ *          format: YYYY-MM-DD
+ *          example: 2000-11-15
+ *          regex: /\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$/
+ *        gender:
+ *          type: string
+ *          enum: [male, female, no_info]
+ *        is_online:
+ *          type: boolean
+ *        offline_at:
+ *          type: date
+ *          format: YYYY-MM-DD
+ *          example: 2000-11-15
+ *        role:
+ *          type: string
+ *          enum: [customer, driver, admin]
+ *        phone:
+ *          type: string
+ *          regex: /((^(\+84|84|0|0084){1})(3|5|7|8|9))+([0-9]{8})$/
+ *          default: '0977066211'
+ *        access_token:
+ *          type: string
+ *          summary: Là token dùng để gọi tất cả request về sau
+ *        refresh_token:
+ *          type: string
+ *          summary: Là token gọi để generate ra 1 access token mới trong trường hợp access token hết hạn
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    TokenRes:
+ *      type: object
+ *      properties:
+ *        access_token:
+ *          type: string
+ *          summary: Là token dùng để gọi tất cả request về sau
+ *        refresh_token:
+ *          type: string
+ *          summary: Là token gọi để generate ra 1 access token mới trong trường hợp access token hết hạn
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
  *    UserRes:
  *      type: object
  *      properties:
@@ -167,7 +228,7 @@ export type UserRole = "customer" | "driver" | "admin"
 
 export type Gender = "male" | "female" | "no_info" | ""
 
-export type UserLoginRes = UserRes & { token: string }
+export type UserLoginRes = UserRes & { access_token: string; refresh_token: string }
 
 export type changeUserStatusParams = Pick<IUser, "is_online"> & {
   user_id: string
@@ -223,7 +284,7 @@ export interface ChangeUserStatusBySocketId {
 }
 
 export interface AddUserSocketId {
-  user_id: string
+  user_id: ObjectId
   socket_id: string
 }
 
@@ -233,11 +294,16 @@ export interface AddUserIdsChattedWith {
 
 export interface LoginToSocket {
   socket_id: string
-  user_id: string
+  user_id: ObjectId
   // socket: Socket<any>
 }
 
 export interface UserSocketId {
   user_id: ObjectId
   socket_id: string
+}
+
+export interface RequestRefreshToken {
+  refresh_token: string
+  user: IUser
 }

@@ -21,7 +21,7 @@ const router = Express.Router()
 
 /**
  * @openapi
- * '/api/v1/room/single':
+ * '/api/room/single':
  *  post:
  *     tags:
  *      - Room
@@ -54,7 +54,7 @@ router.post(
 
 /**
  * @openapi
- * '/api/v1/room/group':
+ * '/api/room/group':
  *  post:
  *     tags:
  *      - Room
@@ -86,7 +86,7 @@ router.post(
 
 /**
  * @openapi
- * '/api/v1/room/group':
+ * '/api/room/group':
  *  post:
  *     tags:
  *      - Room
@@ -111,7 +111,7 @@ router.post(
 
 /**
  * @openapi
- * '/api/v1/room/message_unread':
+ * '/api/room/message_unread':
  *  post:
  *     tags:
  *      - Room
@@ -147,7 +147,7 @@ router.post(
 
 /**
  * @openapi
- * '/api/v1/room/{room_id}/message_unread':
+ * '/api/room/{room_id}/message_unread':
  *  delete:
  *     tags:
  *      - Room
@@ -183,7 +183,7 @@ router.delete(
 
 /**
  * @openapi
- * '/api/v1/room':
+ * '/api/room':
  *  get:
  *     tags:
  *      - Room
@@ -224,7 +224,7 @@ router.get("/ids", verifyToken, checkUserExist, RoomController.getUserJoinedRoom
 
 /**
  * @openapi
- * '/api/v1/room/{room_id}':
+ * '/api/room/{room_id}':
  *  get:
  *     tags:
  *      - Room
@@ -256,7 +256,7 @@ router.get(
 
 /**
  * @openapi
- * '/api/v1/room/{room_id}/pinned_messages':
+ * '/api/room/{room_id}/pinned_messages':
  *  get:
  *     tags:
  *      - Room
@@ -297,7 +297,7 @@ router.get(
 
 /**
  * @openapi
- * '/api/v1/room/pinned_message':
+ * '/api/room/pinned_message':
  *  post:
  *     tags:
  *      - Room
@@ -329,7 +329,7 @@ router.post(
 
 /**
  * @openapi
- * '/api/v1/room/pinned_message/{message_id}':
+ * '/api/room/pinned_message/{message_id}':
  *  delete:
  *     tags:
  *      - Room
@@ -364,7 +364,7 @@ router.delete(
 
 /**
  * @openapi
- * '/api/v1/room/{room_id}/members':
+ * '/api/room/{room_id}/members':
  *  get:
  *     tags:
  *      - Room
@@ -405,7 +405,7 @@ router.get(
 
 /**
  * @openapi
- * '/api/v1/room/{room_id}/messages':
+ * '/api/room/{room_id}/messages':
  *  get:
  *     tags:
  *      - Room

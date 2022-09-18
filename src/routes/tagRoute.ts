@@ -11,7 +11,7 @@ const router = Express.Router()
 
 /**
  * @openapi
- * '/api/v1/tag':
+ * '/api/tag':
  *  get:
  *     tags:
  *      - Tag

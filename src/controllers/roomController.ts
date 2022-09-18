@@ -12,7 +12,7 @@ import ResponseData from "../utils/apiRes"
 class RoomController {
   async createSingleChat(req: Express.Request, res: Express.Response) {
     try {
-      const { user_id } = req.locals
+      const { user_id } = req.user
       const { partner_id } = req.body
 
       if (user_id === partner_id)
@@ -23,7 +23,7 @@ class RoomController {
         return res.json(new ResponseError("Create room chat failed because partner ID is invalid"))
 
       // Check partner id exists
-      const roomIds = await RoomService.getSingleRoomIds(req.locals.room_joined_ids)
+      const roomIds = await RoomService.getSingleRoomIds(req.user.room_joined_ids)
       let room_id
       roomIds.forEach((room) => {
         room.member_ids.forEach((item) => {
@@ -38,7 +38,7 @@ class RoomController {
       if (room_id) {
         const roomRes = await RoomService.getRoomDetail({
           room_id,
-          user: req.locals,
+          user: req.user,
         })
         if (roomRes) {
           return res.json(new ResponseData(roomRes))
@@ -47,18 +47,18 @@ class RoomController {
 
       const room = await RoomService.createSingleChat({
         partner: partner as any,
-        user: req.locals,
+        user: req.user,
       })
       if (!room) return res.json(new ResponseError("Create room chat failed"))
 
       // Add partner id to user chatted with field
       await UserService.addUserIdsChattedWith({
-        user_ids: [req.locals._id, partner._id],
+        user_ids: [req.user._id, partner._id],
       })
 
       const roomRes = await RoomService.getRoomDetail({
         room_id: room._id,
-        user: req.locals,
+        user: req.user,
       })
 
       return res.json(new ResponseData(roomRes, "create room chat successfully"))
@@ -69,7 +69,7 @@ class RoomController {
 
   async createGroupChat(req: Express.Request, res: Express.Response) {
     try {
-      const user: IUser = req.locals
+      const user: IUser = req.user
       const params: CreateGroupChat = req.body
       const memberIds: number[] = _.uniq([...params.member_ids, user.user_id])
 
@@ -93,7 +93,7 @@ class RoomController {
       await UserService.addUserIdsChattedWith({
         user_ids: partnerIds,
       })
-      const roomRes = await RoomService.getRoomDetail({ room_id: room._id, user: req.locals })
+      const roomRes = await RoomService.getRoomDetail({ room_id: room._id, user: req.user })
 
       return res.json(new ResponseData(roomRes, "Create group chat successfully"))
     } catch (error) {
@@ -104,13 +104,11 @@ class RoomController {
   async getRoomDetail(req: Express.Request, res: Express.Response) {
     try {
       const { room_id } = req.params
-      const room = await RoomService.getRoomDetail({ room_id: room_id as any, user: req.locals })
+      const room = await RoomService.getRoomDetail({ room_id: room_id as any, user: req.user })
       if (!room)
         return res.json(new ResponseError("Room not found, the room has been deleted or changed"))
 
-      if (
-        !room.members?.data?.some((item) => item.user_id.toString() === req.locals._id.toString())
-      )
+      if (!room.members?.data?.some((item) => item.user_id.toString() === req.user._id.toString()))
         return res.json(new ResponseError("You are not in this room, so you can not get detail"))
 
       return res.json(new ResponseData(room))
@@ -122,7 +120,7 @@ class RoomController {
   async addMessageUnReadToRoom(req: Express.Request, res: Express.Response) {
     try {
       const messageRes = await MessageService.getMessageRes({
-        current_user: req.locals,
+        current_user: req.user,
         message_id: req.body.message_id,
       })
       if (!messageRes?.message_id) return res.json(new ResponseError("Message not found"))
@@ -130,7 +128,7 @@ class RoomController {
       const room = await RoomService.addMessageUnreadToRoom({
         message_id: messageRes.message_id,
         room_id: messageRes.room_id,
-        user_id: req.locals._id,
+        user_id: req.user._id,
       })
       if (!room) return res.json(new ResponseError("Failed to add message unread to room"))
 
@@ -139,7 +137,7 @@ class RoomController {
           {
             message_unread_count: toMessageUnreadCount({
               data: room,
-              current_user_id: req.locals._id,
+              current_user_id: req.user._id,
             }),
           },
           "Added message unread to room"
@@ -154,7 +152,7 @@ class RoomController {
     try {
       const data = await RoomService.clearMessageUnreadFromRoom({
         room_id: req.params.room_id as any,
-        user_id: req.locals._id,
+        user_id: req.user._id,
       })
       if (!data) return res.json(new ResponseError("Failed to clear message unread from room"))
 
@@ -175,8 +173,8 @@ class RoomController {
         limit,
         offset,
         search_term,
-        room_ids: req.locals?.room_joined_ids || [],
-        current_user: req.locals,
+        room_ids: req.user?.room_joined_ids || [],
+        current_user: req.user,
       })
       return res.json(new ResponseData(rooms))
     } catch (error) {
@@ -208,7 +206,7 @@ class RoomController {
       const messages = await RoomService.getMessagesByFilter({
         limit,
         offset,
-        current_user: req.locals,
+        current_user: req.user,
         filter: { room_id },
       })
 
@@ -220,7 +218,7 @@ class RoomController {
 
   async getUserJoinedRoomIds(req: Express.Request, res: Express.Response) {
     try {
-      return res.json(new ResponseData(req.locals?.room_joined_ids || []))
+      return res.json(new ResponseData(req.user?.room_joined_ids || []))
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -236,7 +234,7 @@ class RoomController {
       const messages = await RoomService.getMessagesByFilter({
         limit,
         offset,
-        current_user: req.locals,
+        current_user: req.user,
         filter: {
           _id: {
             $in: room?.pinned_message_ids || [],
@@ -260,7 +258,7 @@ class RoomController {
       if (!room) return res.json(new ResponseError("Failed to pin message to room"))
 
       const messageRes = await MessageService.getMessageRes({
-        current_user: req.locals,
+        current_user: req.user,
         message_id,
       })
 
