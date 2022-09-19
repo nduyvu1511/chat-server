@@ -3,7 +3,7 @@ import { ObjectId } from "mongodb"
 import { USERS_LIMIT } from "../constant"
 import MessageService from "../services/messageService"
 import UserService from "../services/userService"
-import { IMessage, IUser, SendMessage } from "../types"
+import { IMessage, IUser, LikeMessageRes, UnlikeMessageRes, SendMessage } from "../types"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
 
@@ -43,6 +43,21 @@ class MessageController {
         message_id: message._id,
         current_user: req.user,
       })
+
+      return res.json(new ResponseData(messageRes))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async getMessageById(req: Express.Request, res: Express.Response) {
+    try {
+      console.log(req.params)
+      const messageRes = await MessageService.getMessageRes({
+        message_id: req.params.message_id as any,
+        current_user: req.user,
+      })
+      if (!messageRes) return res.json(new ResponseError("Message not found"))
 
       return res.json(new ResponseData(messageRes))
     } catch (error) {
@@ -105,6 +120,71 @@ class MessageController {
       })
 
       return res.json(new ResponseData(users))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async likeMessage(req: Express.Request, res: Express.Response) {
+    try {
+      console.log(req.body)
+      const message = await MessageService.likeMessage({ ...req.body, user_id: req.user._id })
+      if (!message) return res.json(new ResponseError("Failed to like this message"))
+
+      return res.json(
+        new ResponseData<LikeMessageRes>(
+          {
+            message_id: message._id,
+            emotion: req.body.emotion,
+            user_id: req.user._id,
+            room_id: message.room_id,
+          },
+          "liked message"
+        )
+      )
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async unlikeMessage(req: Express.Request, res: Express.Response) {
+    try {
+      const { message_id } = req.params
+      const data = await MessageService.unlikeMessage({
+        message_id: message_id as any,
+        user_id: req.user._id,
+      })
+      if (!data) return res.json(new ResponseError("Failed to unlike this message"))
+
+      return res.json(
+        new ResponseData<UnlikeMessageRes>(
+          { message_id: data._id, room_id: data.room_id, user_id: req.user._id },
+          "unliked message"
+        )
+      )
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async getUsersLikedMessage(req: Express.Request, res: Express.Response) {
+    try {
+      const limit = Number(req.query?.limit) || USERS_LIMIT
+      const offset = Number(req.query?.offset) || 0
+
+      console.log(req.message.liked_by_user_ids)
+
+      const data = await UserService.getUserListByFilter({
+        filter: {
+          _id: {
+            $in: req.message?.liked_by_user_ids?.map((item) => item.user_id) || [],
+          },
+        },
+        limit,
+        offset,
+      })
+
+      return res.json(new ResponseData(data))
     } catch (error) {
       return res.status(400).send(error)
     }

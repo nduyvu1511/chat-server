@@ -173,7 +173,6 @@ class UserController {
   }
 
   async changeStatus(req: Express.Request, res: Express.Response) {
-    console.log("call to change status of user")
     try {
       const data = await UserService.changeStatus({ ...req.body, user_id: req.user._id })
       if (!data) return res.json(new ResponseError("User not found"))

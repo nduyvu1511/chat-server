@@ -17,7 +17,6 @@ import {
   loginSchema,
   loginSocketSchema,
   queryCommonSchema,
-  refreshTokenSchema,
   registerSchema,
   updateProfleSchema,
 } from "../validators"

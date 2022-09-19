@@ -9,7 +9,6 @@ const verifyToken = async (
   res: express.Response,
   next: express.NextFunction
 ) => {
-  log.info(req.headers["authorization"])
   const token = req.headers["authorization"]?.split("Bearer ")[1]
 
   if (!token) {

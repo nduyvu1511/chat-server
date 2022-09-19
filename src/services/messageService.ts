@@ -1,20 +1,27 @@
 import { ObjectId } from "mongodb"
-import { SELECT_USER } from "../constant"
+import log from "../config/logger"
+import { SELECT_USER, USERS_LIMIT } from "../constant"
 import Attachment from "../models/attachment"
 import Message from "../models/message"
 import Room from "../models/room"
 import Tag from "../models/tag"
+import user from "../models/user"
 import {
   GetMessage,
+  GetUsersLikedMessage,
   IAttachment,
   IMessage,
   IRoom,
   ITag,
+  LikeMessageService,
+  ListRes,
   MessagePopulate,
   MessageRes,
   SendMessageServiceParams,
+  UnlikeMessageService,
   UserReadLastMessage,
   UserReadMessage,
+  UserRes,
 } from "../types"
 import { toMessageResponse } from "../utils"
 
@@ -126,6 +133,67 @@ class MessageService {
       }
     )
     return true
+  }
+
+  async likeMessage({
+    emotion,
+    message_id,
+    user_id,
+  }: LikeMessageService): Promise<IMessage | null> {
+    try {
+      return await Message.findByIdAndUpdate(message_id, {
+        $addToSet: {
+          liked_by_user_ids: {
+            user_id: user_id as any,
+            emotion,
+          },
+        },
+      })
+    } catch (error) {
+      log.error(error)
+      return null
+    }
+  }
+
+  async unlikeMessage({ message_id, user_id }: UnlikeMessageService): Promise<IMessage | null> {
+    return await Message.findByIdAndUpdate(message_id, {
+      $pull: {
+        liked_by_user_ids: {
+          user_id,
+        },
+      },
+    })
+  }
+
+  // Need to be handle soon
+  async getUsersLikedMessage(params: GetUsersLikedMessage): Promise<ListRes<UserRes[]>> {
+    const { limit = USERS_LIMIT, offset = 0, message_id } = params
+
+    // const total = await User.countDocuments(filter)
+    const data = await Message.findById(message_id)
+      .populate({
+        path: "liked_by_user_ids.user_id",
+        model: "User",
+        select: SELECT_USER,
+        populate: {
+          path: "avatar_id",
+          model: "Attachment",
+        },
+      })
+      .select(SELECT_USER)
+
+    // .populate("avatar_id")
+    // .limit(limit)
+    // .skip(offset)
+    // .lean()
+
+    // return toListResponse({
+    //   data: toUserListResponse(userRes),
+    //   limit,
+    //   offset,
+    //   total: 0,
+    // })
+    return [] as any
   }
 }
 

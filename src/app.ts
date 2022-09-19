@@ -29,7 +29,7 @@ const corsConfig = {
 }
 app.use(cors(corsConfig))
 
-app.listen(PORT, () => {
+app.listen(PORT || "192.168.1.20", () => {
   log.info(`App listening at port ${PORT}`)
   db.connect()
   swaggerDocs(app, Number(PORT))

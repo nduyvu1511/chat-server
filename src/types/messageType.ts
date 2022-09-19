@@ -327,3 +327,89 @@ export interface UserReadLastMessage {
   user_id: ObjectId
   room_id: ObjectId
 }
+
+export interface UnlikeMessage {
+  message_id: ObjectId
+}
+
+export interface UnlikeMessageService {
+  message_id: ObjectId
+  user_id: ObjectId
+}
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    LikeMessage:
+ *      type: object
+ *      required:
+ *        - message_id
+ *        - emotion
+ *      properties:
+ *        message_id:
+ *          type: string
+ *        emotion:
+ *          type: string
+ *          enum: [like, angry, sad, wow, heart, laugh]
+ */
+export interface LikeMessage extends UnlikeMessage {
+  emotion: MessageEmotionType
+}
+
+export interface LikeMessageService extends UnlikeMessageService {
+  emotion: MessageEmotionType
+}
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    LikeMessageRes:
+ *      type: object
+ *      required:
+ *        - message_id
+ *        - emotion
+ *        - user_id
+ *        - room_id
+ *      properties:
+ *        message_id:
+ *          type: string
+ *        emotion:
+ *          type: string
+ *          enum: [like, angry, sad, wow, heart, laugh]
+ *        user_id:
+ *          type: string
+ *        room_id:
+ *          type: string
+ */
+export interface LikeMessageRes {
+  message_id: ObjectId
+  room_id: ObjectId
+  user_id: ObjectId
+  emotion: MessageEmotionType
+}
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    UnlikeMessageRes:
+ *      type: object
+ *      required:
+ *        - message_id
+ *        - user_id
+ *        - room_id
+ *      properties:
+ *        message_id:
+ *          type: string
+ *        user_id:
+ *          type: string
+ *        room_id:
+ *          type: string
+ */
+export interface UnlikeMessageRes {
+  message_id: ObjectId
+  user_id: ObjectId
+  room_id: ObjectId
+}

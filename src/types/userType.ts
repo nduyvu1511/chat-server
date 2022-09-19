@@ -278,6 +278,10 @@ export type GetUserByFilter = Partial<QueryCommonParams> & {
   filter: FilterQuery<IUser>
 }
 
+export type GetUsersLikedMessage = Partial<QueryCommonParams> & {
+  message_id: ObjectId
+}
+
 export interface ChangeUserStatusBySocketId {
   socket_id: string
   is_online: boolean

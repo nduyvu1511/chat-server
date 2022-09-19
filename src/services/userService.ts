@@ -7,7 +7,7 @@ import {
   isObjectID,
   REFRESH_TOKEN_EXPIRED,
   SELECT_USER,
-  USERS_LIMIT
+  USERS_LIMIT,
 } from "../constant"
 import Attachment from "../models/attachment"
 import Token from "../models/token"
@@ -30,7 +30,7 @@ import {
   UserData,
   UserPopulate,
   UserRes,
-  UserSocketId
+  UserSocketId,
 } from "../types"
 import { IAttachment, ListRes } from "../types/commonType"
 import { toUserDataReponse, toUserListResponse } from "../utils"

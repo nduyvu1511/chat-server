@@ -1,6 +1,6 @@
 import Joi from "joi"
 import { OBJECT_ID_REGEX } from "../constant"
-import { SendMessage, UserReadLastMessage, UserReadMessage } from "../types"
+import { LikeMessage, SendMessage, UserReadLastMessage, UserReadMessage } from "../types"
 import { LngLatSchema } from "./common"
 
 /**
@@ -68,4 +68,9 @@ export const readLastMessageSchema = Joi.object<UserReadLastMessage>({
 
 export const messageIdSchema = Joi.object<{ message_id: string }>({
   message_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+})
+
+export const likeMessageSchema = Joi.object<LikeMessage>({
+  message_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+  emotion: Joi.string().valid("like", "angry", "sad", "wow", "heart", "laugh").required(),
 })

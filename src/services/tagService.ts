@@ -30,7 +30,6 @@ export class TagService {
   }
 
   async updateTagMessage({ tag_id, ...params }: UpdateTagMessage): Promise<ITag | null> {
-    console.log({ params })
     return await Tag.findByIdAndUpdate(tag_id, params, { new: true })
   }
 

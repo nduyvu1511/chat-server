@@ -59,11 +59,9 @@ const MessageSchema = new Schema<IMessage>({
           type: String,
           enum: ["like", "angry", "sad", "laugh", "heart", "wow"],
         },
+        _id: false,
       },
       default: [],
-    },
-    {
-      _id: false,
     },
   ],
   is_hidden: {
