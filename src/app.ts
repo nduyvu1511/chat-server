@@ -8,9 +8,9 @@ import log from "./config/logger"
 import socketHandler from "./config/socket"
 import swaggerDocs from "./config/swagger"
 import routes from "./routes"
+import morgan from "morgan"
 
 import dotenv from "dotenv"
-import morgan from "morgan"
 dotenv.config()
 
 const PORT = process.env.PORT || 5000

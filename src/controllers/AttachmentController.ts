@@ -11,6 +11,14 @@ class AttachmentController {
       console.log(error)
     }
   }
+
+  async uploadImage(req: Express.Request, res: Express.Response) {
+    try {
+      return res.json(new ResponseData(req.file))
+    } catch (error) {
+      console.log(error)
+    }
+  }
 }
 
 export default new AttachmentController()

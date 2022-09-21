@@ -3,6 +3,7 @@ import AttachmentController from "../controllers/AttachmentController"
 import { bodyMiddleware, verifyToken } from "../middlewares"
 import { createAttachment } from "../validators"
 const router = Express.Router()
+import fileUploader from "../config/cloudinary"
 
 /**
  * @openapi
@@ -34,6 +35,19 @@ router.post(
   verifyToken,
   bodyMiddleware(createAttachment),
   AttachmentController.createAttachment
+)
+
+router.post(
+  "/upload/single",
+  verifyToken,
+  fileUploader.single("image"),
+  AttachmentController.uploadImage
+)
+router.post(
+  "/upload/multiple",
+  verifyToken,
+  fileUploader.array("images"),
+  AttachmentController.uploadImage
 )
 
 export default router
