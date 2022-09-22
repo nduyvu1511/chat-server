@@ -65,13 +65,11 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
           }
         })
       })
-
       socket.on("read_message", async (payload: MessageRes) => {
         console.log("read message: ", payload)
         if (!payload?.author?.author_socket_id) return
         socket.to(payload.author.author_socket_id.toString()).emit("confirm_read_message", payload)
       })
-
       socket.on("like_message", async (payload: LikeMessageRes) => {
         console.log("liked message: ", payload)
         socket.to(payload.room_id.toString()).emit("like_message", payload)

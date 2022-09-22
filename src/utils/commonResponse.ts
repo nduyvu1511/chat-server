@@ -3,7 +3,7 @@ import { AttachmentRes, IAttachment, ITag, ListParams, ListRes, TagRes } from ".
 export const toAttachmentResponse = (params: IAttachment): AttachmentRes => {
   return {
     attachment_id: params?._id || "",
-    thumbnail_url: params?.thumbnail_url || "",
+    thumbnail_url: params?.thumbnail_url || null,
     url: params?.url || "",
     attachment_type: params?.attachment_type || "",
   }

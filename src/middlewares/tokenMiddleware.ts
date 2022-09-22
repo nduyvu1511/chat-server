@@ -1,6 +1,5 @@
 import * as express from "express"
 import jwt from "jsonwebtoken"
-import log from "../config/logger"
 import { IUser } from "../types"
 import ResponseError from "../utils/apiError"
 

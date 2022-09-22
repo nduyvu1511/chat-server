@@ -1,5 +1,7 @@
 import { ObjectId } from "mongodb"
-import { AttachmentRes, IAttachment, ITag, Lnglat, QueryCommonParams, TagRes } from "./commonType"
+import { ITag, Lnglat, QueryCommonParams, TagRes } from "./commonType"
+import { AttachmentRes, IAttachment } from "./attachmentType"
+
 import { IUser, UserPopulate } from "./userType"
 
 export interface IMessage {
@@ -230,7 +232,7 @@ export type LastMessage = Pick<
   "message_id" | "message_text" | "is_author" | "author" | "created_at" | "room_id"
 >
 
-export type AttachmentType = "image" | "video" | "voice"
+export type AttachmentType = "image" | "video"
 
 /**
  * @openapi

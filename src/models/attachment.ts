@@ -3,15 +3,15 @@ import { IAttachment } from "../types"
 
 const AttachmentSchema = new Schema<IAttachment>({
   url: { type: String, required: true, trim: true },
-  thumbnail_url: { type: String, required: true },
-  desc: { type: String, required: false, default: null },
+  thumbnail_url: { type: String },
   attachment_type: {
     type: String,
-    enum: ["image", "video", "voice"],
+    enum: ["image", "video"],
     trim: true,
     lowercase: true,
     required: true,
   },
+  resource_ids: [{ type: String, required: true }],
   created_at: {
     type: Schema.Types.Date,
     default: Date.now,

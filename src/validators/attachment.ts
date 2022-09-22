@@ -1,5 +1,5 @@
-import Joi from "joi"
-import { URL_REGEX } from "../constant"
+import Joi, { string } from "joi"
+import { OBJECT_ID_REGEX, URL_REGEX } from "../constant"
 import { CreateAttachment } from "../types"
 
 /**
@@ -15,7 +15,7 @@ import { CreateAttachment } from "../types"
  *      properties:
  *        attachment_type:
  *          type: string
- *          enum: [image, video, voice]
+ *          enum: [image, video]
  *          summary: loại của tệp tin
  *        desc:
  *          type: string
@@ -28,8 +28,16 @@ import { CreateAttachment } from "../types"
  *          summary: URL của hình ảnh, chi tiết cao
  */
 export const createAttachment = Joi.object<CreateAttachment>({
-  attachment_type: Joi.string().valid("image", "video", "voice").required(),
+  attachment_type: Joi.string().valid("image", "video").required(),
   desc: Joi.string().optional(),
   thumbnail_url: Joi.string().regex(URL_REGEX).required(),
   url: Joi.string().regex(URL_REGEX).required(),
 })
+
+export const attachmentIdSchema = Joi.object({
+  attachment_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+})
+
+// export const deleteResourceSchema = Joi.object({
+//   resource_type: Joi.string().valid("image", "video").required(),
+// })

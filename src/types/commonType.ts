@@ -34,46 +34,6 @@ export interface Lnglat {
   lat: string
 }
 
-type AttachmentType = "image" | "video" | "voice"
-
-export interface IAttachment {
-  _id: ObjectId
-  url: string
-  thumbnail_url: string
-  desc: string
-  attachment_type: AttachmentType
-  created_at: Date
-  updated_at: Date
-}
-
-/**
- * @openapi
- * components:
- *  schema:
- *    AttachmentRes:
- *      type: object
- *      required:
- *        - attachment_id
- *        - thumbnail_url
- *        - url
- *        - attachment_type
- *      properties:
- *        attachment_id:
- *          type: string
- *        thumbnail_url:
- *          type: string
- *          summary: Lower image quality used to render a small image
- *        url:
- *          type: string
- *          summary: Higher image quality used to render a big image
- *        attachment_type:
- *          type: string
- *          enum: [image, video, voice]
- */
-export type AttachmentRes = Pick<IAttachment, "thumbnail_url" | "url" | "attachment_type"> & {
-  attachment_id: ObjectId
-}
-
 export interface AttachmentId {
   attachment_id: ObjectId
   url: string
@@ -95,16 +55,6 @@ export interface ITag {
 export interface TagRes {
   tag_id: ObjectId
   text: string
-}
-
-export type CreateAttachment = Pick<IAttachment, "attachment_type" | "url" | "thumbnail_url"> & {
-  desc?: string
-}
-
-export type UpdateAttachment = Partial<
-  Pick<IAttachment, "attachment_type" | "url" | "thumbnail_url" | "desc" | "updated_at">
-> & {
-  attachment_id: ObjectId
 }
 
 export interface GetTagMessageList extends QueryCommonParams {

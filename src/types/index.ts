@@ -1,3 +1,4 @@
+import { IAttachment } from "./attachmentType"
 import { IMessage } from "./messageType"
 import { IRoom } from "./roomType"
 import { IUser } from "./userType"
@@ -5,6 +6,7 @@ import { IUser } from "./userType"
 export * from "./roomType"
 export * from "./messageType"
 export * from "./userType"
+export * from "./attachmentType"
 export * from "./commonType"
 
 declare global {
@@ -13,6 +15,7 @@ declare global {
       user: IUser
       message: IMessage
       room: IRoom
+      attachment: IAttachment
     }
 
     type NextFunction = Function

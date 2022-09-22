@@ -1,6 +1,4 @@
-import { CloudinaryStorage } from "multer-storage-cloudinary"
 import cloudinary from "cloudinary"
-import multer, { Multer } from "multer"
 import dotenv from "dotenv"
 dotenv.config()
 
@@ -11,18 +9,4 @@ cloudinary.v2.config({
   secure: true,
 })
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary.v2,
-  params: {
-    public_id: () => "messages",
-  },
-
-  // allowedFormats: ["jpg", "png"],
-  // filename: function (req, file, cb) {
-  //   cb(null, file.originalname)
-  // },
-})
-
-const uploadCloud = multer({ storage })
-
-export default uploadCloud
+export default cloudinary
