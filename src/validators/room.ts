@@ -44,7 +44,7 @@ export const createSingleChatSchema = Joi.object<createSingleChat>({
  *          type: array
  *          items:
  *            type: number
- *            summary: Lấy id này từ parner_id của server Exxe, Phải có ít nhất 3 người thì mới tạo được nhóm chat
+ *            summary: Lấy id này từ partner_id của server Exxe, Phải có ít nhất 3 người thì mới tạo được nhóm chat
  *            example: [1,2,3]
  *        room_avatar_id:
  *          type: string

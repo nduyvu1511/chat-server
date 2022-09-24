@@ -37,3 +37,5 @@ export const uploadImage = multer({
     callback(null, true)
   },
 })
+
+

@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb"
+import log from "../config/logger"
 import { MESSAGES_LIMIT, SELECT_ROOM, SELECT_USER, USERS_LIMIT } from "../constant"
 import Message from "../models/message"
 import Room from "../models/room"
@@ -39,18 +40,23 @@ import UserService from "./userService"
 
 class RoomService {
   async createSingleChat(params: createSingleChatServices): Promise<IRoom | null> {
-    const { partner, user } = params
+    try {
+      const { partner, user } = params
 
-    const room = new Room({
-      room_type: "single",
-      room_name: null,
-      member_ids: [{ user_id: user._id }, { user_id: partner._id }],
-      room_single_member_ids: [user._id, partner._id],
-    })
+      const room = new Room({
+        room_type: "single",
+        room_name: null,
+        member_ids: [{ user_id: user._id }, { user_id: partner._id }],
+        room_single_member_ids: [user._id, partner._id],
+      })
 
-    const roomRes: IRoom = (await room.save()).toObject()
-    await this.saveRoomToUserIds([partner._id, user._id], room._id)
-    return roomRes
+      const roomRes: IRoom = (await room.save()).toObject()
+      await this.saveRoomToUserIds([partner._id, user._id], room._id)
+      return roomRes
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
   async getSocketIdsFromRoom(room_id: string): Promise<UserSocketId[]> {
@@ -62,17 +68,22 @@ class RoomService {
   }
 
   async createGroupChat(params: CreateGroupChatServicesParams): Promise<IRoom | null> {
-    const { member_ids, room_avatar_id, room_name } = params
+    try {
+      const { member_ids, room_avatar_id, room_name } = params
 
-    const room = new Room({
-      room_type: "group",
-      room_avatar_id: room_avatar_id || null,
-      room_name: room_name || "",
-      member_ids: member_ids?.map((user_id) => ({ user_id })),
-    })
-    const roomRes: IRoom = (await room.save()).toObject()
-    await this.saveRoomToUserIds(member_ids, room._id)
-    return roomRes
+      const room = new Room({
+        room_type: "group",
+        room_avatar_id: room_avatar_id || null,
+        room_name: room_name || "",
+        member_ids: member_ids?.map((user_id) => ({ user_id })),
+      })
+      const roomRes: IRoom = (await room.save()).toObject()
+      await this.saveRoomToUserIds(member_ids, room._id)
+      return roomRes
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
   async getSingleRoomIds(room_ids: string[]): Promise<RoomMemberWithId[]> {
@@ -84,16 +95,20 @@ class RoomService {
   }
 
   async deleteRoomFromUserIds(user_ids: string[], room_id: string) {
-    await Promise.all(
-      user_ids.map(async (user_id) => {
-        const user = await User.findByIdAndUpdate(user_id, {
-          $pull: {
-            room_joined_ids: room_id,
-          },
+    try {
+      await Promise.all(
+        user_ids.map(async (user_id) => {
+          const user = await User.findByIdAndUpdate(user_id, {
+            $pull: {
+              room_joined_ids: room_id,
+            },
+          })
+          return user
         })
-        return user
-      })
-    )
+      )
+    } catch (error) {
+      return null
+    }
   }
 
   async saveRoomToUserIds(user_ids: ObjectId[], room_id: ObjectId) {
@@ -216,7 +231,7 @@ class RoomService {
         pinned_messages,
       }
     } catch (error) {
-      console.log(error)
+      log.error(error)
       return null
     }
   }
@@ -261,47 +276,61 @@ class RoomService {
       ],
     }
 
-    const data: RoomPopulate[] = await Room.find(searchQuery)
-      .select(SELECT_ROOM)
-      .populate({
-        path: "last_message_id",
-        model: "Message",
-        populate: {
-          path: "user_id",
-          model: "User",
-          select: SELECT_USER,
-          populate: {
-            path: "avatar_id",
-            model: "Attachment",
+    const roomList = Room.aggregate([
+      {
+        $match: {
+          _id: {
+            $in: room_ids,
           },
         },
-      })
-      .populate({
-        path: "member_ids.user_id",
-        model: "User",
-        select: ["_id", "is_online", "offline_at"],
-      })
-      .populate({ path: "room_avatar_id", model: "Attachment" })
-      .populate({
-        path: "room_single_member_ids",
-        model: "User",
-        select: ["_id", "avatar_id", "user_name"],
-        populate: {
-          path: "avatar_id",
-          model: "Attachment",
+      },
+      {
+        $project: {
+          message_ids: 0,
         },
-      })
-      .limit(limit)
-      .skip(offset)
-      .lean()
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "member_ids.user_id",
+          foreignField: "_id",
+          as: "member_ids.user_id",
+          pipeline: [
+            {
+              $project: {
+                is_online: 1,
+                offline_at: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "messages",
+          localField: "last_message_id",
+          foreignField: "_id",
+          as: "last_message_id",
+          pipeline: [
+            // {
+            //   $project: {},
+            // },
+            {
+              $unwind: "$last_message_id",
+            },
+          ],
+        },
+      },
+    ])
 
     const total = await Room.countDocuments(searchQuery)
-    return toListResponse({
-      limit,
-      offset,
-      total,
-      data: toRoomListResponse({ current_user, data }),
-    })
+    return roomList as any
+    // return toListResponse({
+    //   limit,
+    //   offset,
+    //   total,
+    //   data: toRoomListResponse({ current_user, data }),
+    // })
   }
 
   async getRoomById(room_id: ObjectId): Promise<IRoom | null> {
@@ -309,19 +338,29 @@ class RoomService {
   }
 
   async pinMessageToRoom(params: IMessage): Promise<IRoom | null> {
-    return await Room.findByIdAndUpdate(params.room_id, {
-      $addToSet: {
-        pinned_message_ids: params._id,
-      },
-    })
+    try {
+      return await Room.findByIdAndUpdate(params.room_id, {
+        $addToSet: {
+          pinned_message_ids: params._id,
+        },
+      })
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
   async deleteMessagePinnedFromRoom(params: IMessage): Promise<IRoom | null> {
-    return await Room.findByIdAndUpdate(params.room_id, {
-      $pull: {
-        pinned_message_ids: params._id,
-      },
-    })
+    try {
+      return await Room.findByIdAndUpdate(params.room_id, {
+        $pull: {
+          pinned_message_ids: params._id,
+        },
+      })
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
   async getMessagesByFilter(params: GetMessagesByFilter): Promise<ListRes<MessageRes[]>> {

@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb"
 import { ITag, Lnglat, QueryCommonParams, TagRes } from "./commonType"
 import { AttachmentRes, IAttachment } from "./attachmentType"
 
-import { IUser, UserPopulate } from "./userType"
+import { IUser, UserPopulate, UserRes } from "./userType"
 
 export interface IMessage {
   _id: ObjectId
@@ -20,12 +20,63 @@ export interface IMessage {
   is_hidden: boolean
   is_deleted: boolean
   is_edited: boolean
-  liked_by_user_ids: {
-    user_id: string
-    emotion: MessageEmotionType
-  }[]
+  liked_by_user_ids: LikedByUserId[]
   created_at: Date
   updated_at: Date
+}
+
+export interface LikedByUserId {
+  user_id: string
+  emotion: MessageEmotionType
+}
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    UserLikedMessageRes:
+ *      type: object
+ *      required:
+ *        - _id
+ *        - data
+ *      properties:
+ *        _id:
+ *          type: string
+ *          enum: ["like", "angry", "sad", "laugh", "heart", "wow"]
+ *        data:
+ *          type: array
+ *          items:
+ *            $ref: '#components/schema/UserRes'
+ */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    UserLikedMessageListRes:
+ *      type: object
+ *      required:
+ *       offset
+ *       limit
+ *       total
+ *       data
+ *      properties:
+ *        hasMore:
+ *         type: boolean
+ *        limit:
+ *         type: number
+ *        offset:
+ *         type: number
+ *        total:
+ *         type: number
+ *        data:
+ *          type: array
+ *          items:
+ *           $ref: '#components/schema/UserLikedMessageRes'
+ */
+export interface UserLikedMessageRes {
+  _id: MessageEmotionType & "all"
+  data: UserRes
 }
 
 export type MessagePopulate = Omit<
@@ -302,7 +353,7 @@ export type MessageEmotionType = "like" | "angry" | "sad" | "laugh" | "heart" | 
 
 export type SendMessage = Pick<IMessage, "text" | "room_id"> & {
   tag_ids?: ObjectId[]
-  attachment_ids?: ObjectId[]
+  attachment_ids: ObjectId[]
   location?: Lnglat
   reply_to?: {
     message_id: ObjectId

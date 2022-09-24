@@ -93,6 +93,7 @@ export const toRoomStatus = ({ current_user, data }: ToRoomStatus): boolean => {
 }
 
 export const toRoomListResponse = ({ current_user, data }: ToRoomListResponse): RoomRes[] => {
+  console.log(data)
   const list = data.map((item) => toRoomResponse({ data: item, current_user }))
   return _.orderBy(list, (item) => item.last_message?.created_at || "", ["desc"])
 }

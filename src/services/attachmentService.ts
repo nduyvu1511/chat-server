@@ -2,22 +2,16 @@ import { ObjectId } from "mongodb"
 import log from "../config/logger"
 import Attachment from "../models/attachment"
 import { CreateAttachment, IAttachment, UpdateAttachment } from "../types"
-import { UploadApiResponse, UploadImageRes } from "./uploadService"
 
 export class AttachmentService {
   async updateAttachment(params: UpdateAttachment): Promise<IAttachment | null> {
-    const { attachment_id, ...rest } = params
-    return await Attachment.findByIdAndUpdate(attachment_id, rest, { new: true }).lean()
-  }
-
-  async createAttachment(params: CreateAttachment): Promise<IAttachment> {
-    const data = new Attachment({
-      attachment_type: "image",
-      url: params.url,
-      thumbnail_url: params.thumbnail_url,
-      desc: params?.desc || "",
-    })
-    return (await data.save()).toObject()
+    try {
+      const { attachment_id, ...rest } = params
+      return await Attachment.findByIdAndUpdate(attachment_id, rest, { new: true }).lean()
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
   async deleteAttachment(attachment_id: ObjectId): Promise<boolean> {
@@ -30,22 +24,11 @@ export class AttachmentService {
     }
   }
 
-  async saveImage(params: UploadImageRes): Promise<IAttachment> {
-    const attachment = new Attachment({
-      resource_ids: [params.original.public_id, params.thumbnail.public_id],
-      thumbnail_url: params.thumbnail.secure_url,
-      url: params.original.secure_url,
-      attachment_type: "image",
-    })
-
-    return (await attachment.save()).toObject()
-  }
-
-  async saveMultipleImage(params: UploadImageRes[]): Promise<IAttachment[]> {
+  async createMultipleAttachment(params: CreateAttachment[]): Promise<IAttachment[]> {
     try {
       const attachments = await Promise.all(
         params.map(async (item) => {
-          return await this.saveImage(item)
+          return await this.createAttachment(item)
         })
       )
 
@@ -56,12 +39,22 @@ export class AttachmentService {
     }
   }
 
-  async saveVideo(params: UploadApiResponse): Promise<IAttachment> {
+  async getAttachments(attachment_ids: ObjectId[]): Promise<IAttachment[]> {
+    return await Attachment.find({
+      _id: {
+        $in: attachment_ids,
+      },
+    }).lean()
+  }
+
+  async createAttachment(params: CreateAttachment): Promise<IAttachment> {
     try {
       const attachment = new Attachment({
-        resource_ids: [params.public_id],
-        url: params.secure_url,
-        attachment_type: "video",
+        public_id: params.public_id,
+        asset_id: params.asset_id,
+        url: params.url,
+        attachment_type: params.attachment_type,
+        thumbnail_url: params.thumbnail_url,
       })
 
       return (await attachment.save()).toObject()
@@ -71,18 +64,12 @@ export class AttachmentService {
     }
   }
 
-  async saveMultipleVideo(params: UploadApiResponse[]): Promise<IAttachment[]> {
+  async getAttachmentById(attachment_id: ObjectId): Promise<IAttachment | null> {
     try {
-      const attachments = await Promise.all(
-        params.map(async (item) => {
-          return await this.saveVideo(item)
-        })
-      )
-
-      return attachments
+      return await Attachment.findById(attachment_id).lean()
     } catch (error) {
       log.error(error)
-      return null as any
+      return null
     }
   }
 }

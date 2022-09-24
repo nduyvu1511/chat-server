@@ -11,54 +11,84 @@ const cloudinary = _cloudinary.v2
 
 export type UploadApiResponse = _cloudinary.UploadApiResponse
 
-export interface UploadImageRes {
-  original: UploadApiResponse
-  thumbnail: UploadApiResponse
+export interface UploadResourceRes {
+  url: string
+  thumbnail_url: string
+  public_id: string
+  asset_id: string
 }
 
 class UploadService {
-  async uploadSingleImage(params: UploadSingleImage): Promise<UploadImageRes | null> {
+  async uploadSingleImage(params: UploadSingleImage): Promise<UploadResourceRes | null> {
     const { file, folder, heightThumbnail = 320, widthThumbnail = 320 } = params
     try {
-      const res = await Promise.all(
-        [
-          cloudinary.uploader.upload(file.path, {
-            folder,
-          }),
-          cloudinary.uploader.upload(file.path, {
-            folder,
+      const res = await cloudinary.uploader.upload(file.path, {
+        eager: [
+          {
+            quality: "auto",
+          },
+          {
+            crop: "fill",
+            quality: "auto",
+            width: widthThumbnail,
+            height: heightThumbnail,
+          },
+        ],
+        folder,
+      })
+      if (!res?.public_id) return null
+
+      return {
+        asset_id: res?.asset_id || res.public_id,
+        public_id: res.public_id,
+        url: res?.eager[0]?.secure_url || res.secure_url,
+        thumbnail_url: res?.eager[1]?.secure_url || res.secure_url,
+      }
+    } catch (error) {
+      log.error(error)
+      return null
+    }
+  }
+
+  async uploadSingleVideo(params: UploadSingleVideo): Promise<UploadResourceRes | null> {
+    const { file, folder, heightThumbnail = 320, widthThumbnail = 320 } = params
+    try {
+      const res = await cloudinary.uploader.upload(file.path, {
+        eager: [
+          {
+            quality: "auto",
+          },
+          {
+            quality: 30,
             transformation: {
               crop: "fill",
+              quality: "auto",
               width: widthThumbnail,
               height: heightThumbnail,
             },
-          }),
-        ].map(async (item) => {
-          return await item
-        })
-      )
-
-      return { original: res[0], thumbnail: res[1] }
-    } catch (error) {
-      log.error(error)
-      return null
-    }
-  }
-
-  async uploadSingleVideo(params: UploadSingleVideo): Promise<UploadApiResponse | null> {
-    const { file, folder } = params
-    try {
-      return await cloudinary.uploader.upload(file.path, {
+          },
+        ],
         folder,
         resource_type: "video",
+        eager_async: true,
+        eager_notification_url: "http://localhost:3000/",
+        notification_url: "http://localhost:3000/",
       })
+      if (!res?.public_id) return null
+
+      return {
+        asset_id: res?.asset_id || res.public_id,
+        public_id: res.public_id,
+        url: res?.eager[0]?.secure_url || res.secure_url,
+        thumbnail_url: res?.eager[1]?.secure_url || res.secure_url,
+      }
     } catch (error) {
       log.error(error)
       return null
     }
   }
 
-  async uploadMultipleVideo(params: UploadMultipleVideo): Promise<UploadApiResponse[]> {
+  async uploadMultipleVideo(params: UploadMultipleVideo): Promise<UploadResourceRes[]> {
     const { files, folder } = params
     try {
       const res = await Promise.all(
@@ -66,15 +96,15 @@ class UploadService {
           return this.uploadSingleVideo({ folder, file: item })
         })
       )
-      console.log("res: ", res)
-      return res.filter((item) => item?.secure_url) as any
+
+      return res.filter((item) => item?.url) as any
     } catch (error) {
       log.error(error)
       return []
     }
   }
 
-  async uploadMultipleImage(params: UploadMultipleImage): Promise<UploadImageRes[]> {
+  async uploadMultipleImage(params: UploadMultipleImage): Promise<UploadResourceRes[]> {
     const { files, folder, heightThumbnail = 320, widthThumbnail = 320 } = params
     try {
       const res = await Promise.all(
@@ -90,35 +120,14 @@ class UploadService {
     }
   }
 
-  async deleteResource({ resource_ids, resource_type }: DeleteResource): Promise<boolean> {
+  async deleteResource({ public_id, resource_type }: DeleteResource): Promise<boolean> {
     try {
-      await Promise.all(
-        resource_ids.map(async (item) => {
-          console.log("cloudinary: ", item)
-          return await cloudinary.uploader.destroy(item, { resource_type })
-        })
-      )
-
-      return true
+      return !!(await cloudinary.uploader.destroy(public_id, { resource_type }))
     } catch (error) {
       log.error(error)
       return false
     }
   }
-
-  // async deleteMultipleResource(cloudinaryIds: string[][]): Promise<boolean> {
-  //   try {
-  //     await Promise.all(
-  //       cloudinaryIds.map(async (item) => {
-  //         return await this.deleteResource({})
-  //       })
-  //     )
-  //     return true
-  //   } catch (error) {
-  //     log.error(error)
-  //     return false
-  //   }
-  // }
 }
 
 export default new UploadService()

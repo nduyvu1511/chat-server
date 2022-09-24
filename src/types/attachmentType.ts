@@ -1,11 +1,13 @@
 import { ObjectId } from "mongodb"
+import { UploadResourceRes } from "../services"
 
 export interface IAttachment {
   _id: ObjectId
   url: string
   thumbnail_url?: string
   attachment_type: AttachmentType
-  resource_ids: string[]
+  public_id: string
+  asset_id: string
   created_at: Date
   updated_at: Date
 }
@@ -13,6 +15,8 @@ export interface IAttachment {
 export interface UploadSingleVideo {
   file: Express.Multer.File
   folder: string
+  widthThumbnail?: number
+  heightThumbnail?: number
 }
 
 export interface UploadMultipleVideo {
@@ -48,22 +52,31 @@ type AttachmentType = "image" | "video"
  *          type: string
  *        thumbnail_url:
  *          type: string
- *          summary: Lower image quality used to render a small image
+ *          summary: Hình ảnh chất lượng thấp hơn, nhẹ hơn khi render
  *        url:
  *          type: string
- *          summary: Higher image quality used to render a big image
+ *          summary:  Hình ảnh, video có chất lượng gốc
  *        attachment_type:
  *          type: string
  *          enum: [image, video]
  */
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    AttachmentListRes:
+ *      type: array
+ *      items:
+ *        $ref: '#components/schema/AttachmentRes'
+ */
+
 export type AttachmentRes = Pick<IAttachment, "url" | "attachment_type"> & {
   attachment_id: ObjectId
   thumbnail_url: string | null
 }
 
-export type CreateAttachment = Pick<IAttachment, "attachment_type" | "url" | "thumbnail_url"> & {
-  desc?: string
-}
+export type CreateAttachment = UploadResourceRes & Pick<IAttachment, "attachment_type">
 
 export type UpdateAttachment = Partial<
   Pick<IAttachment, "attachment_type" | "url" | "thumbnail_url" | "updated_at">
@@ -74,10 +87,10 @@ export type UpdateAttachment = Partial<
 export interface SaveImage {
   thumbnail_url: string
   url: string
-  resource_ids: string[]
+  public_id: string
 }
 
 export interface DeleteResource {
-  resource_ids: string[]
+  public_id: string
   resource_type: "video" | "image"
 }

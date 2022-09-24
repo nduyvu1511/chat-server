@@ -2,13 +2,13 @@ import cookieParser from "cookie-parser"
 import cors from "cors"
 import express from "express"
 import { createServer } from "http"
+import morgan from "morgan"
 import { Server } from "socket.io"
 import db from "./config/db"
 import log from "./config/logger"
 import socketHandler from "./config/socket"
 import swaggerDocs from "./config/swagger"
 import routes from "./routes"
-import morgan from "morgan"
 
 import dotenv from "dotenv"
 dotenv.config()
@@ -36,15 +36,14 @@ app.listen(PORT || "192.168.1.20", () => {
   db.connect()
   swaggerDocs(app, Number(PORT))
   routes(app)
-
-  // Socket io
-  const httpServer = createServer(app)
-  httpServer.listen(process.env.CHAT_SOCKET_PORT, () => {
-    log.info(`App listening at port ${PORT}`)
-  })
-  socketHandler(
-    new Server(httpServer, {
-      cors: corsConfig,
-    })
-  )
 })
+
+// Socket io
+const httpServer = createServer(app)
+httpServer.listen(process.env.CHAT_SOCKET_PORT, () => {
+  log.info(`App listening at port ${PORT}`)
+})
+export const socket = new Server(httpServer, {
+  cors: corsConfig,
+})
+socketHandler(socket)

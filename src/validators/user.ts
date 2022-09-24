@@ -83,7 +83,7 @@ export const createUserSchema = Joi.object<CreateUserParams>({
  *        user_id:
  *          type: number
  *          unique: true
- *          summary: Lấy từ parner_id của server server Exxe
+ *          summary: Lấy từ partner_id của server server Exxe
  *          example: 1
  *        phone:
  *          type: string

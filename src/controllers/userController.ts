@@ -11,6 +11,8 @@ class UserController {
   async register(req: Express.Request, res: Express.Response) {
     try {
       const userRes = await UserService.register(req.body)
+      if (!userRes) return res.json(new ResponseError("Failed to register"))
+
       return res.json(new ResponseData(userRes))
     } catch (error) {
       return res.status(400).send(error)
@@ -90,6 +92,8 @@ class UserController {
   async createUser(req: Express.Request, res: Express.Response) {
     try {
       const data = await UserService.createUser(req.body)
+      if (!data) return res.json(new ResponseError("Failed to create new user"))
+
       const access_token = UserService.generateToken(data)
       const refresh_token = await UserService.generateRefreshToken(data)
 

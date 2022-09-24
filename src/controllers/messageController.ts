@@ -1,9 +1,11 @@
 import Express from "express"
 import { ObjectId } from "mongodb"
+import log from "../config/logger"
 import { USERS_LIMIT } from "../constant"
+import AttachmentService from "../services/attachmentService"
 import MessageService from "../services/messageService"
 import UserService from "../services/userService"
-import { IMessage, IUser, LikeMessageRes, UnlikeMessageRes, SendMessage } from "../types"
+import { IMessage, IUser, LikeMessageRes, SendMessage, UnlikeMessageRes } from "../types"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
 
@@ -12,8 +14,14 @@ class MessageController {
     try {
       const params: SendMessage = req.body
       const user: IUser = req.user
-      const room = await MessageService.getRoomById(params.room_id)
-      if (!room) return res.json(new ResponseError("Can not send a message because room not found"))
+
+      if (
+        !params.text &&
+        !params.tag_ids?.length &&
+        !params.location &&
+        !params?.attachment_ids?.length
+      )
+        return res.json(new ResponseError("Can not send a message because missing fields"))
 
       let tag_ids: ObjectId[] = []
       if (params?.tag_ids?.length) {
@@ -23,21 +31,28 @@ class MessageController {
 
       let attachment_ids: ObjectId[] = []
       if (params?.attachment_ids?.length) {
-        const attachmentsRes = await MessageService.getAttachments(params.attachment_ids)
+        const attachmentsRes = await AttachmentService.getAttachments(params.attachment_ids)
         attachment_ids = attachmentsRes?.map((item) => item._id)
       }
 
       if (params.reply_to?.message_id) {
         const message = await MessageService.getMessageById(params.reply_to.message_id)
-        if (!message || message.room_id.toString() !== room._id.toString())
+        if (!message || message.room_id.toString() !== params.room_id.toString())
           return res.json(new ResponseError("Reply message not found, Reply message ID is invalid"))
       }
 
-      const message: IMessage = await MessageService.sendMessage({
+      if (params.reply_to?.attachment_id) {
+        const attachment = await AttachmentService.getAttachmentById(params.reply_to.attachment_id)
+        if (!attachment)
+          return res.json(new ResponseError("Reply message with attachment not found"))
+      }
+
+      const message = await MessageService.sendMessage({
         message: { ...params, tag_ids, attachment_ids },
         user,
-        room_id: room._id,
+        room_id: params.room_id,
       })
+      if (!message) return res.json(new ResponseError("Failed to send message"))
 
       const messageRes = await MessageService.getMessageRes({
         message_id: message._id,
@@ -46,6 +61,7 @@ class MessageController {
 
       return res.json(new ResponseData(messageRes))
     } catch (error) {
+      log.error(error)
       return res.status(400).send(error)
     }
   }
@@ -172,14 +188,8 @@ class MessageController {
       const limit = Number(req.query?.limit) || USERS_LIMIT
       const offset = Number(req.query?.offset) || 0
 
-      console.log(req.message.liked_by_user_ids)
-
-      const data = await UserService.getUserListByFilter({
-        filter: {
-          _id: {
-            $in: req.message?.liked_by_user_ids?.map((item) => item.user_id) || [],
-          },
-        },
+      const data = await MessageService.getUsersLikedMessage({
+        message_id: req.params.message_id as any,
         limit,
         offset,
       })

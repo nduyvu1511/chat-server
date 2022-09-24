@@ -1,6 +1,8 @@
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
-import { AttachmentRes, IAttachment, QueryCommonParams } from "./commonType"
+import { QueryCommonParams } from "./commonType"
+import { AttachmentRes, IAttachment } from "./attachmentType"
+import { LikedByUserId } from "./messageType"
 
 export interface IUser {
   _id: ObjectId
@@ -275,6 +277,10 @@ export type ChangePasswordServiceParams = ChangePasswordParams & {
 }
 
 export type GetUserByFilter = Partial<QueryCommonParams> & {
+  filter: FilterQuery<IUser>
+}
+
+export type GetUsersLiked = Partial<QueryCommonParams> & {
   filter: FilterQuery<IUser>
 }
 

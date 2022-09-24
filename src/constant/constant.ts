@@ -29,7 +29,6 @@ export const SELECT_ROOM = [
   "member_ids",
   "leader_id",
   "last_message_id",
-  "pinned_message_ids",
   "is_expired",
   "members_leaved",
   "created_at",

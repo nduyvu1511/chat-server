@@ -26,7 +26,9 @@ class AttachmentController {
       })
       if (!images) return res.json(new ResponseError("Failed to upload image"))
 
-      const data = await AttachmentService.saveMultipleImage(images)
+      const data = await AttachmentService.createMultipleAttachment(
+        images.map((item) => ({ ...item, attachment_type: "image" }))
+      )
 
       return res.json(new ResponseData(toAttachmentListResponse(data), "Uploaded multiple image"))
     } catch (error) {
@@ -44,11 +46,9 @@ class AttachmentController {
       })
       if (!image) return res.json(new ResponseError("Failed to upload image"))
 
-      const data = await AttachmentService.saveImage(image)
-
-      return res.json(
-        new ResponseData<AttachmentRes>(toAttachmentResponse(data), "uploaded single image")
-      )
+      const data = await AttachmentService.createAttachment({ ...image, attachment_type: "image" })
+      toAttachmentResponse(data)
+      return res.json(new ResponseData(image, "uploaded single image"))
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -63,9 +63,8 @@ class AttachmentController {
         folder: "message/video",
       })
       if (!video) return res.json(new ResponseError("Failed to upload video"))
-      console.log(video)
 
-      const data = await AttachmentService.saveVideo(video)
+      const data = await AttachmentService.createAttachment({ ...video, attachment_type: "video" })
 
       return res.json(
         new ResponseData<AttachmentRes>(toAttachmentResponse(data), "uploaded single video")
@@ -78,15 +77,16 @@ class AttachmentController {
   async uploadMultipleVideo(req: Express.Request, res: Express.Response) {
     try {
       if (!req.files?.length) return res.json(new ResponseError("Missing video in form body"))
-console.log(req.files)
+
       const videos = await UploadService.uploadMultipleVideo({
         files: req.files as any,
         folder: "message/video",
       })
       if (!videos?.length) return res.json(new ResponseError("Failed to upload video"))
-      console.log(videos)
 
-      const data = await AttachmentService.saveMultipleVideo(videos)
+      const data = await AttachmentService.createMultipleAttachment(
+        videos.map((item) => ({ ...item, attachment_type: "video" }))
+      )
 
       return res.json(new ResponseData(toAttachmentListResponse(data), "uploaded multiple video"))
     } catch (error) {
@@ -97,7 +97,7 @@ console.log(req.files)
   async deleteAttachment(req: Express.Request, res: Express.Response) {
     try {
       const status = await UploadService.deleteResource({
-        resource_ids: req.attachment.resource_ids,
+        public_id: req.attachment.public_id,
         resource_type: req.attachment.attachment_type,
       })
 

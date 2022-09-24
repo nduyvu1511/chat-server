@@ -1,12 +1,16 @@
 import Express from "express"
+import multer from "multer"
+import path, { parse } from "path"
+import { uploadImage } from "../config/upload"
 import MessageController from "../controllers/messageController"
 import {
   bodyMiddleware,
   checkMessageParamsExist,
+  checkRoomBodyExist,
   checkUserExist,
   paramsMiddleware,
   queryMiddleware,
-  verifyToken
+  verifyToken,
 } from "../middlewares"
 import {
   likeMessageSchema,
@@ -14,9 +18,10 @@ import {
   messageIdSchema,
   readLastMessageSchema,
   readMessageSchema,
-  SendMessageSchema
+  SendMessageSchema,
 } from "../validators"
 const router = Express.Router()
+import form from "formidable"
 
 /**
  * @openapi
@@ -157,6 +162,7 @@ router.post(
   verifyToken,
   bodyMiddleware(SendMessageSchema),
   checkUserExist,
+  checkRoomBodyExist,
   MessageController.sendMessage
 )
 
@@ -250,7 +256,8 @@ router.delete(
  *  get:
  *     tags:
  *      - Message
- *     summary: Lấy danh sách nhưng người đã thích tin nhắn
+ *     summary: Lấy danh sách những người đã thích tin nhắn
+ *     description: Nhóm theo các trạng thái laugh, like, angry, sad, laugh, heart, wow, all
  *     security:
  *      - BearerAuth: []
  *     parameters:
@@ -272,7 +279,7 @@ router.delete(
  *         content:
  *          application/json:
  *            schema:
- *              $ref: '#/components/schema/UserListRes'
+ *              $ref: '#/components/schema/UserLikedMessageListRes'
  *       400:
  *         description: Bad Request
  */
@@ -282,7 +289,6 @@ router.get(
   queryMiddleware(listSchema),
   paramsMiddleware(messageIdSchema),
   checkUserExist,
-  checkMessageParamsExist,
   MessageController.getUsersLikedMessage
 )
 

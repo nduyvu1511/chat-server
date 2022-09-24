@@ -42,7 +42,7 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
       })
 
       // Message handler
-      socket.on("send_message", async (payload: MessageRes) => {
+      socket.on("send_message", async (payload: MessageRes & { socket_id: string }) => {
         socket.to(payload.room_id.toString()).emit(`receive_message`, {
           ...payload,
           is_author: false,

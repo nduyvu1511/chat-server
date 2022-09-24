@@ -2,12 +2,13 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
+import log from "../config/logger"
 import {
   ACCESS_TOKEN_EXPIRED,
   isObjectID,
   REFRESH_TOKEN_EXPIRED,
   SELECT_USER,
-  USERS_LIMIT
+  USERS_LIMIT,
 } from "../constant"
 import Attachment from "../models/attachment"
 import Token from "../models/token"
@@ -21,6 +22,7 @@ import {
   CreateUserParams,
   GetTokenParams,
   GetUserByFilter,
+  GetUsersLikedMessage,
   IAttachment,
   IUser,
   ListRes,
@@ -32,110 +34,139 @@ import {
   UserData,
   UserPopulate,
   UserRes,
-  UserSocketId
+  UserSocketId,
 } from "../types"
 import { toUserDataReponse, toUserListResponse } from "../utils"
 import { toListResponse } from "./../utils/commonResponse"
 import AttachmentService from "./attachmentService"
 
 class UserService {
-  async register(params: RegisterParams): Promise<UserRes> {
-    const password = await this.hashPassword(params.password)
-    const avatar = await Attachment.findById(process.env.BLANK_AVATAR_ID)
+  async register(params: RegisterParams): Promise<UserRes | null> {
+    try {
+      const password = await this.hashPassword(params.password)
+      const avatar = await Attachment.findById(process.env.BLANK_AVATAR_ID)
 
-    const user = new User({
-      ...params,
-      user_name: params.phone,
-      password,
-      avatar_id: avatar?._id || null,
-    })
-    return (await user.save()).toObject()
+      const user = new User({
+        ...params,
+        user_name: params.phone,
+        password,
+        avatar_id: avatar?._id || null,
+      })
+      return (await user.save()).toObject()
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
-  async createUser(user: CreateUserParams): Promise<UserPopulate> {
-    const avatar = await AttachmentService.createAttachment({
-      attachment_type: "image",
-      thumbnail_url: user.avatar,
-      url: user.avatar,
-      desc: "avatar",
-    })
-    const _ = new User({ ...user, avatar_id: avatar?._id || null })
-    const userRes: IUser = (await _.save()).toObject()
+  async createUser(user: CreateUserParams): Promise<UserPopulate | null> {
+    try {
+      const avatar = await AttachmentService.createAttachment({
+        attachment_type: "image",
+        thumbnail_url: user.avatar,
+        url: user.avatar,
+        asset_id: "",
+        public_id: "",
+      })
+      const _ = new User({ ...user, avatar_id: avatar?._id || null })
+      const userRes: IUser = (await _.save()).toObject()
 
-    return { ...userRes, avatar_id: avatar }
+      return { ...userRes, avatar_id: avatar }
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
   async updateAvatarProfile(
     params: UpdateProfile & { _id: ObjectId }
   ): Promise<UserPopulate | null> {
-    const { _id, ...rest } = params
+    try {
+      const { _id, ...rest } = params
 
-    return await User.findByIdAndUpdate(_id, rest, {
-      new: true,
-    })
-      .populate("avatar_id")
-      .lean()
+      return await User.findByIdAndUpdate(_id, rest, {
+        new: true,
+      })
+        .populate("avatar_id")
+        .lean()
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
   async updateProfile(params: UpdateProfileService): Promise<UserPopulate | null> {
-    const { user, ...data } = params
-    let avatar: IAttachment | null = null
+    try {
+      const { user, ...data } = params
+      let avatar: IAttachment | null = null
 
-    if (params?.avatar && user?.avatar_id && isObjectID(user.avatar_id.toString())) {
-      const _avatar: IAttachment | null = await Attachment.findById(user?.avatar_id).lean()
-      if (!_avatar?._id) {
-        avatar = await AttachmentService.createAttachment({
-          thumbnail_url: params.avatar,
-          url: params.avatar,
-          attachment_type: "image",
-          desc: "avatar",
-        })
-      } else {
-        if (_avatar.url !== params.avatar && _avatar?.thumbnail_url !== params.avatar)
+      if (params?.avatar && user?.avatar_id && isObjectID(user.avatar_id.toString())) {
+        const _avatar: IAttachment | null = await Attachment.findById(user?.avatar_id).lean()
+        if (!_avatar?._id) {
           avatar = await AttachmentService.createAttachment({
             thumbnail_url: params.avatar,
             url: params.avatar,
             attachment_type: "image",
-            desc: "avatar",
+            asset_id: "",
+            public_id: "",
           })
+        } else {
+          if (_avatar.url !== params.avatar && _avatar?.thumbnail_url !== params.avatar)
+            avatar = await AttachmentService.createAttachment({
+              thumbnail_url: params.avatar,
+              url: params.avatar,
+              attachment_type: "image",
+              asset_id: "",
+              public_id: "",
+            })
+        }
+      } else if (!params?.avatar && user?.avatar_id && isObjectID(user.avatar_id.toString())) {
+        avatar = { _id: user.avatar_id } as any
+      } else if (params?.avatar && !user?.avatar_id) {
+        avatar = await AttachmentService.createAttachment({
+          thumbnail_url: params.avatar,
+          url: params.avatar,
+          attachment_type: "image",
+          asset_id: "",
+          public_id: "",
+        })
+      } else {
+        avatar = await Attachment.findById(process.env.BLANK_AVATAR_ID)
       }
-    } else if (!params?.avatar && user?.avatar_id && isObjectID(user.avatar_id.toString())) {
-      avatar = { _id: user.avatar_id } as any
-    } else if (params?.avatar && !user?.avatar_id) {
-      avatar = await AttachmentService.createAttachment({
-        thumbnail_url: params.avatar,
-        url: params.avatar,
-        attachment_type: "image",
-        desc: "avatar",
-      })
-    } else {
-      avatar = await Attachment.findById(process.env.BLANK_AVATAR_ID)
-    }
 
-    return await User.findByIdAndUpdate(
-      user._id,
-      { ...data, avatar_id: avatar?._id },
-      {
-        new: true,
-      }
-    )
-      .populate("avatar_id")
-      .lean()
+      return await User.findByIdAndUpdate(
+        user._id,
+        { ...data, avatar_id: avatar?._id },
+        {
+          new: true,
+        }
+      )
+        .populate("avatar_id")
+        .lean()
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
   async changeStatus(params: changeUserStatusParams): Promise<IUser | null> {
-    const { user_id, is_online } = params
-    const userRes: IUser | null = await User.findByIdAndUpdate(
-      user_id,
-      {
-        $set: {
-          is_online,
+    try {
+      const { user_id, is_online } = params
+      const userRes: IUser | null = await User.findByIdAndUpdate(
+        user_id,
+        {
+          $set: {
+            is_online,
+          },
         },
-      },
-      { new: true }
-    ).lean()
+        { new: true }
+      ).lean()
 
-    return userRes
+      return userRes
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
   async createPassword(params: CreatePasswordServiceParams): Promise<boolean> {
@@ -154,29 +185,35 @@ class UserService {
 
       return true
     } catch (error) {
+      log.error(error)
       return false
     }
   }
 
   async addUserSocketId({ socket_id, user_id }: AddUserSocketId): Promise<UserData | null> {
-    const data: UserPopulate | null = await User.findByIdAndUpdate(
-      user_id,
-      {
-        $set: {
-          socket_id,
-          is_online: true,
-          offline_at: null,
+    try {
+      const data: UserPopulate | null = await User.findByIdAndUpdate(
+        user_id,
+        {
+          $set: {
+            socket_id,
+            is_online: true,
+            offline_at: null,
+          },
         },
-      },
-      {
-        new: true,
-      }
-    )
-      .populate("avatar_id")
-      .lean()
+        {
+          new: true,
+        }
+      )
+        .populate("avatar_id")
+        .lean()
 
-    if (!data) return null
-    return toUserDataReponse(data)
+      if (!data) return null
+      return toUserDataReponse(data)
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
   async loginToSocket({ socket_id, user_id }: LoginToSocket): Promise<UserData | null> {
@@ -186,6 +223,7 @@ class UserService {
       await this.addUserSocketId({ user_id, socket_id })
       return toUserDataReponse(user)
     } catch (error) {
+      log.error(error)
       return null
     }
   }
@@ -201,52 +239,62 @@ class UserService {
         .lean()
 
       if (!users?.length) return []
-      // .filter((item) => item.socket_id)
       return users.map((item) => ({ socket_id: item.socket_id, user_id: item._id }))
     } catch (error) {
+      log.error(error)
       return []
     }
   }
 
   async removeUserSocketId({ socket_id }: { socket_id: string }): Promise<UserData | null> {
-    const data: UserPopulate | null = await User.findOneAndUpdate(
-      { socket_id },
-      {
-        $set: {
-          socket_id: null,
-          is_online: false,
-          offline_at: Date.now(),
+    try {
+      const data: UserPopulate | null = await User.findOneAndUpdate(
+        { socket_id },
+        {
+          $set: {
+            socket_id: null,
+            is_online: false,
+            offline_at: Date.now(),
+          },
         },
-      },
-      {
-        new: true,
-      }
-    )
-      .populate("avatar_id")
-      .lean()
+        {
+          new: true,
+        }
+      )
+        .populate("avatar_id")
+        .lean()
 
-    if (!data) return null
-    return toUserDataReponse(data)
+      if (!data) return null
+      return toUserDataReponse(data)
+    } catch (error) {
+      log.error(error)
+      return null
+    }
   }
 
   async addUserIdsChattedWith({ user_ids }: AddUserIdsChattedWith): Promise<boolean> {
-    await Promise.all(
-      user_ids.map(async (user_id) => {
-        const partner_ids = user_ids.filter((id) => id !== user_id)
-        return await User.findByIdAndUpdate(
-          user_id,
-          {
-            $addToSet: {
-              user_chatted_with_ids: { $each: partner_ids },
+    try {
+      await Promise.all(
+        user_ids.map(async (user_id) => {
+          const partner_ids = user_ids.filter((id) => id !== user_id)
+          return await User.findByIdAndUpdate(
+            user_id,
+            {
+              $addToSet: {
+                user_chatted_with_ids: { $each: partner_ids },
+              },
             },
-          },
-          {
-            new: true,
-          }
-        )
-      })
-    )
-    return true
+            {
+              new: true,
+            }
+          )
+        })
+      )
+      return true
+    } catch (error) {
+      log.error(error)
+      return false
+    }
   }
 
   async getUserByUserId(user_id: ObjectId): Promise<UserPopulate | null> {

@@ -1,17 +1,17 @@
 import Express from "express"
 import { uploadImage, uploadVideo } from "../config/upload"
 import AttachmentController from "../controllers/AttachmentController"
-import { bodyMiddleware, paramsMiddleware, verifyToken } from "../middlewares"
+import { paramsMiddleware, verifyToken } from "../middlewares"
 import { checkAttachmentParamsExist } from "../middlewares/attachmentMiddleware"
-import { attachmentIdSchema, createAttachment } from "../validators"
+import { attachmentIdSchema } from "../validators"
 const router = Express.Router()
 
-router.post(
-  "/",
-  verifyToken,
-  bodyMiddleware(createAttachment),
-  AttachmentController.createAttachment
-)
+// router.post(
+//   "/",
+//   verifyToken,
+//   bodyMiddleware(createAttachment),
+//   AttachmentController.createAttachment
+// )
 
 /**
  * @openapi
