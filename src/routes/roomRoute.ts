@@ -147,6 +147,75 @@ router.post(
 
 /**
  * @openapi
+ * '/api/room/{room_id}':
+ *  delete:
+ *     tags:
+ *      - Room
+ *     parameters:
+ *       - in: path
+ *         name: room_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     summary: Xoá cuộc hội thoại
+ *     description: Dùng khi chuyến đi đã được hoàn thành
+ *     security:
+ *      - BearerAuth: []
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *              room_id:
+ *                type: string
+ *       400:
+ *         description: Bad Request
+ */
+router.delete(
+  "/:room_id",
+  verifyToken,
+  paramsMiddleware(roomIdSchema),
+  RoomController.softDeleteRoom
+)
+
+/**
+ * @openapi
+ * '/api/room/restore/{room_id}':
+ *  delete:
+ *     tags:
+ *      - Room
+ *     parameters:
+ *       - in: path
+ *         name: room_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     summary: Khôi phục cuộc hội thoại
+ *     security:
+ *      - BearerAuth: []
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *              room_id:
+ *                type: string
+ *       400:
+ *         description: Bad Request
+ */
+router.post(
+  "/restore/:room_id",
+  verifyToken,
+  paramsMiddleware(roomIdSchema),
+  RoomController.restoreSoftDeleteRoom
+)
+
+/**
+ * @openapi
  * '/api/room/{room_id}/message_unread':
  *  delete:
  *     tags:
@@ -220,6 +289,7 @@ router.get(
   checkUserExist,
   RoomController.getRoomList
 )
+
 router.get("/ids", verifyToken, checkUserExist, RoomController.getUserJoinedRoomIds)
 
 /**

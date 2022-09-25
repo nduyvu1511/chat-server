@@ -2,6 +2,7 @@ import {
   LastMessage,
   MessageReply,
   MessageRes,
+  ToLastMessageResponse,
   ToMessageListResponse,
   ToMessageResponse,
 } from "../types"
@@ -54,13 +55,26 @@ export const toMessageListResponse = ({
   return data.map((item) => toMessageResponse({ data: item, current_user })).reverse()
 }
 
-export const toLastMessageResponse = ({ current_user, data }: ToMessageResponse): LastMessage => {
+export const toLastMessageResponse = ({
+  current_user,
+  data,
+}: ToLastMessageResponse): LastMessage => {
+  let message_text = data?.text || ""
+  if (data) {
+    if (data.attachment_ids?.length) {
+      message_text = "Hình ảnh"
+    } else if (data?.tag_ids?.length) {
+      message_text = "Tin nhắn nhanh"
+    } else if (data?.location) {
+      message_text = "Tọa độ"
+    }
+  }
+
   return {
-    room_id: data.room_id,
-    message_id: data._id,
-    message_text: data.text,
+    author_name: data.user_name,
     created_at: data.created_at,
-    is_author: current_user?.toString() === data.user_id._id.toString(),
-    author: toAuthorMessage(data.user_id),
+    is_author: current_user._id.toString() === data.user_id.toString(),
+    message_id: data.message_id,
+    message_text,
   }
 }

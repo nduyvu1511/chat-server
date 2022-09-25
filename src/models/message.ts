@@ -37,6 +37,7 @@ const MessageSchema = new Schema<IMessage>({
         type: Schema.Types.ObjectId,
         ref: "Attachment",
         required: false,
+        default: null,
       },
     },
     default: null,
@@ -80,9 +81,13 @@ const MessageSchema = new Schema<IMessage>({
     type: Schema.Types.Date,
     default: Date.now,
   },
+  deleted_at: {
+    type: Schema.Types.Date,
+    default: null,
+  },
   updated_at: {
     type: Schema.Types.Date,
-    default: Date.now,
+    default: null,
   },
 })
 

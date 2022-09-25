@@ -3,6 +3,7 @@ import { ITag, Lnglat, QueryCommonParams, TagRes } from "./commonType"
 import { AttachmentRes, IAttachment } from "./attachmentType"
 
 import { IUser, UserPopulate, UserRes } from "./userType"
+import { LastMessagePopulate } from "./roomType"
 
 export interface IMessage {
   _id: ObjectId
@@ -21,8 +22,9 @@ export interface IMessage {
   is_deleted: boolean
   is_edited: boolean
   liked_by_user_ids: LikedByUserId[]
+  deleted_at: Date | null
   created_at: Date
-  updated_at: Date
+  updated_at: Date | null
 }
 
 export interface LikedByUserId {
@@ -98,6 +100,11 @@ export type MessagePopulate = Omit<
 
 export type ToMessageResponse = {
   data: MessagePopulate
+  current_user: IUser
+}
+
+export type ToLastMessageResponse = {
+  data: LastMessagePopulate
   current_user: IUser
 }
 
@@ -257,21 +264,17 @@ export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
  *      required:
  *        - message_id
  *        - is_author
- *        - author
+ *        - author_name
  *        - message_text
- *        - room_id
  *        - created_at
  *      properties:
- *        room_id:
- *          type: string
- *          example: 631d56c54a20bef82e479f0d
  *        message_id:
  *          type: string
  *          example: 631d56c54a20bef82e479f0d
  *        is_author:
  *          type: boolean
- *        author:
- *          $ref: '#/components/schema/AuthorMessageRes'
+ *        author_name:
+ *          type: string
  *        message_text:
  *          type: string
  *        created_at:
@@ -280,8 +283,10 @@ export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
  */
 export type LastMessage = Pick<
   MessageRes,
-  "message_id" | "message_text" | "is_author" | "author" | "created_at" | "room_id"
->
+  "message_id" | "message_text" | "is_author" | "created_at"
+> & {
+  author_name: string
+}
 
 export type AttachmentType = "image" | "video"
 

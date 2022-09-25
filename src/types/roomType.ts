@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb"
 import { AttachmentRes, IAttachment } from "./attachmentType"
-import { AttachmentId, ListRes, QueryCommonParams } from "./commonType"
+import { AttachmentId, ListParams, ListRes, Lnglat, QueryCommonParams } from "./commonType"
 import { LastMessage, MessagePopulate, MessageRes } from "./messageType"
 import { IUser, UserPopulate } from "./userType"
 
@@ -8,7 +8,6 @@ export interface IRoom {
   _id: ObjectId
   room_name: string
   room_avatar_id: ObjectId
-  room_single_member_ids: ObjectId[]
   room_type: RoomType
   member_ids: RoomMember[]
   leader_id: ObjectId
@@ -16,7 +15,7 @@ export interface IRoom {
   pinned_message_ids: ObjectId[]
   members_leaved: MemberLeaved
   message_ids: ObjectId[]
-  is_expired: boolean
+  is_deleted: boolean
   created_at: Date
   deleted_at: Date
   updated_at: Date
@@ -50,62 +49,92 @@ export interface IRoom {
  *    RoomRes:
  *      type: object
  *      required:
- *       room_id
- *       room_name
- *       room_type
- *       is_online
- *       member_online_count
- *       member_count
- *       message_unread_count
+ *        - room_id
+ *        - room_name
+ *        - room_avatar
+ *        - room_type
+ *        - is_online
+ *        - member_count
+ *        - message_unread_count
+ *        - last_message
+ *        - top_members
  *      properties:
  *       room_id:
  *        type: string
  *       room_name:
  *        type: string
  *       room_avatar:
- *        $ref: '#/components/schema/AttachmentRes'
+ *        type: string
  *       room_type:
  *        type: string
  *        enum: [group, single, admin]
  *       is_online:
  *        type: boolean
- *       member_online_count:
- *        type: number
- *       offline_at:
- *        type: date,
- *        format: YYYY-MM-DD
  *       member_count:
  *        type: number
  *       message_unread_count:
  *        type: number
  *       last_message:
  *        $ref: '#/components/schema/LastMessageRes'
+ *       top_members:
+ *        type: array
+ *        items:
+ *          type: object
+ *          properties:
+ *            avatar:
+ *              type: string
+ *            user_name:
+ *              type: string
+ *            user_id:
+ *              type: string
+ *            is_online:
+ *              type: boolean
  */
 export interface RoomRes {
   room_id: ObjectId
   room_name: string | null
-  room_avatar?: AttachmentRes | null
+  room_avatar?: string | null
   room_type: RoomType
   is_online: boolean
-  member_online_count: number
-  offline_at: Date | null
   member_count: number
   message_unread_count: number
   last_message?: LastMessage | null
+  top_members?: {
+    avatar: string
+    user_name: string
+    user_id: string
+  }[]
 }
 
-export type RoomPopulate = Omit<
-  IRoom,
-  "last_message_id" | "room_avatar_id" | "room_single_member_ids" | "member_ids"
-> & {
+export type RoomPopulate = Omit<IRoom, "last_message_id" | "room_avatar_id" | "member_ids"> & {
   last_message_id?: MessagePopulate
   room_avatar_id?: IAttachment
-  room_single_member_ids: {
-    _id: ObjectId
-    user_name: string
-    avatar_id: IAttachment
-  }[]
   member_ids: MemberRoomPopulate[]
+}
+
+export interface LastMessagePopulate {
+  text: string
+  tag_ids: string[]
+  location: Lnglat | null
+  attachment_ids: string[]
+  message_id: ObjectId
+  user_name: string
+  user_id: ObjectId
+  created_at: Date
+}
+
+export type RoomListItemPopulate = Pick<IRoom, "room_type" | "room_name"> & {
+  member_count: number
+  room_id: ObjectId
+  room_avatar?: string
+  top_members: {
+    user_id: ObjectId
+    user_avatar: string
+    user_name: string
+    is_online: boolean
+  }[]
+  last_message?: LastMessagePopulate
+  message_unread_count: number
 }
 
 export type MemberRoomPopulate = {
@@ -115,19 +144,24 @@ export type MemberRoomPopulate = {
 }
 
 export type ToRoomRepsonse = {
-  data: RoomPopulate
+  data: RoomListItemPopulate
   current_user: IUser
 }
 
 export type ToRoomListResponse = {
-  data: RoomPopulate[]
+  data: RoomListItemPopulate[]
   current_user: IUser
 }
 
-export type RoomDetailRes = Omit<RoomRes, "message_unread_count" | "last_message"> & {
-  pinned_messages: MessageRes[]
-  messages: MessageRes[]
-  members: RoomMemberRes[]
+export type RoomDetailRes = Omit<
+  RoomRes,
+  "message_unread_count" | "last_message" | "room_avatar"
+> & {
+  offline_at: Date | null
+  room_avatar: AttachmentRes | null
+  pinned_messages: ListRes<MessageRes[]>
+  messages: ListRes<MessageRes[]>
+  members: ListRes<RoomMemberRes[]>
   leader_info: RoomMemberRes | null
 }
 
@@ -138,13 +172,13 @@ export type RoomDetailRes = Omit<RoomRes, "message_unread_count" | "last_message
  *    RoomDetailRes:
  *      type: object
  *      required:
- *       room_id
- *       room_name
- *       room_type
- *       is_online
- *       member_online_count
- *       member_count
- *       message_unread_count
+ *       - room_id
+ *       - room_name
+ *       - room_type
+ *       - is_online
+ *       - member_count
+ *       - messages
+ *       - members
  *      properties:
  *       room_id:
  *        type: string
@@ -157,8 +191,6 @@ export type RoomDetailRes = Omit<RoomRes, "message_unread_count" | "last_message
  *        enum: [group, single, admin]
  *       is_online:
  *        type: boolean
- *       member_online_count:
- *        type: number
  *       offline_at:
  *        type: date,
  *        format: YYYY-MM-DD
@@ -200,20 +232,13 @@ export type RoomDetailRes = Omit<RoomRes, "message_unread_count" | "last_message
  *           $ref: '#components/schema/RoomMemberRes'
  */
 
-export type RoomQueryDetailRes = Omit<RoomRes, "message_unread_count" | "last_message"> & {
-  pinned_messages: ListRes<MessageRes[]>
-  messages: ListRes<MessageRes[]>
-  members: ListRes<RoomMemberRes[]>
-  leader_info: RoomMemberRes | null
-}
-
 export type RoomDetailPopulate = Omit<
   IRoom,
   "member_ids" | "pinned_message_ids" | "message_ids" | "leader_id" | "room_avatar_id"
 > & {
-  member_ids: UserPopulate[]
-  pinned_message_ids?: MessagePopulate[]
-  message_ids: MessagePopulate[]
+  member_ids: ListRes<UserPopulate[]>
+  pinned_message_ids?: ListRes<MessagePopulate[]>
+  message_ids: ListRes<MessagePopulate[]>
   leader_id?: UserPopulate
   room_avatar_id?: IAttachment
 }

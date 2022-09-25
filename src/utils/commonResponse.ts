@@ -34,3 +34,11 @@ export const toListResponse = (params: ListParams<any>): ListRes<any[]> => {
     data,
   }
 }
+
+export const toDefaultListResponse = (): ListRes<[]> => ({
+  data: [],
+  limit: 0,
+  offset: 0,
+  total: 0,
+  hasMore: false,
+})

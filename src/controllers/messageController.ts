@@ -5,13 +5,18 @@ import { USERS_LIMIT } from "../constant"
 import AttachmentService from "../services/attachmentService"
 import MessageService from "../services/messageService"
 import UserService from "../services/userService"
-import { IMessage, IUser, LikeMessageRes, SendMessage, UnlikeMessageRes } from "../types"
+import { IUser, LikeMessageRes, SendMessage, UnlikeMessageRes } from "../types"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
 
 class MessageController {
   async sendMessage(req: Express.Request, res: Express.Response) {
     try {
+      if (req.room.is_deleted)
+        return res.json(
+          new ResponseError("Failed to send message because this room has been deleted")
+        )
+
       const params: SendMessage = req.body
       const user: IUser = req.user
 

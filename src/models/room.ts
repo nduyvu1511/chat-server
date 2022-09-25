@@ -9,16 +9,6 @@ const RoomSchema = new Schema<IRoom>({
     ref: Attachment,
     default: null,
   },
-  room_single_member_ids: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      default: [],
-    },
-    {
-      _id: false,
-    },
-  ],
   room_type: {
     type: String,
     enum: ["group", "single", "admin"],
@@ -103,7 +93,7 @@ const RoomSchema = new Schema<IRoom>({
       _id: false,
     },
   ],
-  is_expired: {
+  is_deleted: {
     type: Boolean,
     default: false,
   },

@@ -1,5 +1,6 @@
 import _ from "lodash"
 import { ObjectId } from "mongodb"
+import log from "../config/logger"
 import {
   IRoom,
   IUser,
@@ -12,45 +13,40 @@ import {
   ToRoomStatus,
   UserPopulate,
 } from "../types"
-import { toAttachmentResponse } from "./commonResponse"
+import { toAttachmentResponse, toDefaultListResponse, toListResponse } from "./commonResponse"
 import { toLastMessageResponse, toMessageListResponse } from "./messageResponse"
+import { toUserListResponse } from "./userResponse"
 
 export const toRoomResponse = ({ data, current_user }: ToRoomRepsonse): RoomRes => {
-  let room_name = data.room_name || ""
-  let room_avatar = data?.room_avatar_id?._id ? toAttachmentResponse(data.room_avatar_id) : null
+  const partner = data.top_members?.find(
+    (item) => item.user_id.toString() !== current_user._id.toString()
+  )
 
-  if (data.room_type === "single" && data.room_single_member_ids?.[0]?._id) {
-    const partner = data.room_single_member_ids.find(
-      (item) => item._id.toString() !== current_user._id.toString()
-    )
-    room_name = partner?.user_name || ""
-    room_avatar = partner?.avatar_id ? toAttachmentResponse(partner?.avatar_id) : null
+  let room_name = data.room_name || ""
+  if (!room_name) {
+    const { room_type } = data
+    if (room_type === "single") {
+      room_name = partner?.user_name || ""
+    } else if (room_type === "group") {
+      data.top_members.map((item) => item.user_name)?.join(", ")
+    }
   }
 
-  const message_unread_count: number =
-    data.member_ids.find((item) => item.user_id._id.toString() === current_user._id.toString())
-      ?.message_unread_ids?.length || 0
+  let room_avatar: string | null = data?.room_avatar || ""
+  if (data.room_type === "single") {
+    room_avatar = partner?.user_avatar || null
+  }
 
   return {
-    room_id: data._id,
+    room_id: data.room_id,
     room_name,
     room_type: data.room_type,
     room_avatar,
-    is_online: toRoomStatus({ data: data.member_ids.map((item) => item.user_id), current_user }),
-    offline_at: toRoomOfflineAt({
-      current_user_id: current_user._id,
-      data: data.member_ids?.map((item) => item.user_id),
-    }),
-    message_unread_count,
-    member_count: data.member_ids?.length || 0,
-    member_online_count: toRoomMemberOnlineCount(
-      data?.member_ids?.map((item) => item.user_id) || []
-    ),
-    last_message: data?.last_message_id?._id
-      ? toLastMessageResponse({
-          data: data.last_message_id,
-          current_user,
-        })
+    is_online: data.top_members.filter((item) => item.is_online === true)?.length >= 2,
+    message_unread_count: data?.message_unread_count || 0,
+    member_count: data.member_count,
+    last_message: data?.last_message?.message_id
+      ? toLastMessageResponse({ current_user, data: data.last_message })
       : null,
   }
 }
@@ -93,9 +89,13 @@ export const toRoomStatus = ({ current_user, data }: ToRoomStatus): boolean => {
 }
 
 export const toRoomListResponse = ({ current_user, data }: ToRoomListResponse): RoomRes[] => {
-  console.log(data)
-  const list = data.map((item) => toRoomResponse({ data: item, current_user }))
-  return _.orderBy(list, (item) => item.last_message?.created_at || "", ["desc"])
+  try {
+    return data.map((item) => toRoomResponse({ data: item, current_user }))
+    // return _.orderBy(list, (item) => item.last_message?.created_at || "", ["desc"])
+  } catch (error) {
+    log.error(error)
+    return []
+  }
 }
 
 export const toRoomDetailResponse = ({
@@ -103,28 +103,45 @@ export const toRoomDetailResponse = ({
   current_user,
 }: ToRoomDetailResponse): RoomDetailRes => {
   return {
-    member_count: data?.member_ids?.length || 0,
+    member_count: data?.member_ids?.data?.length || 0,
     room_id: data._id,
     room_name: data?.room_name || null,
     room_type: data.room_type,
     room_avatar: data?.room_avatar_id ? toAttachmentResponse(data.room_avatar_id) : null,
     leader_info: data.leader_id ? toRoomMemberResponse(data.leader_id) : null,
-    pinned_messages: data?.pinned_message_ids?.length
-      ? toMessageListResponse({
-          data: data.pinned_message_ids,
-          current_user,
+    pinned_messages: data?.pinned_message_ids?.data?.length
+      ? toListResponse({
+          total: data.pinned_message_ids.total,
+          limit: data.pinned_message_ids.limit,
+          offset: data.pinned_message_ids.offset,
+          data: toMessageListResponse({
+            data: data.pinned_message_ids.data,
+            current_user,
+          }),
         })
-      : [],
-    messages: data?.message_ids?.length
-      ? toMessageListResponse({
-          data: data.message_ids,
-          current_user,
+      : toDefaultListResponse(),
+    messages: data?.message_ids?.data?.length
+      ? toListResponse({
+          total: data.message_ids.total,
+          limit: data.message_ids.limit,
+          offset: data.message_ids.offset,
+          data: toMessageListResponse({
+            data: data.message_ids.data,
+            current_user,
+          }),
         })
-      : [],
-    members: toRoomMemberListResponse(data.member_ids),
+      : toDefaultListResponse(),
+    members: data?.member_ids?.data?.length
+      ? toListResponse({
+          total: data.member_ids.total,
+          limit: data.member_ids.limit,
+          offset: data.member_ids.offset,
+          data: toUserListResponse(data.member_ids.data),
+        })
+      : toDefaultListResponse(),
     is_online: true,
-    offline_at: toRoomOfflineAt({ data: data.member_ids, current_user_id: current_user._id }),
-    member_online_count: toRoomMemberOnlineCount(data?.member_ids || []),
+    offline_at: toRoomOfflineAt({ data: data.member_ids.data, current_user_id: current_user._id }),
+    // member_online_count: toRoomMemberOnlineCount(data?.member_ids || []),
   }
 }
 

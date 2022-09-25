@@ -24,7 +24,6 @@ export const SELECT_ROOM = [
   "_id",
   "room_name",
   "room_avatar_id",
-  "room_single_member_ids",
   "room_type",
   "member_ids",
   "leader_id",

@@ -117,6 +117,28 @@ class RoomController {
     }
   }
 
+  async softDeleteRoom(req: Express.Request, res: Express.Response) {
+    try {
+      const status = await RoomService.softDeleteRoom(req.params.room_id as any)
+      if (!status) return res.json(new ResponseError("Failed to soft delete room"))
+
+      return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async restoreSoftDeleteRoom(req: Express.Request, res: Express.Response) {
+    try {
+      const status = await RoomService.restoreSoftDeleteRoom(req.params.room_id as any)
+      if (!status) return res.json(new ResponseError("Failed to restore this room"))
+
+      return res.json(new ResponseData({ room_id: req.params.room_id }, "Restore deleted room"))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
   async addMessageUnReadToRoom(req: Express.Request, res: Express.Response) {
     try {
       const messageRes = await MessageService.getMessageRes({

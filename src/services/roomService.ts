@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb"
+import { PipelineStage } from "mongoose"
 import log from "../config/logger"
 import { MESSAGES_LIMIT, SELECT_ROOM, SELECT_USER, USERS_LIMIT } from "../constant"
 import Message from "../models/message"
@@ -18,10 +19,11 @@ import {
   MessageRes,
   QueryMembersInRoomService,
   QueryRoomServiceParams,
+  RoomDetailRes,
+  RoomListItemPopulate,
   RoomMemberRes,
   RoomMemberWithId,
   RoomPopulate,
-  RoomQueryDetailRes,
   RoomRes,
   UserPopulate,
   UserSocketId,
@@ -47,11 +49,11 @@ class RoomService {
         room_type: "single",
         room_name: null,
         member_ids: [{ user_id: user._id }, { user_id: partner._id }],
-        room_single_member_ids: [user._id, partner._id],
       })
 
       const roomRes: IRoom = (await room.save()).toObject()
       await this.saveRoomToUserIds([partner._id, user._id], room._id)
+
       return roomRes
     } catch (error) {
       log.error(error)
@@ -74,11 +76,13 @@ class RoomService {
       const room = new Room({
         room_type: "group",
         room_avatar_id: room_avatar_id || null,
-        room_name: room_name || "",
+        room_name: room_name || null,
         member_ids: member_ids?.map((user_id) => ({ user_id })),
       })
+
       const roomRes: IRoom = (await room.save()).toObject()
       await this.saveRoomToUserIds(member_ids, room._id)
+
       return roomRes
     } catch (error) {
       log.error(error)
@@ -112,16 +116,22 @@ class RoomService {
   }
 
   async saveRoomToUserIds(user_ids: ObjectId[], room_id: ObjectId) {
-    await Promise.all(
-      user_ids.map(async (user_id) => {
-        const user = await User.findByIdAndUpdate(user_id, {
-          $addToSet: {
-            room_joined_ids: room_id,
-          },
+    try {
+      await Promise.all(
+        user_ids.map(async (user_id) => {
+          const user = await User.findByIdAndUpdate(user_id, {
+            $addToSet: {
+              room_joined_ids: room_id,
+            },
+          })
+          return user
         })
-        return user
-      })
-    )
+      )
+      return true
+    } catch (error) {
+      log.error(error)
+      return false
+    }
   }
 
   async addMessageUnreadToRoom(params: AddMessageUnreadService): Promise<IRoom | null> {
@@ -162,7 +172,7 @@ class RoomService {
     }
   }
 
-  async getRoomDetail(params: GetRoomDetailService): Promise<RoomQueryDetailRes | null> {
+  async getRoomDetail(params: GetRoomDetailService): Promise<RoomDetailRes | null> {
     try {
       const room: RoomPopulate = await Room.findById(params.room_id)
         .select(SELECT_ROOM)
@@ -203,15 +213,16 @@ class RoomService {
         : null
 
       let room_name: null | string = room?.room_name
-      let room_avatar: AttachmentRes = toAttachmentResponse(room?.room_avatar_id as any)
+      let room_avatar: AttachmentRes | null = room?.room_avatar_id
+        ? toAttachmentResponse(room?.room_avatar_id)
+        : null
+
       if (room.room_type === "single") {
         const partner = members.data.find(
           (item) => item.user_id.toString() !== params.user._id.toString()
         )
-        if (partner?.user_id) {
-          room_name = partner?.user_name || room.room_name || null
-          room_avatar = partner?.avatar as any
-        }
+        room_name = partner?.user_name || room.room_name || null
+        room_avatar = partner?.avatar || null
       }
 
       return {
@@ -221,10 +232,7 @@ class RoomService {
         room_avatar,
         leader_info: leader_info?._id ? toRoomMemberResponse(leader_info) : null,
         member_count: room.member_ids?.length || 0,
-        member_online_count: members?.data?.reduce((a, b) => a + (b.is_online ? 1 : 0), 0) || 1,
-        is_online: members.data
-          ?.filter((item) => item.user_id.toString() !== params.user._id.toString())
-          ?.some((item) => item.is_online),
+        is_online: members.data?.filter((item) => item.is_online)?.length >= 2,
         offline_at: toRoomOfflineAt({ current_user_id: params.user._id, data: members.data }),
         members,
         messages,
@@ -258,53 +266,100 @@ class RoomService {
 
   async getRoomList(params: QueryRoomServiceParams): Promise<ListRes<RoomRes[]>> {
     const { limit, offset, search_term, room_ids, current_user } = params
-    const searchQuery = {
+
+    const filter = {
       $and: [
         {
           _id: {
             $in: room_ids,
           },
         },
-        search_term
-          ? {
-              room_name: {
-                $regex: search_term,
-                $options: "i",
-              },
-            }
-          : {},
+        {
+          is_deleted: false,
+        },
       ],
     }
 
-    const roomList = Room.aggregate([
+    const query: PipelineStage[] = [
       {
-        $match: {
-          _id: {
-            $in: room_ids,
-          },
+        $match: filter,
+      },
+      {
+        $lookup: {
+          from: "attachments",
+          localField: "room_avatar_id",
+          foreignField: "_id",
+          as: "room_avatar_id",
         },
       },
       {
-        $project: {
-          message_ids: 0,
+        $unwind: {
+          path: "$room_avatar_id",
+          preserveNullAndEmptyArrays: true,
         },
       },
+
+      // Get Members in room
       {
         $lookup: {
           from: "users",
           localField: "member_ids.user_id",
           foreignField: "_id",
-          as: "member_ids.user_id",
+          as: "top_members",
           pipeline: [
             {
+              $sort: { is_online: -1 },
+            },
+            {
+              $limit: 4,
+            },
+            {
+              $lookup: {
+                from: "attachments",
+                localField: "avatar_id",
+                foreignField: "_id",
+                as: "avatar_id",
+              },
+            },
+            {
+              $unwind: {
+                path: "$avatar_id",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
               $project: {
-                is_online: 1,
-                offline_at: 1,
+                _id: 0,
+                user_id: "$_id",
+                user_avatar: "$avatar_id.thumbnail_url",
+                user_name: "$user_name",
+                is_online: "$is_online",
               },
             },
           ],
         },
       },
+      {
+        $match: search_term
+          ? {
+              $or: [
+                {
+                  room_name: {
+                    $regex: search_term,
+                    $options: "i",
+                  },
+                },
+                {
+                  "top_members.user_name": {
+                    $regex: search_term,
+                    $options: "i",
+                  },
+                },
+              ],
+            }
+          : {},
+      },
+      // Get last message in room
       {
         $lookup: {
           from: "messages",
@@ -312,25 +367,95 @@ class RoomService {
           foreignField: "_id",
           as: "last_message_id",
           pipeline: [
-            // {
-            //   $project: {},
-            // },
             {
-              $unwind: "$last_message_id",
+              $lookup: {
+                from: "users",
+                localField: "user_id",
+                foreignField: "_id",
+                as: "user_id",
+                pipeline: [
+                  {
+                    $project: {
+                      user_name: 1,
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              $project: {
+                message_id: "$_id",
+                _id: 0,
+                text: 1,
+                location: 1,
+                author_name: "$user_id.user_name",
+                user_id: "$user_id._id",
+                attachment_ids: 1,
+                tag_ids: 1,
+                created_at: 1,
+              },
+            },
+            {
+              $unwind: {
+                path: "$author_name",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $unwind: {
+                path: "$user_id",
+                preserveNullAndEmptyArrays: true,
+              },
             },
           ],
         },
       },
-    ])
+      {
+        $unwind: {
+          path: "$last_message_id",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          room_id: "$_id",
+          room_name: "$room_name",
+          room_type: "$room_type",
+          last_message: "$last_message_id",
+          member_count: {
+            $size: "$member_ids",
+          },
+          top_members: 1,
+          message_unread_count: {
+            $filter: {
+              input: "$member_ids",
+              as: "item",
+              cond: { $eq: ["$$item.user_id", new ObjectId(current_user._id)] },
+            },
+          },
+          room_avatar: "$room_avatar_id.thumbnail_url",
+        },
+      },
+      {
+        $set: {
+          message_unread_count: { $size: "$message_unread_count.message_unread_ids" },
+        },
+      },
+      {
+        $sort: { "last_message.created_at": -1 },
+      },
+    ]
 
-    const total = await Room.countDocuments(searchQuery)
-    return roomList as any
-    // return toListResponse({
-    //   limit,
-    //   offset,
-    //   total,
-    //   data: toRoomListResponse({ current_user, data }),
-    // })
+    const data = await Room.aggregate([...query, { $limit: limit }, { $skip: offset }])
+
+    const total = search_term ? data.length : await Room.countDocuments(filter)
+
+    return toListResponse({
+      limit,
+      offset,
+      total,
+      data: toRoomListResponse({ current_user, data: data }),
+    })
   }
 
   async getRoomById(room_id: ObjectId): Promise<IRoom | null> {
@@ -360,6 +485,36 @@ class RoomService {
     } catch (error) {
       log.error(error)
       return null
+    }
+  }
+
+  async softDeleteRoom(room_id: ObjectId): Promise<boolean> {
+    try {
+      await Room.findByIdAndUpdate(room_id, {
+        $set: {
+          is_deleted: true,
+          deleted_at: Date.now(),
+        },
+      })
+      return true
+    } catch (error) {
+      log.error(error)
+      return false
+    }
+  }
+
+  async restoreSoftDeleteRoom(room_id: ObjectId): Promise<boolean> {
+    try {
+      await Room.findByIdAndUpdate(room_id, {
+        $set: {
+          is_deleted: false,
+          updated_at: Date.now(),
+        },
+      })
+      return true
+    } catch (error) {
+      log.error(error)
+      return false
     }
   }
 
