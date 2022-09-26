@@ -28,7 +28,7 @@ export interface IRoom {
  *    RoomListRes:
  *      type: object
  *      properties:
- *        hasMore:
+ *        has_more:
  *         type: boolean
  *        limit:
  *         type: number
@@ -100,17 +100,21 @@ export interface RoomRes {
   message_unread_count: number
   last_message?: LastMessage | null
   top_members?: {
-    avatar: string
+    user_avatar: string
     user_name: string
-    user_id: string
+    user_id: ObjectId
+    is_online: boolean
   }[]
 }
 
-export type RoomPopulate = Omit<IRoom, "last_message_id" | "room_avatar_id" | "member_ids"> & {
-  last_message_id?: MessagePopulate
-  room_avatar_id?: IAttachment
-  member_ids: MemberRoomPopulate[]
-}
+// export type RoomDetailPopulate = Omit<
+//   IRoom,
+//   "last_message_id" | "room_avatar_id" | "member_ids"
+// > & {
+//   last_message_id?: MessagePopulate
+//   room_avatar_id?: IAttachment
+//   member_ids: MemberRoomPopulate[]
+// }
 
 export interface LastMessagePopulate {
   text: string
@@ -123,7 +127,7 @@ export interface LastMessagePopulate {
   created_at: Date
 }
 
-export type RoomListItemPopulate = Pick<IRoom, "room_type" | "room_name"> & {
+export type RoomPopulate = Pick<IRoom, "room_type" | "room_name"> & {
   member_count: number
   room_id: ObjectId
   room_avatar?: string
@@ -134,7 +138,7 @@ export type RoomListItemPopulate = Pick<IRoom, "room_type" | "room_name"> & {
     is_online: boolean
   }[]
   last_message?: LastMessagePopulate
-  message_unread_count: number
+  message_unread_count: string[]
 }
 
 export type MemberRoomPopulate = {
@@ -144,12 +148,12 @@ export type MemberRoomPopulate = {
 }
 
 export type ToRoomRepsonse = {
-  data: RoomListItemPopulate
+  data: RoomPopulate
   current_user: IUser
 }
 
 export type ToRoomListResponse = {
-  data: RoomListItemPopulate[]
+  data: RoomPopulate[]
   current_user: IUser
 }
 
@@ -218,7 +222,7 @@ export type RoomDetailRes = Omit<
  *       total
  *       data
  *      properties:
- *        hasMore:
+ *        has_more:
  *         type: boolean
  *        limit:
  *         type: number

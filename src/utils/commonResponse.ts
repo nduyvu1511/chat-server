@@ -26,11 +26,12 @@ export const toTagListResponse = (params: ITag[]): TagRes[] => {
 
 export const toListResponse = (params: ListParams<any>): ListRes<any[]> => {
   const { data, limit, offset, total } = params
+
   return {
     limit,
     offset,
     total,
-    hasMore: data.length + offset < total,
+    has_more: data.length + offset < total,
     data,
   }
 }
@@ -40,5 +41,5 @@ export const toDefaultListResponse = (): ListRes<[]> => ({
   limit: 0,
   offset: 0,
   total: 0,
-  hasMore: false,
+  has_more: false,
 })

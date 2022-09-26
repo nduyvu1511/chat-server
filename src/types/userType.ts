@@ -43,7 +43,7 @@ export type UserPopulate = Omit<IUser, "avatar_id"> & {
  *       total
  *       data
  *      properties:
- *        hasMore:
+ *        has_more:
  *         type: boolean
  *        limit:
  *         type: number

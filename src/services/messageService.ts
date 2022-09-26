@@ -38,7 +38,9 @@ class MessageService {
         message_id: msg._id,
         room_id: params.room_id,
       })
+
       await this.pushMessageIdToRoom({ message_id: msg._id, room_id: params.room_id })
+
       return msgRes
     } catch (error) {
       log.error(error)
@@ -286,7 +288,7 @@ class MessageService {
       return {
         data: [],
         limit,
-        hasMore: false,
+        has_more: false,
         offset,
         total: 0,
       }

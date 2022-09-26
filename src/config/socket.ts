@@ -42,7 +42,8 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
       })
 
       // Message handler
-      socket.on("send_message", async (payload: MessageRes & { socket_id: string }) => {
+      socket.on("send_message", async (payload: MessageRes) => {
+        // To client is online and in current room
         socket.to(payload.room_id.toString()).emit(`receive_message`, {
           ...payload,
           is_author: false,
@@ -50,13 +51,19 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
 
         const socketIds = await RoomService.getSocketIdsFromRoom(payload.room_id.toString())
         const partnerSocketIds = socketIds.filter((item) => item.socket_id !== socket.id)
-        if (partnerSocketIds?.length === 0) return
+        if (!partnerSocketIds?.length) return
 
         partnerSocketIds.forEach(async (item) => {
           if (item.socket_id) {
-            socket.to(item.socket_id).emit("receive_unread_message", payload)
+            if (
+              Array.from(io.sockets.adapter.sids.get(item.socket_id) || [])?.[1] !==
+              Array.from(socket.rooms)?.[1]
+            ) {
+              socket
+                .to(item.socket_id)
+                .emit("receive_unread_message", { ...payload, is_author: false })
+            }
           } else {
-            // Send message unread for clients offline
             RoomService.addMessageUnreadToRoom({
               message_id: payload.message_id,
               user_id: item.user_id,
@@ -66,7 +73,6 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
         })
       })
       socket.on("read_message", async (payload: MessageRes) => {
-        console.log("read message: ", payload)
         if (!payload?.author?.author_socket_id) return
         socket.to(payload.author.author_socket_id.toString()).emit("confirm_read_message", payload)
       })

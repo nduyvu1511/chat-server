@@ -22,7 +22,7 @@ export interface ListParams<T> {
 }
 
 export interface ListRes<T> {
-  hasMore: boolean
+  has_more: boolean
   limit: number
   offset: number
   total: number

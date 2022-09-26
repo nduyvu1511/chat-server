@@ -43,11 +43,12 @@ export const toRoomResponse = ({ data, current_user }: ToRoomRepsonse): RoomRes 
     room_type: data.room_type,
     room_avatar,
     is_online: data.top_members.filter((item) => item.is_online === true)?.length >= 2,
-    message_unread_count: data?.message_unread_count || 0,
+    message_unread_count: data?.message_unread_count?.length || 0,
     member_count: data.member_count,
     last_message: data?.last_message?.message_id
       ? toLastMessageResponse({ current_user, data: data.last_message })
       : null,
+    top_members: data.top_members,
   }
 }
 

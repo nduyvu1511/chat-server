@@ -20,7 +20,6 @@ import {
   QueryMembersInRoomService,
   QueryRoomServiceParams,
   RoomDetailRes,
-  RoomListItemPopulate,
   RoomMemberRes,
   RoomMemberWithId,
   RoomPopulate,
@@ -148,7 +147,9 @@ class RoomService {
           arrayFilters: [{ "e1.user_id": user_id }],
           new: true,
         }
-      ).select(["member_ids"])
+      )
+        .select(["member_ids"])
+        .lean()
     } catch (error) {
       return null
     }
@@ -174,7 +175,7 @@ class RoomService {
 
   async getRoomDetail(params: GetRoomDetailService): Promise<RoomDetailRes | null> {
     try {
-      const room: RoomPopulate = await Room.findById(params.room_id)
+      const room: any = await Room.findById(params.room_id)
         .select(SELECT_ROOM)
         .populate("room_avatar_id")
         .lean()
@@ -388,7 +389,7 @@ class RoomService {
                 _id: 0,
                 text: 1,
                 location: 1,
-                author_name: "$user_id.user_name",
+                user_name: "$user_id.user_name",
                 user_id: "$user_id._id",
                 attachment_ids: 1,
                 tag_ids: 1,
@@ -397,7 +398,7 @@ class RoomService {
             },
             {
               $unwind: {
-                path: "$author_name",
+                path: "$user_name",
                 preserveNullAndEmptyArrays: true,
               },
             },
@@ -438,7 +439,9 @@ class RoomService {
       },
       {
         $set: {
-          message_unread_count: { $size: "$message_unread_count.message_unread_ids" },
+          message_unread_count: {
+            $arrayElemAt: ["$message_unread_count.message_unread_ids", 0],
+          },
         },
       },
       {
@@ -446,7 +449,11 @@ class RoomService {
       },
     ]
 
-    const data = await Room.aggregate([...query, { $limit: limit }, { $skip: offset }])
+    const data: RoomPopulate[] = await Room.aggregate([
+      { $limit: offset + limit },
+      { $skip: offset },
+      ...query,
+    ])
 
     const total = search_term ? data.length : await Room.countDocuments(filter)
 

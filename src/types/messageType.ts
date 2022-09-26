@@ -63,7 +63,7 @@ export interface LikedByUserId {
  *       total
  *       data
  *      properties:
- *        hasMore:
+ *        has_more:
  *         type: boolean
  *        limit:
  *         type: number
@@ -141,7 +141,7 @@ export type ToMessageListResponse = {
  *    TagListRes:
  *     type: object
  *     properties:
- *       hasMore:
+ *       has_more:
  *        type: boolean
  *       limit:
  *        type: number
@@ -241,7 +241,7 @@ export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
  *    MessageListRes:
  *     type: object
  *     properties:
- *       hasMore:
+ *       has_more:
  *        type: boolean
  *       limit:
  *        type: number
