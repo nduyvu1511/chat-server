@@ -4,6 +4,7 @@ import { toAttachmentResponse } from "./commonResponse"
 export const toUserResponse = (data: UserPopulate): UserRes => {
   return {
     user_id: data?._id,
+    socket_id: data.socket_id,
     user_name: data?.user_name,
     phone: data?.phone,
     avatar: toAttachmentResponse(data.avatar_id),

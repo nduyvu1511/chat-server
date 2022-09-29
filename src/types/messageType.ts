@@ -1,9 +1,9 @@
 import { ObjectId } from "mongodb"
-import { ITag, Lnglat, QueryCommonParams, TagRes } from "./commonType"
 import { AttachmentRes, IAttachment } from "./attachmentType"
+import { ITag, Lnglat, QueryCommonParams, TagRes } from "./commonType"
 
-import { IUser, UserPopulate, UserRes } from "./userType"
 import { LastMessagePopulate } from "./roomType"
+import { IUser, UserPopulate, UserRes } from "./userType"
 
 export interface IMessage {
   _id: ObjectId
@@ -36,19 +36,11 @@ export interface LikedByUserId {
  * @openapi
  * components:
  *  schema:
- *    UserLikedMessageRes:
+ *    UserLikedMessage:
  *      type: object
- *      required:
- *        - _id
- *        - data
  *      properties:
- *        _id:
- *          type: string
- *          enum: ["like", "angry", "sad", "laugh", "heart", "wow"]
- *        data:
- *          type: array
- *          items:
- *            $ref: '#components/schema/UserRes'
+ *        emotion_type:
+ *          $ref: '#components/schema/UserRes'
  */
 
 /**
@@ -74,11 +66,15 @@ export interface LikedByUserId {
  *        data:
  *          type: array
  *          items:
- *           $ref: '#components/schema/UserLikedMessageRes'
+ *           $ref: '#components/schema/UserLikedMessage'
  */
-export interface UserLikedMessageRes {
+export interface UserLikedMessage {
   _id: MessageEmotionType & "all"
   data: UserRes
+}
+
+export interface UserLikedMessageRes {
+  [key: string]: UserRes
 }
 
 export type MessagePopulate = Omit<
@@ -181,7 +177,7 @@ export type ToMessageListResponse = {
  *        - message_id
  *        - is_author
  *        - author
- *        - like_count
+ *        - reaction_count
  *        - message_text
  *        - is_read
  *        - room_id
@@ -199,14 +195,23 @@ export type ToMessageListResponse = {
  *          type: boolean
  *        author:
  *          $ref: '#/components/schema/AuthorMessageRes'
- *        is_liked:
- *          type: boolean
+ *        emotion_type:
+ *          type: string
+ *          enum: [like, laugh, angry, wow, heart, sad]
  *        attachments:
  *          type: array
  *          items:
  *            $ref: '#/components/schema/AttachmentRes'
- *        like_count:
+ *        reaction_count:
  *          type: number
+ *        reactions:
+ *          type: array
+ *          items:
+ *            type: string
+ *            enum: [like, laugh, angry, wow, heart, sad]
+ *        your_reaction:
+ *          type: string
+ *          enum: [like, laugh, angry, wow, heart, sad]
  *        message_text:
  *          type: string
  *        reply_to:
@@ -224,9 +229,10 @@ export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
   message_id: ObjectId
   is_author: boolean
   author: AuthorMessage
-  is_liked: boolean
+  reaction_count: number
+  reactions: MessageEmotionType[]
+  your_reaction: MessageEmotionType | null
   attachments: AttachmentRes[]
-  like_count: number
   message_text: string
   reply_to?: MessageReply | null
   location?: Lnglat | null
@@ -341,18 +347,21 @@ export interface MessageUser {
  *          type: string
  *        message_text:
  *          type: string
+ *        message_type:
+ *          type: string
+ *          enum: [attachment, text, location]
  *        created_at:
  *          type: date
- *        attachment:
- *          $ref: '#/components/schema/AttachmentRes'
  */
 export type MessageReply = {
   author: AuthorMessage
+  message_type: MessageType
   message_id: ObjectId
   message_text: string
   created_at: Date
-  attachment?: AttachmentRes | null
 }
+
+export type MessageType = "attachment" | "text" | "location"
 
 export type MessageEmotionType = "like" | "angry" | "sad" | "laugh" | "heart" | "wow"
 
@@ -415,8 +424,10 @@ export interface LikeMessage extends UnlikeMessage {
   emotion: MessageEmotionType
 }
 
-export interface LikeMessageService extends UnlikeMessageService {
+export interface LikeMessageService {
   emotion: MessageEmotionType
+  user_id: ObjectId
+  message: IMessage
 }
 
 /**

@@ -390,3 +390,9 @@ export interface AddMessageUnreadService extends AddMessageUnread {
   room_id: ObjectId
   user_id: ObjectId
 }
+
+export interface RoomTypingRes {
+  user_id: string
+  user_name: string
+  room_id: string
+}

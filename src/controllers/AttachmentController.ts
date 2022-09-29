@@ -1,4 +1,5 @@
 import Express from "express"
+import log from "../config/logger"
 import AttachmentService from "../services/attachmentService"
 import UploadService from "../services/uploadService"
 import { AttachmentRes } from "../types"
@@ -12,7 +13,7 @@ class AttachmentController {
       const data = await AttachmentService.createAttachment(req.body)
       return res.json(new ResponseData(data))
     } catch (error) {
-      console.log(error)
+      log.error(error)
     }
   }
 

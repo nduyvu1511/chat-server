@@ -1,10 +1,8 @@
 import Express from "express"
-import multer from "multer"
-import path, { parse } from "path"
-import { uploadImage } from "../config/upload"
 import MessageController from "../controllers/messageController"
 import {
   bodyMiddleware,
+  checkMessageBodyExist,
   checkMessageParamsExist,
   checkRoomBodyExist,
   checkUserExist,
@@ -21,7 +19,6 @@ import {
   SendMessageSchema,
 } from "../validators"
 const router = Express.Router()
-import form from "formidable"
 
 /**
  * @openapi
@@ -213,11 +210,18 @@ router.get("/:message_id", verifyToken, checkUserExist, MessageController.getMes
  *         content:
  *          application/json:
  *            schema:
- *              $ref: '#/components/schema/LikeMessageRes'
+ *              $ref: '#/components/schema/MessageRes'
  *       400:
  *         description: Bad Request
  */
-router.post("/like", verifyToken, bodyMiddleware(likeMessageSchema), MessageController.likeMessage)
+router.post(
+  "/like",
+  verifyToken,
+  bodyMiddleware(likeMessageSchema),
+  checkMessageBodyExist,
+  checkUserExist,
+  MessageController.likeMessage
+)
 
 /**
  * @openapi
@@ -239,7 +243,7 @@ router.post("/like", verifyToken, bodyMiddleware(likeMessageSchema), MessageCont
  *         content:
  *          application/json:
  *            schema:
- *              $ref: '#/components/schema/UnlikeMessageRes'
+ *              $ref: '#/components/schema/MessageRes'
  *       400:
  *         description: Bad Request
  */
@@ -279,7 +283,7 @@ router.delete(
  *         content:
  *          application/json:
  *            schema:
- *              $ref: '#/components/schema/UserLikedMessageListRes'
+ *              $ref: '#/components/schema/UserLikedMessage'
  *       400:
  *         description: Bad Request
  */

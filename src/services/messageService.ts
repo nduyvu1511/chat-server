@@ -1,3 +1,4 @@
+import _ from "lodash"
 import { ObjectId } from "mongodb"
 import log from "../config/logger"
 import { SELECT_USER, USERS_LIMIT } from "../constant"
@@ -11,16 +12,16 @@ import {
   IRoom,
   ITag,
   LikeMessageService,
-  ListRes,
   MessagePopulate,
   MessageRes,
   SendMessageServiceParams,
   UnlikeMessageService,
+  UserLikedMessage,
   UserLikedMessageRes,
   UserReadLastMessage,
   UserReadMessage,
 } from "../types"
-import { toListResponse, toMessageResponse } from "../utils"
+import { toMessageResponse } from "../utils"
 
 interface appendLastMessageIdToRoomParams {
   room_id: ObjectId
@@ -149,18 +150,32 @@ class MessageService {
     }
   }
 
-  async likeMessage({
-    emotion,
-    message_id,
-    user_id,
-  }: LikeMessageService): Promise<IMessage | null> {
+  async likeMessage({ emotion, message, user_id }: LikeMessageService): Promise<IMessage | null> {
     try {
+      const { _id: message_id } = message
+
+      const user = (message?.liked_by_user_ids || [])?.find(
+        (item) => item.user_id.toString() === user_id.toString()
+      )
+
+      if (!user) {
+        return await Message.findByIdAndUpdate(message_id, {
+          $addToSet: {
+            liked_by_user_ids: {
+              user_id: user_id as any,
+              emotion,
+            },
+          },
+        })
+      }
+
+      if (user?.emotion === emotion) return null
+
+      await this.unlikeMessage({ message_id, user_id })
+
       return await Message.findByIdAndUpdate(message_id, {
         $addToSet: {
-          liked_by_user_ids: {
-            user_id: user_id as any,
-            emotion,
-          },
+          liked_by_user_ids: { user_id: user_id as any, emotion },
         },
       })
     } catch (error) {
@@ -184,26 +199,24 @@ class MessageService {
     }
   }
 
-  async getUsersLikedMessage(
-    params: GetUsersLikedMessage
-  ): Promise<ListRes<UserLikedMessageRes[]>> {
+  async getUsersLikedMessage(params: GetUsersLikedMessage): Promise<UserLikedMessageRes> {
     const { limit = USERS_LIMIT, offset = 0, message_id } = params
     try {
-      const total: any = await Message.aggregate([
-        {
-          $match: {
-            _id: new ObjectId(message_id),
-          },
-        },
-        {
-          $unwind: "$liked_by_user_ids",
-        },
-        {
-          $count: "total",
-        },
-      ])
+      // const total: any = await Message.aggregate([
+      //   {
+      //     $match: {
+      //       _id: new ObjectId(message_id),
+      //     },
+      //   },
+      //   {
+      //     $unwind: "$liked_by_user_ids",
+      //   },
+      //   {
+      //     $count: "total",
+      //   },
+      // ])
 
-      const userList: UserLikedMessageRes[] = await Message.aggregate([
+      const userList: UserLikedMessage[] = await Message.aggregate([
         {
           $match: {
             _id: new ObjectId(message_id),
@@ -275,23 +288,25 @@ class MessageService {
         },
       ])
 
-      const data = [{ _id: "all", data: [[...userList].map((item) => item.data)] }, ...userList]
+      const dataRes = userList.reduce(
+        (a, b) => ({
+          ...a,
+          [b._id as string]: b.data,
+        }),
+        {}
+      )
 
-      return toListResponse({
-        data,
-        limit,
-        offset,
-        total: total?.[0]?.total || 0,
-      })
+      return { ...dataRes, all: _.flattenDeep([...userList].map((item) => item.data)) } as any
+
+      // return toListResponse({
+      //   data: ,
+      //   limit,
+      //   offset,
+      //   total: total?.[0]?.total || 0,
+      // })
     } catch (error) {
       log.error(error)
-      return {
-        data: [],
-        limit,
-        has_more: false,
-        offset,
-        total: 0,
-      }
+      return {}
     }
   }
 }

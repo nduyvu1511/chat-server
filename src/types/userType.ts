@@ -1,8 +1,7 @@
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
-import { QueryCommonParams } from "./commonType"
 import { AttachmentRes, IAttachment } from "./attachmentType"
-import { LikedByUserId } from "./messageType"
+import { QueryCommonParams } from "./commonType"
 
 export interface IUser {
   _id: ObjectId
@@ -163,6 +162,7 @@ export type UserRes = Pick<
 > & {
   user_id: ObjectId
   avatar: AttachmentRes
+  socket_id: string
 }
 
 /**

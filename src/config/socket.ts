@@ -2,7 +2,14 @@ import { Server } from "socket.io"
 import { DefaultEventsMap } from "socket.io/dist/typed-events"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import { LikeMessageRes, MessageRes, UnlikeMessageRes, UserData } from "../types"
+import {
+  LikeMessageRes,
+  MessageRes,
+  RoomTypingRes,
+  UnlikeMessageRes,
+  UserData,
+  UserRes,
+} from "../types"
 import log from "./logger"
 
 const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) => {
@@ -20,6 +27,7 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
 
       // When user is disconnecting then change status to offline
       socket.on("disconnecting", async () => {
+        socket.emit("stop_typing")
         const data = await UserService.removeUserSocketId({
           socket_id: socket.id,
         })
@@ -77,20 +85,20 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
         socket.to(payload.author.author_socket_id.toString()).emit("confirm_read_message", payload)
       })
       socket.on("like_message", async (payload: LikeMessageRes) => {
-        console.log("liked message: ", payload)
         socket.to(payload.room_id.toString()).emit("like_message", payload)
       })
       socket.on("unlike_message", async (payload: UnlikeMessageRes) => {
-        console.log("unliked message: ", payload)
         socket.to(payload.room_id.toString()).emit("unlike_message", payload)
       })
 
       // Typing handler
-      socket.on("start_typing", (roomId: string) => {
-        socket.to(roomId).emit("start_typing")
+      socket.on("start_typing", (payload: RoomTypingRes) => {
+        console.log("start_typing: ", payload)
+        socket.to(payload.room_id.toString()).emit("start_typing", payload)
       })
-      socket.on("stop_typing", (roomId: string) => {
-        socket.to(roomId).emit("stop_typing")
+      socket.on("stop_typing", (payload: RoomTypingRes) => {
+        console.log("stop_typing: ", payload)
+        socket.to(payload.room_id).emit("stop_typing", payload)
       })
     })
   } catch (error) {

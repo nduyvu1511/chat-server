@@ -40,13 +40,13 @@ export const SendMessageSchema = Joi.object<SendMessage>({
   text: Joi.string()
     .required()
     .when("location", {
-      then: Joi.string().optional(),
+      then: Joi.string().allow("").optional(),
     })
     .when("attachment_ids", {
-      then: Joi.string().optional(),
+      then: Joi.string().allow("").optional(),
     })
     .when("tag_ids", {
-      then: Joi.string().optional(),
+      then: Joi.string().allow("").optional(),
     }),
   room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
   location: LngLatSchema.optional(),

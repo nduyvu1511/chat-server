@@ -73,7 +73,6 @@ class MessageController {
 
   async getMessageById(req: Express.Request, res: Express.Response) {
     try {
-      console.log(req.params)
       const messageRes = await MessageService.getMessageRes({
         message_id: req.params.message_id as any,
         current_user: req.user,
@@ -148,22 +147,21 @@ class MessageController {
 
   async likeMessage(req: Express.Request, res: Express.Response) {
     try {
-      console.log(req.body)
-      const message = await MessageService.likeMessage({ ...req.body, user_id: req.user._id })
+      const message = await MessageService.likeMessage({
+        emotion: req.body.emotion,
+        message: req.message,
+        user_id: req.user._id,
+      })
       if (!message) return res.json(new ResponseError("Failed to like this message"))
 
-      return res.json(
-        new ResponseData<LikeMessageRes>(
-          {
-            message_id: message._id,
-            emotion: req.body.emotion,
-            user_id: req.user._id,
-            room_id: message.room_id,
-          },
-          "liked message"
-        )
-      )
+      const messageRes = await MessageService.getMessageRes({
+        current_user: req.user,
+        message_id: req.message._id,
+      })
+
+      return res.json(new ResponseData(messageRes, "Reacted message"))
     } catch (error) {
+      log.error(error)
       return res.status(400).send(error)
     }
   }
@@ -177,12 +175,12 @@ class MessageController {
       })
       if (!data) return res.json(new ResponseError("Failed to unlike this message"))
 
-      return res.json(
-        new ResponseData<UnlikeMessageRes>(
-          { message_id: data._id, room_id: data.room_id, user_id: req.user._id },
-          "unliked message"
-        )
-      )
+      const messageRes = await MessageService.getMessageRes({
+        current_user: req.user,
+        message_id: message_id as any,
+      })
+
+      return res.json(new ResponseData(messageRes, "Unreacted message"))
     } catch (error) {
       return res.status(400).send(error)
     }
