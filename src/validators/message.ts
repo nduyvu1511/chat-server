@@ -36,7 +36,7 @@ import { LngLatSchema } from "./common"
  *            type: string
  *            summary: Lấy từ bảng Attachment
  */
-export const SendMessageSchema = Joi.object<SendMessage>({
+export const sendMessageSchema = Joi.object<SendMessage>({
   text: Joi.string()
     .required()
     .when("location", {

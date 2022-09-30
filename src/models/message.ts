@@ -44,7 +44,20 @@ const MessageSchema = new Schema<IMessage>({
   },
   read_by_user_ids: [
     {
-      type: Schema.Types.ObjectId,
+      type: {
+        user_id: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          unique: true,
+          required: true,
+        },
+        created_at: {
+          type: Date,
+          required: false,
+          default: Date.now,
+        },
+        _id: false,
+      },
       ref: "User",
       default: [],
     },
@@ -56,6 +69,7 @@ const MessageSchema = new Schema<IMessage>({
           type: Schema.Types.ObjectId,
           ref: "User",
           unique: true,
+          required: true,
         },
         emotion: {
           type: String,

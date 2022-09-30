@@ -17,7 +17,7 @@ export interface IMessage {
     message_id: ObjectId
     attachment_id?: ObjectId
   }
-  read_by_user_ids: string[]
+  read_by_user_ids: ReadByUserId[]
   is_hidden: boolean
   is_deleted: boolean
   is_edited: boolean
@@ -27,9 +27,15 @@ export interface IMessage {
   updated_at: Date | null
 }
 
+export interface ReadByUserId {
+  user_id: string
+  created_at?: Date
+}
+
 export interface LikedByUserId {
   user_id: string
   emotion: MessageEmotionType
+  created_at?: Date
 }
 
 /**
@@ -70,11 +76,11 @@ export interface LikedByUserId {
  */
 export interface UserLikedMessage {
   _id: MessageEmotionType & "all"
-  data: UserRes
+  data: UserRes[]
 }
 
 export interface UserLikedMessageRes {
-  [key: string]: UserRes
+  [key: string]: UserRes[]
 }
 
 export type MessagePopulate = Omit<
@@ -238,6 +244,12 @@ export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
   location?: Lnglat | null
   tags?: TagRes[]
   is_read: boolean
+}
+
+export interface ReactionMessageRes {
+  [key: string]: UserRes & {
+    reaction: MessageEmotionType
+  }
 }
 
 /**
@@ -481,4 +493,8 @@ export interface UnlikeMessageRes {
   message_id: ObjectId
   user_id: ObjectId
   room_id: ObjectId
+}
+
+export interface MessageDetailRes extends MessageRes {
+  read_by_users: []
 }

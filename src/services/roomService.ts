@@ -392,7 +392,6 @@ class RoomService {
                 user_name: "$user_id.user_name",
                 user_id: "$user_id._id",
                 attachment_ids: 1,
-                tag_ids: 1,
                 created_at: 1,
               },
             },

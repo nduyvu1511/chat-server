@@ -16,13 +16,13 @@ import {
   messageIdSchema,
   readLastMessageSchema,
   readMessageSchema,
-  SendMessageSchema,
+  sendMessageSchema,
 } from "../validators"
 const router = Express.Router()
 
 /**
  * @openapi
- * '/api/message/{message_id}/users_read':
+ * '/api/message/users/read/{message_id}/':
  *  get:
  *     tags:
  *      - Message
@@ -54,7 +54,7 @@ const router = Express.Router()
  *         description: Bad Request
  */
 router.get(
-  "/:message_id/users_read",
+  "/users/read/:message_id",
   verifyToken,
   paramsMiddleware(messageIdSchema),
   checkMessageParamsExist,
@@ -157,7 +157,7 @@ router.patch(
 router.post(
   "/",
   verifyToken,
-  bodyMiddleware(SendMessageSchema),
+  bodyMiddleware(sendMessageSchema),
   checkUserExist,
   checkRoomBodyExist,
   MessageController.sendMessage
@@ -188,6 +188,8 @@ router.post(
  *         description: Bad Request
  */
 router.get("/:message_id", verifyToken, checkUserExist, MessageController.getMessageById)
+
+router.get("/detail/:message_id", verifyToken, checkUserExist, MessageController.getDetailMessage)
 
 /**
  * @openapi

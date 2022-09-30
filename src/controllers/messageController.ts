@@ -5,7 +5,7 @@ import { USERS_LIMIT } from "../constant"
 import AttachmentService from "../services/attachmentService"
 import MessageService from "../services/messageService"
 import UserService from "../services/userService"
-import { IUser, LikeMessageRes, SendMessage, UnlikeMessageRes } from "../types"
+import { IUser, SendMessage } from "../types"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
 
@@ -20,12 +20,7 @@ class MessageController {
       const params: SendMessage = req.body
       const user: IUser = req.user
 
-      if (
-        !params.text &&
-        !params.tag_ids?.length &&
-        !params.location &&
-        !params?.attachment_ids?.length
-      )
+      if (!params.text && !params.location && !params?.attachment_ids?.length)
         return res.json(new ResponseError("Can not send a message because missing fields"))
 
       let tag_ids: ObjectId[] = []
@@ -74,6 +69,20 @@ class MessageController {
   async getMessageById(req: Express.Request, res: Express.Response) {
     try {
       const messageRes = await MessageService.getMessageRes({
+        message_id: req.params.message_id as any,
+        current_user: req.user,
+      })
+      if (!messageRes) return res.json(new ResponseError("Message not found"))
+
+      return res.json(new ResponseData(messageRes))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async getDetailMessage(req: Express.Request, res: Express.Response) {
+    try {
+      const messageRes = await MessageService.getDetailMessage({
         message_id: req.params.message_id as any,
         current_user: req.user,
       })

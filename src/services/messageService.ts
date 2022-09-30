@@ -20,6 +20,7 @@ import {
   UserLikedMessageRes,
   UserReadLastMessage,
   UserReadMessage,
+  UserRes,
 } from "../types"
 import { toMessageResponse } from "../utils"
 
@@ -86,6 +87,174 @@ class MessageService {
     return toMessageResponse({ data: message, current_user })
   }
 
+  async getDetailMessage({ current_user, message_id }: GetMessage): Promise<MessageRes | null> {
+    const message = await Message.aggregate([
+      {
+        $match: {
+          _id: new ObjectId(message_id),
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id",
+          foreignField: "_id",
+          as: "author",
+          pipeline: [
+            {
+              $lookup: {
+                from: "attachments",
+                localField: "avatar_id",
+                foreignField: "_id",
+                as: "avatar",
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 0,
+                      thumbnail_url: 1,
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              $unwind: {
+                path: "$avatar",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $replaceRoot: {
+                newRoot: {
+                  $mergeObjects: ["$$ROOT", "$avatar"],
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                author_id: "$_id",
+                author_name: "$user_name",
+                author_avatar: "$avatar.thumbnail_url",
+                is_online: "$is_online",
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$author",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "attachments",
+          localField: "attachment_ids",
+          foreignField: "_id",
+          as: "attachment_ids",
+          pipeline: [
+            {
+              $project: {
+                _id: 0,
+                attachment_id: "$_id",
+                url: "$url",
+                thumnail_url: "$thumbnail_url",
+                attachment_type: "$attachment_type",
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          let: { ids: "$read_by_user_ids.user_id" },
+          as: "seen_by",
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $in: ["$_id", "$$ids"] },
+                    {
+                      $not: {
+                        $eq: ["$_id", new ObjectId(current_user._id)],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: "attachments",
+                localField: "avatar_id",
+                foreignField: "_id",
+                as: "avatar_id",
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 0,
+                      thumbnail_url: 1,
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              $unwind: {
+                path: "$avatar_id",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                author_id: "$_id",
+                author_name: "$user_name",
+                author_avatar: { $ifNull: ["$avatar_id.thumbnail_url", null] },
+                is_online: "$is_online",
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "attachments",
+          localField: "avatar_id",
+          foreignField: "_id",
+          as: "avatar",
+          pipeline: [
+            {
+              $project: {
+                _id: 0,
+                thumbnail_url: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          message_id: "$_id",
+          author: "$author",
+          attachments: "$attachment_ids",
+          message_text: "$text",
+          reply_to: "$reply_to",
+          location: "$location",
+          tags: "$tags",
+          seen_by: "$seen_by",
+        },
+      },
+    ])
+    if (!message) return null
+
+    return message as any
+  }
+
   async pushMessageIdToRoom({ room_id, message_id }: appendLastMessageIdToRoomParams) {
     try {
       return await Room.findByIdAndUpdate(room_id, {
@@ -122,11 +291,21 @@ class MessageService {
 
   async confirmReadMessage({ user_id, message_id }: UserReadMessage): Promise<null | IMessage> {
     try {
-      return await Message.findByIdAndUpdate(message_id, {
-        $addToSet: {
-          read_by_user_ids: user_id,
+      return await Message.findOneAndUpdate(
+        {
+          $and: [
+            {
+              message_id: new ObjectId(message_id),
+              "read_by_user_ids.user_id": { $nin: user_id },
+            },
+          ],
         },
-      })
+        {
+          $addToSet: {
+            read_by_user_ids: { user_id: user_id as any },
+          },
+        }
+      )
     } catch (error) {
       log.error(error)
       return null
@@ -136,10 +315,17 @@ class MessageService {
   async confirmReadAllMessageInRoom({ user_id, room_id }: UserReadLastMessage): Promise<boolean> {
     try {
       await Message.updateMany(
-        { $and: [{ room_id, read_by_user_ids: { $nin: [user_id] } }] },
+        {
+          $and: [
+            {
+              room_id: new ObjectId(room_id),
+              "read_by_user_ids.user_id": { $nin: [new ObjectId(user_id)] },
+            },
+          ],
+        },
         {
           ["$addToSet" as any]: {
-            read_by_user_ids: user_id,
+            read_by_user_ids: { user_id: new ObjectId(user_id) },
           },
         }
       )
@@ -202,20 +388,6 @@ class MessageService {
   async getUsersLikedMessage(params: GetUsersLikedMessage): Promise<UserLikedMessageRes> {
     const { limit = USERS_LIMIT, offset = 0, message_id } = params
     try {
-      // const total: any = await Message.aggregate([
-      //   {
-      //     $match: {
-      //       _id: new ObjectId(message_id),
-      //     },
-      //   },
-      //   {
-      //     $unwind: "$liked_by_user_ids",
-      //   },
-      //   {
-      //     $count: "total",
-      //   },
-      // ])
-
       const userList: UserLikedMessage[] = await Message.aggregate([
         {
           $match: {
@@ -253,6 +425,20 @@ class MessageService {
             as: "user_id",
             pipeline: [
               {
+                $lookup: {
+                  from: "attachments",
+                  localField: "avatar_id",
+                  foreignField: "_id",
+                  as: "avatar_id",
+                },
+              },
+              {
+                $unwind: {
+                  path: "$avatar_id",
+                  preserveNullAndEmptyArrays: true,
+                },
+              },
+              {
                 $project: {
                   _id: 0,
                   user_id: "$_id",
@@ -263,7 +449,9 @@ class MessageService {
                   gender: 1,
                   role: 1,
                   offline_at: 1,
-                  avatar: 1,
+                  avatar: {
+                    $ifNull: ["$avatar_id.thumbnail_url", null],
+                  },
                 },
               },
             ],
@@ -288,7 +476,14 @@ class MessageService {
         },
       ])
 
-      const dataRes = userList.reduce(
+      console.log({ userList })
+
+      const newUserList = userList.map((item) => ({
+        ...item,
+        data: item.data.map((_item) => ({ ..._item, reaction: item._id })),
+      }))
+
+      const dataRes: { [key: string]: UserRes[] } = newUserList.reduce(
         (a, b) => ({
           ...a,
           [b._id as string]: b.data,
@@ -296,17 +491,15 @@ class MessageService {
         {}
       )
 
-      return { ...dataRes, all: _.flattenDeep([...userList].map((item) => item.data)) } as any
-
-      // return toListResponse({
-      //   data: ,
-      //   limit,
-      //   offset,
-      //   total: total?.[0]?.total || 0,
-      // })
+      return {
+        all: _.flattenDeep([...newUserList].map((item) => item.data)),
+        ...dataRes,
+      }
     } catch (error) {
       log.error(error)
-      return {}
+      return {
+        all: [],
+      }
     }
   }
 }
