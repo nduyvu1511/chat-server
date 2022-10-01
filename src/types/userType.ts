@@ -151,6 +151,13 @@ export type UserPopulate = Omit<IUser, "avatar_id"> & {
  *        role:
  *          type: string
  *          enum: [customer, driver, admin]
+ *        room_id:
+ *          type: boolean
+ *          required: false
+ *          summary: Nếu đã từng tạo nhóm chat đơn với người này thì sẽ có giá trị
+ *        is_yourself:
+ *          type: boolean
+ *          required: false
  *        phone:
  *          type: string
  *          regex: /((^(\+84|84|0|0084){1})(3|5|7|8|9))+([0-9]{8})$/
@@ -163,6 +170,8 @@ export type UserRes = Pick<
   user_id: ObjectId
   avatar: AttachmentRes
   socket_id: string
+  room_id?: ObjectId
+  is_yourself?: boolean
 }
 
 /**

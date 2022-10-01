@@ -11,7 +11,7 @@ import {
   IMessage,
   IUser,
   QueryCommonParams,
-  QueryRoomParams,
+  QueryRoomParams
 } from "../types"
 
 /**
@@ -27,7 +27,7 @@ import {
  *          type: number
  */
 export const createSingleChatSchema = Joi.object<createSingleChat>({
-  partner_id: Joi.number().required(),
+  partner_id: Joi.alternatives().try(Joi.number(), Joi.string().regex(OBJECT_ID_REGEX)).required(),
 })
 
 /**

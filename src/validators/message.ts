@@ -55,7 +55,7 @@ export const sendMessageSchema = Joi.object<SendMessage>({
     message_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
     attachment_id: Joi.string().regex(OBJECT_ID_REGEX).optional(),
   }).optional(),
-  tag_ids: Joi.array().items(Joi.string().regex(OBJECT_ID_REGEX).required()).optional(),
+  tag_ids: Joi.array().items(Joi.string().regex(OBJECT_ID_REGEX).required()).allow(null).optional(),
 })
 
 export const readMessageSchema = Joi.object<UserReadMessage>({

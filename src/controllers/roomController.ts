@@ -1,6 +1,6 @@
 import Express from "express"
 import _ from "lodash"
-import { MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constant"
+import { isObjectID, MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constant"
 import MessageService from "../services/messageService"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
@@ -15,23 +15,20 @@ class RoomController {
       const { user_id } = req.user
       const { partner_id } = req.body
 
-      if (user_id === partner_id)
+      if (user_id === partner_id || req.user?._id.toString() === partner_id.toString())
         return res.json(new ResponseError("Can not create room failed because missing partner"))
 
-      const partner = await UserService.getUserByPartnerId(partner_id)
+      const partner = isObjectID(partner_id)
+        ? await UserService.getUserById(partner_id)
+        : await UserService.getUserByPartnerId(partner_id)
+
       if (!partner)
         return res.json(new ResponseError("Create room chat failed because partner ID is invalid"))
 
       // Check partner id exists
-      const roomIds = await RoomService.getSingleRoomIds(req.user.room_joined_ids)
-      let room_id
-      roomIds.forEach((room) => {
-        room.member_ids.forEach((item) => {
-          if (item.user_id.toString() === partner._id.toString()) {
-            room_id = room._id
-            return
-          }
-        })
+      const room_id = await RoomService.getRoomIdByUserId({
+        room_joined_ids: req.user.room_joined_ids as any[],
+        partner_id: partner._id as any,
       })
 
       // Return room detail if partner_id is already exists in room
@@ -40,9 +37,12 @@ class RoomController {
           room_id,
           user: req.user,
         })
+
         if (roomRes) {
           return res.json(new ResponseData(roomRes))
         }
+
+        return res.json(new ResponseError("Room not found"))
       }
 
       const room = await RoomService.createSingleChat({

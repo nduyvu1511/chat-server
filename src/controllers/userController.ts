@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt"
 import Express from "express"
 import { USERS_LIMIT } from "../constant"
+import roomService from "../services/roomService"
 import UserService from "../services/userService"
 import { IUser, UserLoginRes, UserRes } from "../types"
 import ResponseError from "../utils/apiError"
@@ -119,7 +120,24 @@ class UserController {
       const data = await UserService.getUserByUserId((req?.query?.user_id || req.user._id) as any)
       if (!data) return res.json(new ResponseError("User not found"))
 
-      return res.json(new ResponseData<UserRes>(toUserResponse(data)))
+      const userRes = toUserResponse(data)
+
+      if (req.query?.user_id?.toString() !== req.user._id.toString()) {
+        const room_id = await roomService.getRoomIdByUserId({
+          room_joined_ids: req.user.room_joined_ids as any[],
+          partner_id: userRes.user_id,
+        })
+
+        return res.json(
+          new ResponseData<UserRes>({
+            ...userRes,
+            room_id,
+            is_yourself: req.user._id.toString() === userRes.user_id.toString(),
+          })
+        )
+      }
+
+      return res.json(new ResponseData<UserRes>({ ...userRes, is_yourself: true }))
     } catch (error) {
       return res.status(400).send(error)
     }

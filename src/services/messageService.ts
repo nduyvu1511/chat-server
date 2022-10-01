@@ -33,7 +33,11 @@ class MessageService {
   async sendMessage(params: SendMessageServiceParams): Promise<IMessage | null> {
     try {
       const { message, user } = params
-      const msg = new Message({ ...message, user_id: user._id, read_by_user_ids: [user._id] })
+      const msg = new Message({
+        ...message,
+        user_id: user._id,
+        read_by_user_ids: [{ user_id: user._id }],
+      })
       const msgRes: IMessage = (await msg.save()).toObject()
 
       await this.appendLastMessageIdToRoom({
@@ -91,7 +95,7 @@ class MessageService {
     const message = await Message.aggregate([
       {
         $match: {
-          _id: new ObjectId(message_id),
+          _id: new ObjectId(new ObjectId(message_id)),
         },
       },
       {
@@ -111,7 +115,10 @@ class MessageService {
                   {
                     $project: {
                       _id: 0,
+                      attachment_id: "$_id",
                       thumbnail_url: 1,
+                      url: 1,
+                      attachment_type: 1,
                     },
                   },
                 ],
@@ -135,7 +142,7 @@ class MessageService {
                 _id: 0,
                 author_id: "$_id",
                 author_name: "$user_name",
-                author_avatar: "$avatar.thumbnail_url",
+                author_avatar: "$avatar",
                 is_online: "$is_online",
               },
             },
@@ -171,7 +178,7 @@ class MessageService {
         $lookup: {
           from: "users",
           let: { ids: "$read_by_user_ids.user_id" },
-          as: "seen_by",
+          as: "read_by",
           pipeline: [
             {
               $match: {
@@ -184,6 +191,103 @@ class MessageService {
                       },
                     },
                   ],
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: "attachments",
+                localField: "avatar_id",
+                foreignField: "_id",
+                as: "avatar_id",
+                pipeline: [
+                  {
+                    $project: {
+                      thumbnail_url: 1,
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              $unwind: {
+                path: "$avatar_id",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                user_id: "$_id",
+                user_name: "$user_name",
+                user_avatar: { $ifNull: ["$avatar_id.thumbnail_url", null] },
+                is_online: "$is_online",
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "rooms",
+          localField: "room_id",
+          foreignField: "_id",
+          as: "room",
+          pipeline: [
+            {
+              $project: {
+                _id: 0,
+                member_ids: "$member_ids.user_id",
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: "$room",
+      },
+
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: ["$$ROOT", "$room"],
+          },
+        },
+      },
+      {
+        $set: {
+          member_ids: {
+            $filter: {
+              input: "$member_ids",
+              as: "member_ids",
+              cond: {
+                $and: [
+                  {
+                    $not: {
+                      $in: ["$$member_ids", "$read_by_user_ids.user_id"],
+                    },
+                  },
+                  {
+                    $not: {
+                      $eq: ["$_id", new ObjectId(current_user._id)],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          let: { ids: "$member_ids" },
+          as: "un_read_by",
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $in: ["$_id", "$$ids"],
                 },
               },
             },
@@ -212,9 +316,9 @@ class MessageService {
             {
               $project: {
                 _id: 0,
-                author_id: "$_id",
-                author_name: "$user_name",
-                author_avatar: { $ifNull: ["$avatar_id.thumbnail_url", null] },
+                user_id: "$_id",
+                user_name: "$user_name",
+                user_avatar: { $ifNull: ["$avatar_id.thumbnail_url", null] },
                 is_online: "$is_online",
               },
             },
@@ -239,20 +343,32 @@ class MessageService {
       },
       {
         $project: {
+          _id: 0,
           message_id: "$_id",
+          room_id: "$room_id",
           author: "$author",
+          is_author: {
+            $eq: ["$author.author_id", new ObjectId(current_user._id)],
+          },
           attachments: "$attachment_ids",
           message_text: "$text",
           reply_to: "$reply_to",
           location: "$location",
           tags: "$tags",
-          seen_by: "$seen_by",
+          read_by: "$read_by",
+          un_read_by: "$un_read_by",
         },
       },
     ])
-    if (!message) return null
 
-    return message as any
+    if (!message?.length) return null
+
+    const messageRes = message[0]
+
+    return {
+      is_author: current_user._id.toString() === messageRes.author.author_id.toString(),
+      ...messageRes,
+    }
   }
 
   async pushMessageIdToRoom({ room_id, message_id }: appendLastMessageIdToRoomParams) {
@@ -398,12 +514,6 @@ class MessageService {
           $unwind: "$liked_by_user_ids",
         },
         {
-          $skip: offset,
-        },
-        {
-          $limit: limit,
-        },
-        {
           $replaceRoot: {
             newRoot: {
               $mergeObjects: ["$$ROOT", "$liked_by_user_ids"],
@@ -475,8 +585,6 @@ class MessageService {
           },
         },
       ])
-
-      console.log({ userList })
 
       const newUserList = userList.map((item) => ({
         ...item,

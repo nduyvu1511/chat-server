@@ -22,7 +22,6 @@ import {
   CreateUserParams,
   GetTokenParams,
   GetUserByFilter,
-  GetUsersLikedMessage,
   IAttachment,
   IUser,
   ListRes,
@@ -320,6 +319,10 @@ class UserService {
 
   async getUserByPartnerId(user_id: number): Promise<UserPopulate | null> {
     return await User.findOne({ user_id }).lean()
+  }
+
+  async getUserById(_id: string): Promise<IUser | null> {
+    return await User.findById(_id).lean()
   }
 
   async getUserByPhone(phone: string): Promise<UserPopulate | null> {

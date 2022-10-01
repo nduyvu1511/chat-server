@@ -42,8 +42,8 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
       })
 
       // Room handler
-      socket.on(`join_room`, (roomId: string) => {
-        socket.join(roomId)
+      socket.on(`join_room`, (room_id: string) => {
+        socket.join(room_id)
       })
       socket.on("leave_room", (room_id: string) => {
         socket.leave(room_id)

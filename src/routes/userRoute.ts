@@ -306,7 +306,7 @@ router.patch(
  *       400:
  *         description: Bad Request
  */
-router.get("/profile", verifyToken, UserController.getUserInfo)
+router.get("/profile", verifyToken, checkUserExist, UserController.getUserInfo)
 
 /**
  * @openapi

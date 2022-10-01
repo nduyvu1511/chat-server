@@ -272,14 +272,6 @@ router.delete(
  *         required: true
  *         schema:
  *           type: string
- *       - in: query
- *         name: offset
- *         schema:
- *           type: number
- *       - in: query
- *         name: limit
- *         schema:
- *           type: number
  *     responses:
  *       200:
  *         content:

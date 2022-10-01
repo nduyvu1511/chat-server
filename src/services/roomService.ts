@@ -12,6 +12,7 @@ import {
   CreateGroupChatServicesParams,
   createSingleChatServices,
   GetRoomDetailService,
+  GetRoomIdByUserId,
   IMessage,
   IRoom,
   ListRes,
@@ -57,6 +58,30 @@ class RoomService {
     } catch (error) {
       log.error(error)
       return null
+    }
+  }
+
+  async getRoomIdByUserId({
+    room_joined_ids,
+    partner_id,
+  }: GetRoomIdByUserId): Promise<ObjectId | undefined> {
+    try {
+      const roomIds = await this.getSingleRoomIds(room_joined_ids as any[])
+
+      let room_id
+      roomIds.forEach((room) => {
+        room.member_ids.forEach((item) => {
+          if (item.user_id.toString() === partner_id.toString()) {
+            room_id = room._id
+            return
+          }
+        })
+      })
+
+      return room_id
+    } catch (error) {
+      log.error(error)
+      return undefined
     }
   }
 
@@ -179,7 +204,7 @@ class RoomService {
         .select(SELECT_ROOM)
         .populate("room_avatar_id")
         .lean()
-      if (!room?._id) return null
+      if (!room?._id || room.is_deleted) return null
 
       // Get members in room
       const members = await this.getMembersInRoom({
@@ -496,12 +521,27 @@ class RoomService {
 
   async softDeleteRoom(room_id: ObjectId): Promise<boolean> {
     try {
-      await Room.findByIdAndUpdate(room_id, {
+      const room: IRoom | null = await Room.findByIdAndUpdate(room_id, {
         $set: {
           is_deleted: true,
           deleted_at: Date.now(),
         },
-      })
+      }).lean()
+      if (!room) return false
+
+      // await User.updateMany(
+      //   {
+      //     _id: {
+      //       $in: room.member_ids?.map((item) => item.user_id),
+      //     },
+      //   },
+      //   {
+      //     $pull: {
+      //       room_joined_ids: new ObjectId(room._id),
+      //     },
+      //   }
+      // )
+
       return true
     } catch (error) {
       log.error(error)
@@ -511,12 +551,27 @@ class RoomService {
 
   async restoreSoftDeleteRoom(room_id: ObjectId): Promise<boolean> {
     try {
-      await Room.findByIdAndUpdate(room_id, {
+      const room: IRoom = await Room.findByIdAndUpdate(room_id, {
         $set: {
           is_deleted: false,
           updated_at: Date.now(),
         },
-      })
+      }).lean()
+      if (!room) return false
+
+      // await User.updateMany(
+      //   {
+      //     _id: {
+      //       $in: room.member_ids?.map((item) => item.user_id),
+      //     },
+      //   },
+      //   {
+      //     $addToSet: {
+      //       room_joined_ids: new ObjectId(room._id),
+      //     },
+      //   }
+      // )
+
       return true
     } catch (error) {
       log.error(error)

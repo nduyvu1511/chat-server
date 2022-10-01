@@ -396,3 +396,8 @@ export interface RoomTypingRes {
   user_name: string
   room_id: string
 }
+
+export interface GetRoomIdByUserId {
+  room_joined_ids: ObjectId[]
+  partner_id: ObjectId
+}
