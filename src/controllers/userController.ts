@@ -121,8 +121,7 @@ class UserController {
       if (!data) return res.json(new ResponseError("User not found"))
 
       const userRes = toUserResponse(data)
-
-      if (req.query?.user_id?.toString() !== req.user._id.toString()) {
+      if (req.query?.user_id && req.query?.user_id?.toString() !== req.user._id.toString()) {
         const room_id = await roomService.getRoomIdByUserId({
           room_joined_ids: req.user.room_joined_ids as any[],
           partner_id: userRes.user_id,
@@ -137,7 +136,27 @@ class UserController {
         )
       }
 
-      return res.json(new ResponseData<UserRes>({ ...userRes, is_yourself: true }))
+      const message_unread_count = await UserService.getMessageUnreadCount({
+        room_ids: req.user.room_joined_ids as any[],
+        user_id: req.user._id,
+      })
+
+      return res.json(
+        new ResponseData<UserRes>({ ...userRes, is_yourself: true, message_unread_count })
+      )
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async getMessageUnreadCount(req: Express.Request, res: Express.Response) {
+    try {
+      const message_unread_count = await UserService.getMessageUnreadCount({
+        room_ids: req.user.room_joined_ids as any[],
+        user_id: req.user._id,
+      })
+
+      return res.json(new ResponseData({ message_unread_count }))
     } catch (error) {
       return res.status(400).send(error)
     }
@@ -244,7 +263,7 @@ class UserController {
         offset,
         filter: {
           _id: {
-            $in: user.blocked_user_ids || [],
+            deleteRefreshToken: user.blocked_user_ids || [],
           },
         },
       })

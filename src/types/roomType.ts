@@ -107,6 +107,42 @@ export interface RoomRes {
   }[]
 }
 
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    RoomInfoRes:
+ *      type: object
+ *      required:
+ *        - room_id
+ *        - room_name
+ *        - room_avatar
+ *        - room_type
+ *        - member_count
+ *        - created_at
+ *      properties:
+ *       room_id:
+ *        type: string
+ *       room_name:
+ *        type: string
+ *       room_avatar:
+ *        $ref: '#/components/schema/AttachmentRes'
+ *       room_type:
+ *        type: string
+ *        enum: [group, single, admin]
+ *       member_count:
+ *        type: number
+ *       created_at:
+ *        type: Date
+ */
+export interface RoomInfoRes {
+  room_id: ObjectId
+  room_name: string | null
+  room_avatar?: AttachmentRes | null
+  room_type: RoomType
+  member_count: number
+}
+
 // export type RoomDetailPopulate = Omit<
 //   IRoom,
 //   "last_message_id" | "room_avatar_id" | "member_ids"
@@ -268,6 +304,12 @@ export interface RoomMember {
 export interface MemberLeaved {
   user_id: ObjectId
   leaved_at: number
+}
+
+export type UpdateRoomInfo = Partial<Pick<IRoom, "room_name" | "room_avatar_id">> & {}
+
+export type UpdateRoomInfoService = UpdateRoomInfo & {
+  room_id: string
 }
 
 export interface RoomMemberWithId {

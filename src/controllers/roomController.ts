@@ -4,7 +4,7 @@ import { isObjectID, MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constan
 import MessageService from "../services/messageService"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import { CreateGroupChat, IUser } from "../types"
+import { CreateGroupChat, IUser, UpdateRoomInfo } from "../types"
 import { toMessageUnreadCount } from "../utils"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
@@ -233,6 +233,25 @@ class RoomController {
       })
 
       return res.json(new ResponseData(messages))
+    } catch (error) {
+      return res.status(400).send(error)
+    }
+  }
+
+  async updateRoomInfo(req: Express.Request, res: Express.Response) {
+    try {
+      const { room_id } = req.params
+      const params: UpdateRoomInfo = req.body
+
+      const room = await RoomService.updateRoomInfo({
+        room_avatar_id: params?.room_avatar_id,
+        room_name: params?.room_name,
+        room_id,
+      })
+
+      if (!room) return res.json(new ResponseError("Failed to update room info"))
+
+      return res.json(new ResponseData(room))
     } catch (error) {
       return res.status(400).send(error)
     }

@@ -48,8 +48,8 @@ class AttachmentController {
       if (!image) return res.json(new ResponseError("Failed to upload image"))
 
       const data = await AttachmentService.createAttachment({ ...image, attachment_type: "image" })
-      toAttachmentResponse(data)
-      return res.json(new ResponseData(image, "uploaded single image"))
+
+      return res.json(new ResponseData(toAttachmentResponse(data), "uploaded single image"))
     } catch (error) {
       return res.status(400).send(error)
     }

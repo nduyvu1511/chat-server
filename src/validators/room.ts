@@ -11,7 +11,7 @@ import {
   IMessage,
   IUser,
   QueryCommonParams,
-  QueryRoomParams
+  QueryRoomParams, UpdateRoomInfo
 } from "../types"
 
 /**
@@ -104,6 +104,25 @@ export const getRoomListSchema = Joi.object<QueryRoomParams>({
 
 export const roomIdSchema = Joi.object<{ room_id: ObjectId }>({
   room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+})
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    UpdateRoomInfo:
+ *      type: object
+ *      properties:
+ *        room_avatar_id:
+ *          type: string
+ *          example: 631a99cc79c11fc36845e297
+ *          summary: Lấy từ Attachment API
+ *        room_name:
+ *          type: string
+ */
+export const updateRoomSchema = Joi.object<UpdateRoomInfo>({
+  room_name: Joi.string().optional(),
+  room_avatar_id: Joi.string().regex(OBJECT_ID_REGEX).optional(),
 })
 
 /**

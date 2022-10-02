@@ -15,6 +15,7 @@ import {
   getRoomListSchema,
   listSchema,
   roomIdSchema,
+  updateRoomSchema,
 } from "../validators"
 
 const router = Express.Router()
@@ -511,6 +512,45 @@ router.get(
   verifyToken,
   checkUserExist,
   RoomController.getMessagesInRoom
+)
+
+/**
+ * @openapi
+ * '/api/info/{room_id}':
+ *  get:
+ *     tags:
+ *      - Room
+ *     summary: Lấy danh sách tin nhắn trong nhóm chat
+ *     security:
+ *      - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: room_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schema/UpdateRoomInfo'
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *           schema:
+ *            $ref: '#/components/schema/RoomResInfo'
+ *       400:
+ *         description: Bad Request
+ */
+router.patch(
+  "/info/:room_id",
+  paramsMiddleware(roomIdSchema),
+  bodyMiddleware(updateRoomSchema),
+  verifyToken,
+  checkUserExist,
+  RoomController.updateRoomInfo
 )
 
 export default router

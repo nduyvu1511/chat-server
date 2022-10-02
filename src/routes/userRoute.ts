@@ -310,6 +310,40 @@ router.get("/profile", verifyToken, checkUserExist, UserController.getUserInfo)
 
 /**
  * @openapi
+ * '/api/user/message_unread_count':
+ *  get:
+ *     tags:
+ *       - User
+ *     summary: Lấy số tin nhắn chưa đọc theo room
+ *     security:
+ *      - BearerAuth: []
+ *     parameters:
+ *      - in: query
+ *        name: user_id
+ *        required: false
+ *        schema:
+ *          type: string
+ *          required: false
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *              message_unread_count: number
+ *       400:
+ *         description: Bad Request
+ */
+router.get(
+  "/message_unread_count",
+  verifyToken,
+  checkUserExist,
+  UserController.getMessageUnreadCount
+)
+
+/**
+ * @openapi
  * '/api/user/profile':
  *  patch:
  *     tags:

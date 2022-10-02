@@ -172,6 +172,7 @@ export type UserRes = Pick<
   socket_id: string
   room_id?: ObjectId
   is_yourself?: boolean
+  message_unread_count?: number
 }
 
 /**
@@ -325,4 +326,16 @@ export interface UserSocketId {
 export interface RequestRefreshToken {
   refresh_token: string
   user: IUser
+}
+
+export interface CountMessageUnread {
+  user_id: ObjectId
+  room_ids: ObjectId[]
+}
+
+export interface TopMember {
+  user_id: string
+  user_avatar: string
+  user_name: string
+  is_online: boolean
 }

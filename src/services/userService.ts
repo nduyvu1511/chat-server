@@ -11,6 +11,7 @@ import {
   USERS_LIMIT,
 } from "../constant"
 import Attachment from "../models/attachment"
+import Room from "../models/room"
 import Token from "../models/token"
 import User from "../models/user"
 import {
@@ -18,6 +19,7 @@ import {
   AddUserSocketId,
   BlockOrUnBlockUserParams,
   changeUserStatusParams,
+  CountMessageUnread,
   CreatePasswordServiceParams,
   CreateUserParams,
   GetTokenParams,
@@ -28,6 +30,7 @@ import {
   LoginToSocket,
   RegisterParams,
   RequestRefreshToken,
+  TopMember,
   UpdateProfile,
   UpdateProfileService,
   UserData,
@@ -315,6 +318,104 @@ class UserService {
     })
       .populate("avatar_id")
       .lean()
+  }
+
+  async getTopMembers(room_ids: string[]): Promise<TopMember[]> {
+    try {
+      const data: TopMember[] = await User.aggregate([
+        {
+          $match: {
+            $expr: {
+              $in: ["$_id", room_ids],
+            },
+          },
+        },
+        {
+          $sort: { is_online: -1 },
+        },
+        {
+          $limit: 4,
+        },
+        {
+          $lookup: {
+            from: "attachments",
+            localField: "avatar_id",
+            foreignField: "_id",
+            as: "avatar_id",
+          },
+        },
+        {
+          $unwind: {
+            path: "$avatar_id",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            user_id: "$_id",
+            user_avatar: "$avatar_id.thumbnail_url",
+            user_name: "$user_name",
+            is_online: "$is_online",
+          },
+        },
+      ])
+
+      return data
+    } catch (error) {
+      log.error(error)
+      return []
+    }
+  }
+
+  async getMessageUnreadCount({ room_ids, user_id }: CountMessageUnread): Promise<number> {
+    try {
+      const data = await Room.aggregate([
+        {
+          $match: {
+            $expr: {
+              $in: ["$_id", room_ids],
+            },
+          },
+        },
+        {
+          $project: {
+            user_ids: {
+              $filter: {
+                input: "$member_ids",
+                as: "member_ids",
+                cond: {
+                  $eq: ["$$member_ids.user_id", { $toObjectId: user_id }],
+                },
+              },
+            },
+          },
+        },
+        {
+          $unwind: "$user_ids",
+        },
+        {
+          $project: {
+            message_unread_ids: "$user_ids.message_unread_ids",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            count: {
+              $sum: {
+                $cond: [{ $gt: [{ $size: "$message_unread_ids" }, 0] }, 1, 0],
+              },
+            },
+          },
+        },
+      ])
+
+      return data?.[0].count
+    } catch (error) {
+      log.error(error)
+      return 0
+    }
   }
 
   async getUserByPartnerId(user_id: number): Promise<UserPopulate | null> {

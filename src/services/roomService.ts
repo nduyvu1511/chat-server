@@ -1,7 +1,7 @@
-import { ObjectId } from "mongodb"
-import { PipelineStage } from "mongoose"
+import { ObjectID, ObjectId } from "mongodb"
+import { PipelineStage, _UpdateQueryDef } from "mongoose"
 import log from "../config/logger"
-import { MESSAGES_LIMIT, SELECT_ROOM, SELECT_USER, USERS_LIMIT } from "../constant"
+import { isObjectID, MESSAGES_LIMIT, SELECT_ROOM, SELECT_USER, USERS_LIMIT } from "../constant"
 import Message from "../models/message"
 import Room from "../models/room"
 import User from "../models/user"
@@ -13,6 +13,7 @@ import {
   createSingleChatServices,
   GetRoomDetailService,
   GetRoomIdByUserId,
+  IAttachment,
   IMessage,
   IRoom,
   ListRes,
@@ -21,10 +22,13 @@ import {
   QueryMembersInRoomService,
   QueryRoomServiceParams,
   RoomDetailRes,
+  RoomInfoRes,
   RoomMemberRes,
   RoomMemberWithId,
   RoomPopulate,
   RoomRes,
+  UpdateRoomInfo,
+  UpdateRoomInfoService,
   UserPopulate,
   UserSocketId,
 } from "../types"
@@ -212,6 +216,8 @@ class RoomService {
         offset: 0,
         room_id: room._id,
       })
+
+      // const members
 
       // Get messages in room
       const messages = await this.getMessagesByFilter({
@@ -620,6 +626,39 @@ class RoomService {
       total,
       data: toMessageListResponse({ data: messages, current_user }),
     })
+  }
+
+  async updateRoomInfo(params: UpdateRoomInfoService): Promise<RoomInfoRes | null> {
+    const { room_avatar_id, room_name, room_id } = params
+
+    const updateQuery: _UpdateQueryDef<IRoom> = {}
+    if (room_avatar_id && isObjectID(room_avatar_id.toString())) {
+      updateQuery.room_avatar_id = room_avatar_id
+    }
+    if (room_name) {
+      updateQuery.room_name = room_name
+    }
+
+    const room: Omit<IRoom, "room_avatar_id"> & { room_avatar_id: IAttachment } =
+      await Room.findByIdAndUpdate(
+        room_id,
+        {
+          $set: updateQuery,
+        },
+        { new: true }
+      )
+        .populate("room_avatar_id")
+        .lean()
+
+    if (!room) return null
+
+    return {
+      member_count: room.member_ids.length || 0,
+      room_id: room._id,
+      room_name: room.room_name,
+      room_type: room.room_type,
+      room_avatar: room?.room_avatar_id ? toAttachmentResponse(room.room_avatar_id) : null,
+    }
   }
 }
 
