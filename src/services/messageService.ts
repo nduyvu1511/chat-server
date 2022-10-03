@@ -407,11 +407,11 @@ class MessageService {
 
   async confirmReadMessage({ user_id, message_id }: UserReadMessage): Promise<null | IMessage> {
     try {
-      return await Message.findOneAndUpdate(
+      const data: null | IMessage = await Message.findOneAndUpdate(
         {
           $and: [
             {
-              message_id: new ObjectId(message_id),
+              _id: new ObjectId(message_id),
               "read_by_user_ids.user_id": { $nin: user_id },
             },
           ],
@@ -421,7 +421,9 @@ class MessageService {
             read_by_user_ids: { user_id: user_id as any },
           },
         }
-      )
+      ).lean()
+      console.log(data)
+      return data
     } catch (error) {
       log.error(error)
       return null

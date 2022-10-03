@@ -134,7 +134,7 @@ class MessageController {
           $and: [
             {
               _id: {
-                $in: req.message.read_by_user_ids,
+                $in: req.message.read_by_user_ids.map((item) => item.user_id),
               },
             },
             {

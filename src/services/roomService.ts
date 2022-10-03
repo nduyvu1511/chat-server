@@ -1,4 +1,4 @@
-import { ObjectID, ObjectId } from "mongodb"
+import { ObjectId } from "mongodb"
 import { PipelineStage, _UpdateQueryDef } from "mongoose"
 import log from "../config/logger"
 import { isObjectID, MESSAGES_LIMIT, SELECT_ROOM, SELECT_USER, USERS_LIMIT } from "../constant"
@@ -26,11 +26,9 @@ import {
   RoomMemberRes,
   RoomMemberWithId,
   RoomPopulate,
-  RoomRes,
-  UpdateRoomInfo,
-  UpdateRoomInfoService,
+  RoomRes, UpdateRoomInfoService,
   UserPopulate,
-  UserSocketId,
+  UserSocketId
 } from "../types"
 import {
   toAttachmentResponse,
@@ -38,7 +36,7 @@ import {
   toRoomListResponse,
   toRoomMemberListResponse,
   toRoomMemberResponse,
-  toRoomOfflineAt,
+  toRoomOfflineAt
 } from "../utils"
 import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"

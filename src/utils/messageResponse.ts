@@ -49,7 +49,9 @@ export const toMessageResponse = ({ data, current_user }: ToMessageResponse): Me
     is_author,
     is_read: is_author
       ? data?.read_by_user_ids?.length >= 2
-      : data?.read_by_user_ids?.some((id) => id.toString() === current_user._id.toString()),
+      : data?.read_by_user_ids?.some(
+          (item) => item?.user_id?.toString() === current_user._id.toString()
+        ),
     your_reaction,
     reactions,
     attachments: data?.attachment_ids?.length ? toAttachmentListResponse(data?.attachment_ids) : [],

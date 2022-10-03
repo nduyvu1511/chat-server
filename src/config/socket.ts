@@ -2,14 +2,7 @@ import { Server } from "socket.io"
 import { DefaultEventsMap } from "socket.io/dist/typed-events"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import {
-  LikeMessageRes,
-  MessageRes,
-  RoomTypingRes,
-  UnlikeMessageRes,
-  UserData,
-  UserRes,
-} from "../types"
+import { LikeMessageRes, MessageRes, RoomTypingRes, UnlikeMessageRes, UserData } from "../types"
 import log from "./logger"
 
 const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) => {
@@ -93,11 +86,9 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
 
       // Typing handler
       socket.on("start_typing", (payload: RoomTypingRes) => {
-        console.log("start_typing: ", payload)
         socket.to(payload.room_id.toString()).emit("start_typing", payload)
       })
       socket.on("stop_typing", (payload: RoomTypingRes) => {
-        console.log("stop_typing: ", payload)
         socket.to(payload.room_id).emit("stop_typing", payload)
       })
     })
