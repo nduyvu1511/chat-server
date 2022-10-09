@@ -224,10 +224,6 @@ export type ToMessageListResponse = {
  *          $ref: '#/components/schema/MessageReplyRes'
  *        location:
  *          $ref: '#/components/schema/LngLatRes'
- *        tags:
- *          type: array
- *          items:
- *            $ref: '#/components/schema/TagRes'
  *        is_read:
  *          type: boolean
  */
@@ -242,7 +238,6 @@ export type MessageRes = Pick<IMessage, "room_id" | "created_at"> & {
   message_text: string
   reply_to?: MessageReply | null
   location?: Lnglat | null
-  tags?: TagRes[]
   is_read: boolean
 }
 

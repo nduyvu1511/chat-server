@@ -48,6 +48,7 @@ const RoomSchema = new Schema<IRoom>({
           },
         ],
       },
+      _id: false,
       required: true,
       min: 2,
     },

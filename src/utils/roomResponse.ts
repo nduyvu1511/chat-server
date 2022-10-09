@@ -22,14 +22,11 @@ export const toRoomResponse = ({ data, current_user }: ToRoomRepsonse): RoomRes 
     (item) => item.user_id.toString() !== current_user._id.toString()
   )
 
-  let room_name = data.room_name || ""
-  if (!room_name) {
-    const { room_type } = data
-    if (room_type === "single") {
-      room_name = partner?.user_name || ""
-    } else if (room_type === "group") {
-      data.top_members.map((item) => item.user_name)?.join(", ")
-    }
+  let room_name = ""
+  if (data.room_type === "single") {
+    room_name = partner?.user_name || ""
+  } else if (data.room_type === "group") {
+    room_name = data?.room_name || data.top_members.map((item) => item.user_name)?.join(", ")
   }
 
   let room_avatar: string | null = data?.room_avatar || ""

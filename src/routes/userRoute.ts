@@ -15,10 +15,9 @@ import {
   createUserSchema,
   GetTokenSchema,
   loginSchema,
-  loginSocketSchema,
   queryCommonSchema,
   registerSchema,
-  updateProfleSchema,
+  updateProfileSchema,
 } from "../validators"
 const router = Express.Router()
 
@@ -127,37 +126,37 @@ router.post("/refresh", verifyRefreshToken, checkUserExist, UserController.reque
  *      bearerFormat: JWT
  */
 
-/**
- * @openapi
- * '/api/user/login_to_socket':
- *  post:
- *     tags:
- *       - User
- *     summary: Đăng nhập vào socket
- *     security:
- *      - BearerAuth: []
- *     description: Thêm socket id vào User, đổi trạng thái sang online, sau khi có kết quả trả về, truyền kết quả trả về gửi lên cho socket "\io socket.emit("login", user)\"
- *     requestBody:
- *       required: true
- *       content:
- *        application/json:
- *          schema:
- *            $ref: '#/components/schema/LoginToSocket'
- *     responses:
- *       200:
- *         content:
- *          application/json:
- *           schema:
- *             $ref: '#/components/schema/UserRes'
- *       400:
- *         description: Bad Request
- */
-router.post(
-  "/login_to_socket",
-  verifyToken,
-  bodyMiddleware(loginSocketSchema),
-  UserController.loginToSocket
-)
+// /**
+//  * @openapi
+//  * '/api/user/login_to_socket':
+//  *  post:
+//  *     tags:
+//  *       - User
+//  *     summary: Đăng nhập vào socket
+//  *     security:
+//  *      - BearerAuth: []
+//  *     description: Thêm socket id vào User, đổi trạng thái sang online, sau khi có kết quả trả về, truyền kết quả trả về gửi lên cho socket "\io socket.emit("login", user)\"
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *        application/json:
+//  *          schema:
+//  *            $ref: '#/components/schema/LoginToSocket'
+//  *     responses:
+//  *       200:
+//  *         content:
+//  *          application/json:
+//  *           schema:
+//  *             $ref: '#/components/schema/UserRes'
+//  *       400:
+//  *         description: Bad Request
+//  */
+// router.post(
+//   "/login_to_socket",
+//   verifyToken,
+//   bodyMiddleware(loginSocketSchema),
+//   UserController.loginToSocket
+// )
 
 /**
  * @openapi
@@ -369,7 +368,7 @@ router.get(
 router.patch(
   "/profile",
   verifyToken,
-  bodyMiddleware(updateProfleSchema),
+  bodyMiddleware(updateProfileSchema),
   checkUserExist,
   UserController.updateProfile
 )

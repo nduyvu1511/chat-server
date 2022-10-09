@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { ObjectId } from "mongodb"
-import { FilterQuery } from "mongoose"
+import { Aggregate, FilterQuery } from "mongoose"
 import log from "../config/logger"
 import {
   ACCESS_TOKEN_EXPIRED,
@@ -38,7 +38,7 @@ import {
   UserRes,
   UserSocketId,
 } from "../types"
-import { toUserDataReponse, toUserListResponse } from "../utils"
+import { toUserDataReponse, toUserListResponse, toUserResponse } from "../utils"
 import { toListResponse } from "./../utils/commonResponse"
 import AttachmentService from "./attachmentService"
 
@@ -192,9 +192,9 @@ class UserService {
     }
   }
 
-  async addUserSocketId({ socket_id, user_id }: AddUserSocketId): Promise<UserData | null> {
+  async addUserSocketId({ socket_id, user_id }: AddUserSocketId): Promise<IUser | null> {
     try {
-      const data: UserPopulate | null = await User.findByIdAndUpdate(
+      return await User.findByIdAndUpdate(
         user_id,
         {
           $set: {
@@ -206,29 +206,23 @@ class UserService {
         {
           new: true,
         }
-      )
-        .populate("avatar_id")
-        .lean()
-
-      if (!data) return null
-      return toUserDataReponse(data)
+      ).lean()
     } catch (error) {
       log.error(error)
       return null
     }
   }
 
-  async loginToSocket({ socket_id, user_id }: LoginToSocket): Promise<UserData | null> {
-    try {
-      const user = await this.getUserByUserId(user_id as any)
-      if (!user) return null
-      await this.addUserSocketId({ user_id, socket_id })
-      return toUserDataReponse(user)
-    } catch (error) {
-      log.error(error)
-      return null
-    }
-  }
+  // async loginToSocket({ socket_id, user_id }: LoginToSocket): Promise<IUser | null> {
+  //   try {
+  //     const user = await this.getUserByUserId(user_id as any)
+  //     if (!user) return null
+  //     await this.addUserSocketId({ user_id, socket_id })
+  //   } catch (error) {
+  //     log.error(error)
+  //     return null
+  //   }
+  // }
 
   async getSocketIdsByUserIds(user_ids: string[]): Promise<UserSocketId[]> {
     try {
@@ -237,20 +231,24 @@ class UserService {
           $in: user_ids,
         },
       })
-        .select(["socket_id"])
+        .select(["socket_id", "room_joined_ids"])
         .lean()
 
       if (!users?.length) return []
-      return users.map((item) => ({ socket_id: item.socket_id, user_id: item._id }))
+      return users.map((item) => ({
+        socket_id: item.socket_id,
+        user_id: item._id,
+        room_joined_ids: item?.room_joined_ids || [],
+      }))
     } catch (error) {
       log.error(error)
       return []
     }
   }
 
-  async removeUserSocketId({ socket_id }: { socket_id: string }): Promise<UserData | null> {
+  async removeUserSocketId({ socket_id }: { socket_id: string }): Promise<IUser | null> {
     try {
-      const data: UserPopulate | null = await User.findOneAndUpdate(
+      return await User.findOneAndUpdate(
         { socket_id },
         {
           $set: {
@@ -262,12 +260,7 @@ class UserService {
         {
           new: true,
         }
-      )
-        .populate("avatar_id")
-        .lean()
-
-      if (!data) return null
-      return toUserDataReponse(data)
+      ).lean()
     } catch (error) {
       log.error(error)
       return null
@@ -424,6 +417,17 @@ class UserService {
 
   async getUserById(_id: string): Promise<IUser | null> {
     return await User.findById(_id).lean()
+  }
+
+  async getUserInfoByIUser(args: IUser): Promise<UserRes> {
+    const attachment = args?.avatar_id ? await Attachment.findById(args.avatar_id).lean() : null
+    const userPopulate: UserPopulate = { ...args, avatar_id: attachment as any }
+    const message_unread_count = await this.getMessageUnreadCount({
+      user_id: args._id,
+      room_ids: args.room_joined_ids as any,
+    })
+
+    return { ...toUserResponse(userPopulate), message_unread_count }
   }
 
   async getUserByPhone(phone: string): Promise<UserPopulate | null> {

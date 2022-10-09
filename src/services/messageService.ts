@@ -82,7 +82,7 @@ class MessageService {
         },
       })
       .populate("reply_to.attachment_id")
-      .populate("tag_ids")
+      // .populate("tag_ids")
       .populate("attachment_ids")
       .lean()
 
@@ -422,7 +422,7 @@ class MessageService {
           },
         }
       ).lean()
-      console.log(data)
+
       return data
     } catch (error) {
       log.error(error)

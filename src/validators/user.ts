@@ -120,7 +120,7 @@ export const GetTokenSchema = Joi.object<GetTokenParams>({
  *          enum: [male, female, no_info]
  *          example: male
  */
-export const updateProfleSchema = Joi.object<UpdateProfile>({
+export const updateProfileSchema = Joi.object<UpdateProfile>({
   user_name: Joi.string().optional(),
   avatar: Joi.string().regex(URL_REGEX).optional(),
   bio: Joi.string().optional(),

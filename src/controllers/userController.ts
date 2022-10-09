@@ -162,17 +162,17 @@ class UserController {
     }
   }
 
-  async loginToSocket(req: Express.Request, res: Express.Response) {
-    try {
-      const user_id = req.user._id
-      const { socket_id } = req.body
+  // async loginToSocket(req: Express.Request, res: Express.Response) {
+  //   try {
+  //     const user_id = req.user._id
+  //     const { socket_id } = req.body
 
-      const user = await UserService.addUserSocketId({ user_id, socket_id })
-      return res.json(new ResponseData(user))
-    } catch (error) {
-      return res.status(400).send(error)
-    }
-  }
+  //     const user = await UserService.addUserSocketId({ user_id, socket_id })
+  //     return res.json(new ResponseData(user))
+  //   } catch (error) {
+  //     return res.status(400).send(error)
+  //   }
+  // }
 
   async changePassword(req: Express.Request, res: Express.Response) {
     try {

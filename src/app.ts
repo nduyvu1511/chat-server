@@ -19,7 +19,7 @@ const app = express()
 
 app.use(cookieParser())
 
-// app.use(morgan("combined"))
+app.use(morgan("combined"))
 
 app.use(express.urlencoded({ extended: true }))
 
@@ -31,7 +31,7 @@ const corsConfig = {
 }
 app.use(cors(corsConfig))
 
-app.listen(PORT || "192.168.1.20", () => {
+app.listen(PORT, () => {
   log.info(`App listening at port ${PORT}`)
   db.connect()
   swaggerDocs(app, Number(PORT))

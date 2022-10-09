@@ -26,9 +26,10 @@ import {
   RoomMemberRes,
   RoomMemberWithId,
   RoomPopulate,
-  RoomRes, UpdateRoomInfoService,
+  RoomRes,
+  UpdateRoomInfoService,
   UserPopulate,
-  UserSocketId
+  UserSocketId,
 } from "../types"
 import {
   toAttachmentResponse,
@@ -36,7 +37,7 @@ import {
   toRoomListResponse,
   toRoomMemberListResponse,
   toRoomMemberResponse,
-  toRoomOfflineAt
+  toRoomOfflineAt,
 } from "../utils"
 import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"

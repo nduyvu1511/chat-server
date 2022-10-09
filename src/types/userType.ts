@@ -321,6 +321,7 @@ export interface LoginToSocket {
 export interface UserSocketId {
   user_id: ObjectId
   socket_id: string
+  room_joined_ids: string[]
 }
 
 export interface RequestRefreshToken {
@@ -338,4 +339,9 @@ export interface TopMember {
   user_avatar: string
   user_name: string
   is_online: boolean
+}
+
+export type FriendStatusRes = {
+  user_id: ObjectId
+  room_ids: string[]
 }

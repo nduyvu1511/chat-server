@@ -7,7 +7,7 @@ import {
   ToMessageListResponse,
   ToMessageResponse,
 } from "../types"
-import { toAttachmentListResponse, toTagListResponse } from "./commonResponse"
+import { toAttachmentListResponse } from "./commonResponse"
 import { toAuthorMessage } from "./userResponse"
 
 export const toMessageResponse = ({ data, current_user }: ToMessageResponse): MessageRes => {
@@ -58,7 +58,6 @@ export const toMessageResponse = ({ data, current_user }: ToMessageResponse): Me
     location: data?.location || null,
     reply_to,
     created_at: data.created_at,
-    tags: data?.tag_ids?.length ? toTagListResponse(data.tag_ids) : [],
   }
 }
 
