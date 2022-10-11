@@ -404,7 +404,7 @@ class UserService {
         },
       ])
 
-      return data?.[0].count
+      return data?.[0]?.count || 0
     } catch (error) {
       log.error(error)
       return 0

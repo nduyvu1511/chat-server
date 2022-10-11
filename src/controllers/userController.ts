@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt"
 import Express from "express"
+import log from "../config/logger"
 import { USERS_LIMIT } from "../constant"
 import roomService from "../services/roomService"
 import UserService from "../services/userService"
@@ -24,6 +25,7 @@ class UserController {
     try {
       const user = await UserService.getUserByPhoneAndUserId(req.body)
       if (!user) return res.json(new ResponseError("User not found, please register first"))
+      console.log(user)
       const access_token = UserService.generateToken(user)
       const refresh_token = await UserService.generateRefreshToken(user)
 
@@ -34,6 +36,7 @@ class UserController {
         })
       )
     } catch (error) {
+      log.error(error)
       return res.status(400).send(error)
     }
   }

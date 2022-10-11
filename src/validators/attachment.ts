@@ -1,4 +1,4 @@
-import Joi, { string } from "joi"
+import Joi from "joi"
 import { OBJECT_ID_REGEX, URL_REGEX } from "../constant"
 import { CreateAttachment } from "../types"
 

@@ -7,7 +7,6 @@ const TokenSchema = new Schema<IToken>({
     type: Schema.Types.ObjectId,
     required: true,
     ref: "User",
-    unique: true,
   },
   token: { type: String, required: true },
   expired_at: {
