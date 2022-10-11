@@ -1910,12 +1910,24 @@ node-addon-api@^3.1.0:
   resolved "https://registry.npmjs.org/node-addon-req.user-/node-addon-api-3.2.1.tgz"
   integrity sha512-mmcei9JghVNDYydghQmeDX8KoAm0FAiYyIcUt/N4nhyAipB17pllZQDOJD2fotxABnt4Mdz+dKTO7eftLg4d0A==
 
+node-bin-setup@^1.0.0:
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/node-bin-setup/-/node-bin-setup-1.1.3.tgz#d45d5220e3b2ecc3a94263a56116f727f6c1bb14"
+  integrity sha512-opgw9iSCAzT2+6wJOETCpeRYAQxSopqQ2z+N6BXwIMsQQ7Zj5M8MaafQY8JMlolRR6R1UXg2WmhKp0p9lSOivg==
+
 node-fetch@^2.6.5:
   version "2.6.7"
   resolved "https://registry.npmjs.org/node-fetch/-/node-fetch-2.6.7.tgz"
   integrity sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==
   dependencies:
     whatwg-url "^5.0.0"
+
+node@16.17.1:
+  version "16.17.1"
+  resolved "https://registry.yarnpkg.com/node/-/node-16.17.1.tgz#661e4df36fb4cb6ebafa183a7512f2dcfd9b4794"
+  integrity sha512-121tyECMYiKlv+laPZBxvCsPbSyVu6FICbK4OQKQOWGFr0RwMe57AwC6NNl6EqsCI322GufohZDZ5fcFC1412g==
+  dependencies:
+    node-bin-setup "^1.0.0"
 
 nodemon@^2.0.15:
   version "2.0.15"
