@@ -63,14 +63,14 @@ export const createUserSchema = Joi.object<CreateUserParams>({
   user_name: Joi.string(),
   user_id: Joi.number().required(),
   avatar: Joi.string().required(),
-  bio: Joi.string().optional(),
-  date_of_birth: Joi.string().regex(DATE_REGEX).optional(),
-  gender: Joi.string().valid("male", "female", "no_info").optional(),
+  bio: Joi.string().optional().allow("", null),
+  date_of_birth: Joi.string().regex(DATE_REGEX).optional().allow("", null),
+  gender: Joi.string().valid("male", "female", "no_info").optional().allow("", null),
   phone: Joi.string().regex(PHONE_REGEX, "Phone is invalid").required(),
-  role: Joi.string().valid("customer", "driver", "admin").required(),
+  role: Joi.string().valid("customer", "car_driver", "admin").required(),
 })
 
-/**
+/**,
  * @openapi
  * components:
  *  schema:
@@ -199,7 +199,7 @@ export const registerSchema = Joi.object<RegisterParams>({
   phone: Joi.string().regex(PHONE_REGEX).required(),
   password: Joi.string().min(8).required(),
   confirm_password: Joi.string().valid(Joi.ref("password")).required(),
-  role: Joi.string().allow("customer", "driver", "admin").required(),
+  role: Joi.string().allow("customer", "car_driver", "admin").required(),
 })
 
 /**

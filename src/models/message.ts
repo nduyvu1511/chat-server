@@ -48,7 +48,6 @@ const MessageSchema = new Schema<IMessage>({
         user_id: {
           type: Schema.Types.ObjectId,
           ref: "User",
-          unique: true,
           required: true,
         },
         created_at: {
@@ -68,7 +67,6 @@ const MessageSchema = new Schema<IMessage>({
         user_id: {
           type: Schema.Types.ObjectId,
           ref: "User",
-          unique: true,
           required: true,
         },
         emotion: {

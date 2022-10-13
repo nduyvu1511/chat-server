@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken"
+import { ObjectId } from "mongodb"
 import { Server } from "socket.io"
 import { DefaultEventsMap } from "socket.io/dist/typed-events"
 import MessageService from "../services/messageService"
@@ -87,9 +88,33 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
       })
 
       // Room handler
-      socket.on(`join_room`, async (room_id: string) => {
-        socket.join(room_id)
+      socket.on("join_room", async (room_id: ObjectId) => {
+        const { _id } = socket.data
+
+        socket.join(room_id.toString())
+
+        const room = await RoomService.getRoomById(room_id)
+        if (!room) return
+
+        const user = room.member_ids?.find((item) => item.user_id.toString() === _id.toString())
+        if (user?.message_unread_ids?.length) {
+          socket.emit("read_all_message", room_id)
+          RoomService.clearMessageUnreadFromRoom({ room_id, user_id: user.user_id })
+          MessageService.confirmReadAllMessageInRoom({ room_id, user_id: user.user_id })
+
+          const lastMessage = await MessageService.getLastMessageInRoom({
+            current_user: socket.data as any,
+            room_id,
+          })
+
+          if (lastMessage?.author?.author_socket_id) {
+            socket
+              .to(lastMessage.author.author_socket_id.toString())
+              .emit("partner_read_all_message", lastMessage)
+          }
+        }
       })
+
       socket.on("leave_room", (room_id: string) => {
         socket.leave(room_id)
       })
@@ -97,7 +122,7 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
       // Message handler
       socket.on("send_message", async (payload: MessageRes) => {
         // To client is online and in current room
-        socket.to(payload.room_id.toString()).emit(`receive_message`, {
+        socket.to(payload.room_id.toString()).emit("receive_message", {
           ...payload,
           is_author: false,
         })
@@ -112,9 +137,16 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
               Array.from(io.sockets.adapter.sids.get(item.socket_id) || [])?.[1] !==
               Array.from(socket.rooms)?.[1]
             ) {
-              socket
-                .to(item.socket_id)
-                .emit("receive_unread_message", { ...payload, is_author: false })
+              const res = await RoomService.addMessageUnreadToRoom({
+                message_id: payload.message_id,
+                user_id: item.user_id,
+                room_id: payload.room_id,
+              })
+              if (res?._id) {
+                socket
+                  .to(item.socket_id)
+                  .emit("receive_unread_message", { ...payload, is_author: false })
+              }
             }
           } else {
             RoomService.addMessageUnreadToRoom({
@@ -127,13 +159,16 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
       })
 
       socket.on("read_message", async (payload: MessageRes) => {
+        if (payload?.author?.author_socket_id) {
+          socket
+            .to(payload.author.author_socket_id.toString())
+            .emit("confirm_read_message", payload)
+        }
+
         await MessageService.confirmReadMessage({
           message_id: payload.message_id,
           user_id: socket.data._id,
         })
-
-        if (!payload?.author?.author_socket_id) return
-        socket.to(payload.author.author_socket_id.toString()).emit("confirm_read_message", payload)
       })
 
       socket.on("like_message", async (payload: LikeMessageRes) => {

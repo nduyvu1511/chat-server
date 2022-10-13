@@ -11,6 +11,7 @@ import {
   IMessage,
   IRoom,
   ITag,
+  IUser,
   LikeMessageService,
   MessagePopulate,
   MessageRes,
@@ -380,6 +381,24 @@ class MessageService {
       })
     } catch (error) {
       log.error(error)
+    }
+  }
+
+  async getLastMessageInRoom({
+    current_user,
+    room_id,
+  }: {
+    current_user: IUser
+    room_id: ObjectId
+  }): Promise<MessageRes | null> {
+    try {
+      const data = await Message.find({ room_id }).sort({ created_at: -1 }).limit(1).lean()
+      const message = data?.[0]
+      if (!message?._id) return null
+
+      return await this.getMessageRes({ current_user, message_id: message._id })
+    } catch (error) {
+      return null
     }
   }
 

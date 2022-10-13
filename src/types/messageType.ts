@@ -247,6 +247,30 @@ export interface ReactionMessageRes {
   }
 }
 
+export interface MessageUnreadCountQueryRes {
+  _id: string
+  message_unread_ids: string[]
+}
+
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    MessageUnreadCountRes:
+ *     type: object
+ *     properties:
+ *       message_unread_count:
+ *        type: number
+ *       room_ids:
+ *         type: array
+ *         items:
+ *          type: string
+ */
+export interface MessageUnreadCountRes {
+  message_unread_count: number
+  room_ids: string[]
+}
+
 /**
  * @openapi
  * components:

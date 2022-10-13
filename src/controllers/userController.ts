@@ -25,7 +25,6 @@ class UserController {
     try {
       const user = await UserService.getUserByPhoneAndUserId(req.body)
       if (!user) return res.json(new ResponseError("User not found, please register first"))
-      console.log(user)
       const access_token = UserService.generateToken(user)
       const refresh_token = await UserService.generateRefreshToken(user)
 
@@ -97,10 +96,8 @@ class UserController {
     try {
       const data = await UserService.createUser(req.body)
       if (!data) return res.json(new ResponseError("Failed to create new user"))
-
       const access_token = UserService.generateToken(data)
       const refresh_token = await UserService.generateRefreshToken(data)
-
       return res.json(new ResponseData({ ...toUserResponse(data), access_token, refresh_token }))
     } catch (error) {
       return res.status(400).send(error)
@@ -139,13 +136,17 @@ class UserController {
         )
       }
 
-      const message_unread_count = await UserService.getMessageUnreadCount({
+      const count = await UserService.getMessageUnreadCount({
         room_ids: req.user.room_joined_ids as any[],
         user_id: req.user._id,
       })
 
       return res.json(
-        new ResponseData<UserRes>({ ...userRes, is_yourself: true, message_unread_count })
+        new ResponseData<UserRes>({
+          ...userRes,
+          is_yourself: true,
+          message_unread_count: count.message_unread_count,
+        })
       )
     } catch (error) {
       return res.status(400).send(error)
@@ -159,7 +160,7 @@ class UserController {
         user_id: req.user._id,
       })
 
-      return res.json(new ResponseData({ message_unread_count }))
+      return res.json(new ResponseData(message_unread_count))
     } catch (error) {
       return res.status(400).send(error)
     }

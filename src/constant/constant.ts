@@ -36,4 +36,5 @@ export const SELECT_ROOM = [
 
 export const ACCESS_TOKEN_EXPIRED = "1d"
 export const REFRESH_TOKEN_EXPIRED = "30d"
-export const REFRESH_TOKEN_EXPIRED_NUMBER = 60 * 60 * 24 * 30
+export const REFRESH_TOKEN_EXPIRED_NUMBER = "7d"
+// 60 * 60 * 24 * 30

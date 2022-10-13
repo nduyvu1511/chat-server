@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { ObjectId } from "mongodb"
-import { Aggregate, FilterQuery } from "mongoose"
+import { FilterQuery } from "mongoose"
 import log from "../config/logger"
 import {
   ACCESS_TOKEN_EXPIRED,
@@ -27,18 +27,18 @@ import {
   IAttachment,
   IUser,
   ListRes,
-  LoginToSocket,
+  MessageUnreadCountQueryRes,
+  MessageUnreadCountRes,
   RegisterParams,
   RequestRefreshToken,
   TopMember,
   UpdateProfile,
   UpdateProfileService,
-  UserData,
   UserPopulate,
   UserRes,
   UserSocketId,
 } from "../types"
-import { toUserDataReponse, toUserListResponse, toUserResponse } from "../utils"
+import { toUserListResponse, toUserResponse } from "../utils"
 import { toListResponse } from "./../utils/commonResponse"
 import AttachmentService from "./attachmentService"
 
@@ -361,9 +361,12 @@ class UserService {
     }
   }
 
-  async getMessageUnreadCount({ room_ids, user_id }: CountMessageUnread): Promise<number> {
+  async getMessageUnreadCount({
+    room_ids,
+    user_id,
+  }: CountMessageUnread): Promise<MessageUnreadCountRes> {
     try {
-      const data = await Room.aggregate([
+      const data: MessageUnreadCountQueryRes[] = await Room.aggregate([
         {
           $match: {
             $expr: {
@@ -388,26 +391,36 @@ class UserService {
           $unwind: "$user_ids",
         },
         {
-          $project: {
-            message_unread_ids: "$user_ids.message_unread_ids",
+          $replaceRoot: {
+            newRoot: {
+              $mergeObjects: ["$$ROOT", "$user_ids"],
+            },
           },
         },
         {
-          $group: {
-            _id: null,
-            count: {
-              $sum: {
-                $cond: [{ $gt: [{ $size: "$message_unread_ids" }, 0] }, 1, 0],
-              },
+          $project: {
+            message_unread_ids: 1,
+          },
+        },
+        {
+          $match: {
+            message_unread_ids: {
+              $gt: [{ $size: "$message_unread_ids" }, 0],
             },
           },
         },
       ])
 
-      return data?.[0]?.count || 0
+      return {
+        room_ids: (data || [])?.map((item) => item._id),
+        message_unread_count: data?.length || 0,
+      }
     } catch (error) {
       log.error(error)
-      return 0
+      return {
+        message_unread_count: 0,
+        room_ids: [],
+      }
     }
   }
 
@@ -422,12 +435,12 @@ class UserService {
   async getUserInfoByIUser(args: IUser): Promise<UserRes> {
     const attachment = args?.avatar_id ? await Attachment.findById(args.avatar_id).lean() : null
     const userPopulate: UserPopulate = { ...args, avatar_id: attachment as any }
-    const message_unread_count = await this.getMessageUnreadCount({
+    const count = await this.getMessageUnreadCount({
       user_id: args._id,
       room_ids: args.room_joined_ids as any,
     })
 
-    return { ...toUserResponse(userPopulate), message_unread_count }
+    return { ...toUserResponse(userPopulate), message_unread_count: count.message_unread_count }
   }
 
   async getUserByPhone(phone: string): Promise<UserPopulate | null> {

@@ -236,7 +236,7 @@ export type UpdateProfileService = UpdateProfile & { user: IUser }
 
 export type GetTokenParams = Pick<IUser, "user_id" | "phone">
 
-export type UserRole = "customer" | "driver" | "admin"
+export type UserRole = "customer" | "car_driver" | "admin"
 
 export type Gender = "male" | "female" | "no_info" | ""
 

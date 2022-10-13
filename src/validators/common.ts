@@ -13,7 +13,7 @@ export const LngLatSchema = Joi.object<Lnglat>({
 })
 
 export const createTagMessageSchema = Joi.object<CreateTagMessage>({
-  role: Joi.string().allow("customer", "driver", "admin").required(),
+  role: Joi.string().allow("customer", "car_driver", "admin").required(),
   text: Joi.string().required(),
 })
 

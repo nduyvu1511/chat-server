@@ -5,7 +5,7 @@ import {
   checkUserExist,
   queryMiddleware,
   verifyRefreshToken,
-  verifyToken,
+  verifyToken
 } from "../middlewares"
 import {
   blockOrUnblockUserSchema,
@@ -17,7 +17,7 @@ import {
   loginSchema,
   queryCommonSchema,
   registerSchema,
-  updateProfileSchema,
+  updateProfileSchema
 } from "../validators"
 const router = Express.Router()
 
@@ -328,9 +328,7 @@ router.get("/profile", verifyToken, checkUserExist, UserController.getUserInfo)
  *         content:
  *          application/json:
  *           schema:
- *             type: object
- *             properties:
- *              message_unread_count: number
+ *             $ref: '#/components/schema/MessageUnreadCountRes'
  *       400:
  *         description: Bad Request
  */

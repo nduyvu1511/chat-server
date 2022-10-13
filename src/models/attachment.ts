@@ -11,8 +11,8 @@ const AttachmentSchema = new Schema<IAttachment>({
     lowercase: true,
     required: true,
   },
-  public_id: { type: String, required: true },
-  asset_id: { type: String, required: true },
+  public_id: { type: String, required: false },
+  asset_id: { type: String, required: false },
   created_at: {
     type: Schema.Types.Date,
     default: Date.now,
