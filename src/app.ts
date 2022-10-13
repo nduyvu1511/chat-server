@@ -19,7 +19,7 @@ const app = express()
 
 app.use(cookieParser())
 
-// app.use(morgan("combined"))
+app.use(morgan("combined"))
 
 app.use(express.urlencoded({ extended: true }))
 
