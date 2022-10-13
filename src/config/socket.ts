@@ -33,6 +33,7 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
     })
 
     io.on("connection", (socket) => {
+      console.log("client login is: ", socket.id)
       // User login to our system
       socket.on("login", async () => {
         const user = await UserService.addUserSocketId({
@@ -44,6 +45,7 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
         const userRes = await UserService.getUserInfoByIUser(user)
         socket.emit("login", userRes)
 
+        // Get friends of logged in user
         const res = await UserService.getSocketIdsByUserIds(user.user_chatted_with_ids as any)
         const partners = res?.filter(
           (item) => item.user_id.toString() !== user._id.toString() && item.socket_id
@@ -63,7 +65,8 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
       })
 
       // When user is disconnecting then change status to offline
-      socket.on("disconnecting", async () => {
+      socket.on("disconnect", async () => {
+        console.log("client disconnect: ", socket.id)
         const user = await UserService.removeUserSocketId({
           socket_id: socket.id,
         })
@@ -97,6 +100,7 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
         if (!room) return
 
         const user = room.member_ids?.find((item) => item.user_id.toString() === _id.toString())
+        // Clear message unread if has value
         if (user?.message_unread_ids?.length) {
           socket.emit("read_all_message", room_id)
           RoomService.clearMessageUnreadFromRoom({ room_id, user_id: user.user_id })
@@ -107,7 +111,13 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
             room_id,
           })
 
-          if (lastMessage?.author?.author_socket_id) {
+          // only emit if author is currently in this room
+          if (
+            lastMessage?.author?.author_socket_id &&
+            Array.from(
+              io.sockets.adapter.sids.get(lastMessage?.author?.author_socket_id) || []
+            )?.[1] === room_id.toString()
+          ) {
             socket
               .to(lastMessage.author.author_socket_id.toString())
               .emit("partner_read_all_message", lastMessage)
@@ -117,6 +127,28 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
 
       socket.on("leave_room", (room_id: string) => {
         socket.leave(room_id)
+      })
+
+      socket.on("create_room", async (room_id: string) => {
+        const room = await RoomService.getRoomByRoomId(room_id)
+        if (!room || !room.member_ids?.length) return
+
+        const users = await UserService.getSocketIdsByUserIds(
+          room.member_ids?.map((item) => item.user_id.toString())
+        )
+
+        const user = await UserService.getUserById(socket.data._id)
+        if (!user) return
+
+        const roomRes = await RoomService.getRoomDetail({ room_id: room_id as any, user })
+        if (!roomRes) return
+
+        const partners = users.filter((item) => item.socket_id && item.socket_id !== socket.id)
+        if (partners?.length) {
+          partners.forEach((item) => {
+            socket.to(item.socket_id).emit("create_room", roomRes)
+          })
+        }
       })
 
       // Message handler

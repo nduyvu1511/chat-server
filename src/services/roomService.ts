@@ -495,7 +495,11 @@ class RoomService {
   }
 
   async getRoomById(room_id: ObjectId): Promise<IRoom | null> {
-    return await Room.findById(room_id).select(SELECT_ROOM)
+    return await Room.findById(room_id).select(SELECT_ROOM).lean()
+  }
+
+  async getRoomByRoomId(room_id: string): Promise<IRoom | null> {
+    return await Room.findById(room_id).lean()
   }
 
   async pinMessageToRoom(params: IMessage): Promise<IRoom | null> {
