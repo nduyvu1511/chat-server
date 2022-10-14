@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb"
 import { AttachmentRes, IAttachment } from "./attachmentType"
-import { AttachmentId, ListParams, ListRes, Lnglat, QueryCommonParams } from "./commonType"
+import { AttachmentId, ListRes, Lnglat, QueryCommonParams } from "./commonType"
 import { LastMessage, MessagePopulate, MessageRes } from "./messageType"
 import { IUser, UserPopulate } from "./userType"
 
@@ -14,6 +14,7 @@ export interface IRoom {
   last_message_id?: ObjectId
   pinned_message_ids: ObjectId[]
   members_leaved: MemberLeaved
+  compounding_car_id: number
   message_ids: ObjectId[]
   is_deleted: boolean
   created_at: Date
@@ -61,6 +62,8 @@ export interface IRoom {
  *      properties:
  *       room_id:
  *        type: string
+ *       compounding_car_id:
+ *        type: string
  *       room_name:
  *        type: string
  *       room_avatar:
@@ -92,6 +95,7 @@ export interface IRoom {
  */
 export interface RoomRes {
   room_id: ObjectId
+  compounding_car_id: number | null
   room_name: string | null
   room_avatar?: string | null
   room_type: RoomType
@@ -166,6 +170,7 @@ export interface LastMessagePopulate {
 export type RoomPopulate = Pick<IRoom, "room_type" | "room_name"> & {
   member_count: number
   room_id: ObjectId
+  compounding_car_id: number | null
   room_avatar?: string
   top_members: {
     user_id: ObjectId
@@ -319,12 +324,14 @@ export interface RoomMemberWithId {
 
 export interface createSingleChat {
   partner_id: number
+  compounding_car_id: number
 }
 
 export interface CreateGroupChat {
   room_name: Pick<IRoom, "room_name">
   room_avatar_id?: AttachmentId
   member_ids: number[]
+  compounding_car_id: number
 }
 
 export type CreateGroupChatServicesParams = Pick<
@@ -332,11 +339,13 @@ export type CreateGroupChatServicesParams = Pick<
   "room_avatar_id" | "room_name"
 > & {
   member_ids: ObjectId[]
+  compounding_car_id: number
 }
 
 export type createSingleChatServices = {
   partner: IUser
   user: IUser
+  compounding_car_id: number
 }
 
 export interface QueryRoomParams extends QueryCommonParams {
@@ -423,6 +432,13 @@ export interface ClearMessageUnread {
 export interface ClearMessageUnreadService extends ClearMessageUnread {
   user_id: ObjectId
 }
+
+export interface AddMemberInRoomService {
+  partner: IUser
+  room: IRoom
+}
+
+export interface DeleteMemberInRoomService extends AddMemberInRoomService {}
 
 export interface AddMessageUnread {
   message_id: ObjectId

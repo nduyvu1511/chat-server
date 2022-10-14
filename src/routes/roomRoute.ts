@@ -2,16 +2,22 @@ import Express from "express"
 import RoomController from "../controllers/roomController"
 import {
   bodyMiddleware,
+  checkPartnerParamsExist,
+  checkRoomParamsExist,
   checkUserExist,
   paramsMiddleware,
   queryMiddleware,
   verifyToken,
+  verifyTokenAndDriver,
 } from "../middlewares"
 import {
+  addMemberToRoomSchema,
   addMessagePinnedSchema,
   addMessageUnReadSchema,
+  compoundingCarIdSchema,
   createGroupChatSchema,
   createSingleChatSchema,
+  deleteMemberToRoomSchema,
   getRoomListSchema,
   listSchema,
   roomIdSchema,
@@ -176,15 +182,50 @@ router.post(
  */
 router.delete(
   "/:room_id",
-  verifyToken,
+  verifyTokenAndDriver,
   paramsMiddleware(roomIdSchema),
   RoomController.softDeleteRoom
 )
 
 /**
  * @openapi
- * '/api/room/restore/{room_id}':
+ * '/api/room/ride/{compounding_car_id}':
  *  delete:
+ *     tags:
+ *      - Room
+ *     parameters:
+ *       - in: path
+ *         name: compounding_car_id
+ *         required: true
+ *         schema:
+ *           type: number
+ *     summary: Xoá cuộc hội thoại
+ *     description: Dùng khi chuyến đi đã được hoàn thành truyền id của chuyến đi
+ *     security:
+ *      - BearerAuth: []
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *              room_id:
+ *                type: string
+ *       400:
+ *         description: Bad Request
+ */
+router.delete(
+  "/ride/:compounding_car_id",
+  verifyTokenAndDriver,
+  paramsMiddleware(compoundingCarIdSchema),
+  RoomController.softDeleteRoomByCompoundingCarId
+)
+
+/**
+ * @openapi
+ * '/api/room/restore/{room_id}':
+ *  post:
  *     tags:
  *      - Room
  *     parameters:
@@ -210,7 +251,7 @@ router.delete(
  */
 router.post(
   "/restore/:room_id",
-  verifyToken,
+  verifyTokenAndDriver,
   paramsMiddleware(roomIdSchema),
   RoomController.restoreSoftDeleteRoom
 )
@@ -245,10 +286,90 @@ router.post(
  *         description: Bad Request
  */
 router.delete(
-  "/:room_id/message_unread",
+  "/:room_id/message_unread/:user_id",
   verifyToken,
   paramsMiddleware(roomIdSchema),
   RoomController.clearMessageUnreadFromRoom
+)
+
+/**
+ * @openapi
+ * '/api/room/{room_id}/member/{user_id}':
+ *  post:
+ *     tags:
+ *      - Room
+ *     summary: Thêm user vào phòng
+ *     description: Chỉ dành cho tài khoản tài xế
+ *     security:
+ *      - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: room_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: number
+ *           summary: là partner id của server exxe
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *            schema:
+ *              type: null
+ *       400:
+ *         description: Bad Request
+ */
+router.post(
+  "/:room_id/member/:user_id",
+  verifyTokenAndDriver,
+  paramsMiddleware(addMemberToRoomSchema),
+  checkPartnerParamsExist,
+  checkRoomParamsExist,
+  RoomController.addMemberToRoom
+)
+
+/**
+ * @openapi
+ * '/api/room/{room_id}/member/{user_id}':
+ *  delete:
+ *     tags:
+ *      - Room
+ *     summary: Xóa user ra khỏi phòng
+ *     description: Chỉ dành cho tài khoản tài xế
+ *     security:
+ *      - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: room_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: number
+ *           summary: là partner id của server exxe
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *            schema:
+ *              type: null
+ *       400:
+ *         description: Bad Request
+ */
+router.delete(
+  "/:room_id/member/:user_id",
+  verifyTokenAndDriver,
+  paramsMiddleware(deleteMemberToRoomSchema),
+  checkPartnerParamsExist,
+  checkRoomParamsExist,
+  RoomController.deleteMemberFromRoom
 )
 
 /**

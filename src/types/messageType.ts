@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb"
 import { AttachmentRes, IAttachment } from "./attachmentType"
-import { ITag, Lnglat, QueryCommonParams, TagRes } from "./commonType"
+import { ITag, Lnglat, QueryCommonParams } from "./commonType"
 
 import { LastMessagePopulate } from "./roomType"
 import { IUser, UserPopulate, UserRes } from "./userType"

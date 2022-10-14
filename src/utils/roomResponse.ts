@@ -36,6 +36,7 @@ export const toRoomResponse = ({ data, current_user }: ToRoomRepsonse): RoomRes 
 
   return {
     room_id: data.room_id,
+    compounding_car_id: data?.compounding_car_id || null,
     room_name,
     room_type: data.room_type,
     room_avatar,
@@ -103,6 +104,7 @@ export const toRoomDetailResponse = ({
   return {
     member_count: data?.member_ids?.data?.length || 0,
     room_id: data._id,
+    compounding_car_id: data?.compounding_car_id || null,
     room_name: data?.room_name || null,
     room_type: data.room_type,
     room_avatar: data?.room_avatar_id ? toAttachmentResponse(data.room_avatar_id) : null,

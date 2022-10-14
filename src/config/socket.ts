@@ -33,7 +33,6 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
     })
 
     io.on("connection", (socket) => {
-      console.log("client login is: ", socket.id)
       // User login to our system
       socket.on("login", async () => {
         const user = await UserService.addUserSocketId({
@@ -66,7 +65,6 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
 
       // When user is disconnecting then change status to offline
       socket.on("disconnect", async () => {
-        console.log("client disconnect: ", socket.id)
         const user = await UserService.removeUserSocketId({
           socket_id: socket.id,
         })
@@ -95,6 +93,7 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
         const { _id } = socket.data
 
         socket.join(room_id.toString())
+        console.log(socket.rooms)
 
         const room = await RoomService.getRoomById(room_id)
         if (!room) return

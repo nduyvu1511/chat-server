@@ -23,6 +23,34 @@ const verifyToken = async (
   }
 }
 
+const verifyTokenAndDriver = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  verifyToken(req, res, () => {
+    if (req.user?.role === "car_driver") {
+      return next()
+    } else {
+      return res.json(new ResponseError("You are not driver", 403, false, null))
+    }
+  })
+}
+
+const verifyTokenAndAdmin = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  verifyToken(req, res, () => {
+    if (req.user?.role === "admin") {
+      return next()
+    } else {
+      return res.json(new ResponseError("You are not admin", 403, false, null))
+    }
+  })
+}
+
 const verifyRefreshToken = async (
   req: express.Request,
   res: express.Response,
@@ -44,4 +72,4 @@ const verifyRefreshToken = async (
   }
 }
 
-export { verifyToken, verifyRefreshToken }
+export { verifyToken, verifyRefreshToken, verifyTokenAndDriver, verifyTokenAndAdmin }

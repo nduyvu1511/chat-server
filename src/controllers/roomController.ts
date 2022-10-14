@@ -1,10 +1,11 @@
 import Express from "express"
 import _ from "lodash"
+import log from "../config/logger"
 import { isObjectID, MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constant"
 import MessageService from "../services/messageService"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import { CreateGroupChat, IUser, UpdateRoomInfo } from "../types"
+import { CreateGroupChat, createSingleChat, IUser, UpdateRoomInfo } from "../types"
 import { toMessageUnreadCount } from "../utils"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
@@ -13,7 +14,8 @@ class RoomController {
   async createSingleChat(req: Express.Request, res: Express.Response) {
     try {
       const { user_id } = req.user
-      const { partner_id } = req.body
+      const bodyParams: createSingleChat = req.body
+      const { partner_id } = bodyParams as any
 
       if (user_id === partner_id || req.user?._id.toString() === partner_id.toString())
         return res.json(new ResponseError("Can not create room failed because missing partner"))
@@ -48,6 +50,7 @@ class RoomController {
       const room = await RoomService.createSingleChat({
         partner: partner as any,
         user: req.user,
+        compounding_car_id: bodyParams.compounding_car_id,
       })
       if (!room) return res.json(new ResponseError("Create room chat failed"))
 
@@ -63,8 +66,15 @@ class RoomController {
 
       return res.json(new ResponseData(roomRes, "create room chat successfully"))
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
+  }
+
+  async getRoomByCompoundingCarId(req: Express.Request, res: Express.Response) {
+    try {
+    } catch (error) {}
   }
 
   async createGroupChat(req: Express.Request, res: Express.Response) {
@@ -73,13 +83,17 @@ class RoomController {
       const params: CreateGroupChat = req.body
       const memberIds: number[] = _.uniq([...params.member_ids, user.user_id])
 
-      if (memberIds?.length <= 2) {
-        return res.json(new ResponseError("Group chat must has atleast three members"))
+      if (await RoomService.getRoomByCompoundingCarId(params.compounding_car_id)) {
+        return res.json(new ResponseError("This ride already has group chat"))
+      }
+
+      if (memberIds?.length < 2) {
+        return res.json(new ResponseError("Group chat must has atleast two members"))
       }
 
       const partnerObjectIds = await UserService.getUserIds(memberIds)
-      if (partnerObjectIds?.length <= 2) {
-        return res.json(new ResponseError("Group chat must has atleast three members"))
+      if (partnerObjectIds?.length < 2) {
+        return res.json(new ResponseError("Group chat must has atleast two members"))
       }
 
       const partnerIds = partnerObjectIds.map((item) => item._id)
@@ -97,6 +111,7 @@ class RoomController {
 
       return res.json(new ResponseData(roomRes, "Create group chat successfully"))
     } catch (error) {
+      log.error(error)
       return res.status(400).send(error)
     }
   }
@@ -113,6 +128,8 @@ class RoomController {
 
       return res.json(new ResponseData(room))
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -124,6 +141,23 @@ class RoomController {
 
       return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
     } catch (error) {
+      log.error(error)
+
+      return res.status(400).send(error)
+    }
+  }
+
+  async softDeleteRoomByCompoundingCarId(req: Express.Request, res: Express.Response) {
+    try {
+      const status = await RoomService.softDeleteRoomByCompoundingCarId(
+        Number(req.params.compounding_car_id)
+      )
+      if (!status) return res.json(new ResponseError("Failed to soft delete room"))
+
+      return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
+    } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -135,6 +169,8 @@ class RoomController {
 
       return res.json(new ResponseData({ room_id: req.params.room_id }, "Restore deleted room"))
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -166,6 +202,8 @@ class RoomController {
         )
       )
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -182,6 +220,54 @@ class RoomController {
         new ResponseData({ message_unread_count: 0 }, "Cleared message unread from room")
       )
     } catch (error) {
+      log.error(error)
+
+      return res.status(400).send(error)
+    }
+  }
+
+  async addMemberToRoom(req: Express.Request, res: Express.Response) {
+    try {
+      if (
+        !req.room?.member_ids?.some((item) => item.user_id?.toString() === req.user._id?.toString())
+      ) {
+        return res.json(new ResponseError("You are not belong to this room"))
+      }
+
+      const status = await RoomService.addMemberToRoom({ partner: req.partner, room: req.room })
+      if (!status) {
+        return res.json(new ResponseError("Failed to add member to room"))
+      }
+
+      return res.json(new ResponseData(null, "Added member to room"))
+    } catch (error) {
+      log.error(error)
+
+      return res.status(400).send(error)
+    }
+  }
+
+  async deleteMemberFromRoom(req: Express.Request, res: Express.Response) {
+    try {
+      if (
+        !req.room?.member_ids?.some((item) => item.user_id?.toString() === req.user._id?.toString())
+      ) {
+        return res.json(new ResponseError("You are not belong to this room"))
+      }
+
+      if (req.partner._id?.toString() === req.user._id?.toString()) {
+        return res.json(new ResponseError("You can'\t delete yourself from room"))
+      }
+
+      const status = await RoomService.deleteMemberToRoom({ partner: req.partner, room: req.room })
+      if (!status) {
+        return res.json(new ResponseError("Failed to delete member from room"))
+      }
+
+      return res.json(new ResponseData(null, "deleted member from room"))
+    } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -200,6 +286,8 @@ class RoomController {
       })
       return res.json(new ResponseData(rooms))
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -215,6 +303,8 @@ class RoomController {
       })
       return res.json(new ResponseData(data))
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -234,6 +324,8 @@ class RoomController {
 
       return res.json(new ResponseData(messages))
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -253,6 +345,8 @@ class RoomController {
 
       return res.json(new ResponseData(room))
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -261,6 +355,8 @@ class RoomController {
     try {
       return res.json(new ResponseData(req.user?.room_joined_ids || []))
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -284,6 +380,8 @@ class RoomController {
       })
       return res.json(new ResponseData(messages))
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -305,6 +403,8 @@ class RoomController {
 
       return res.json(new ResponseData(messageRes))
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }
@@ -319,6 +419,8 @@ class RoomController {
 
       return res.json(new ResponseData({ message_id: message._id }))
     } catch (error) {
+      log.error(error)
+
       return res.status(400).send(error)
     }
   }

@@ -6,11 +6,13 @@ import Message from "../models/message"
 import Room from "../models/room"
 import User from "../models/user"
 import {
+  AddMemberInRoomService,
   AddMessageUnreadService,
   AttachmentRes,
   ClearMessageUnreadService,
   CreateGroupChatServicesParams,
   createSingleChatServices,
+  DeleteMemberInRoomService,
   GetRoomDetailService,
   GetRoomIdByUserId,
   IAttachment,
@@ -105,6 +107,7 @@ class RoomService {
         room_avatar_id: room_avatar_id || null,
         room_name: room_name || null,
         member_ids: member_ids?.map((user_id) => ({ user_id })),
+        compounding_car_id: params.compounding_car_id,
       })
 
       const roomRes: IRoom = (await room.save()).toObject()
@@ -197,7 +200,57 @@ class RoomService {
         }
       )
     } catch (error) {
+      log.error(error)
       return null
+    }
+  }
+
+  async getRoomByCompoundingCarId(compounding_car_id: number): Promise<IRoom | null> {
+    try {
+      return await Room.findOne({ compounding_car_id })
+    } catch (error) {
+      log.error(error)
+      return null
+    }
+  }
+
+  async addMemberToRoom(params: AddMemberInRoomService): Promise<boolean> {
+    const { room, partner } = params
+
+    if (room?.member_ids?.some((item) => item.user_id?.toString() === partner._id.toString())) {
+      return false
+    }
+
+    try {
+      await Room.findByIdAndUpdate(room._id, {
+        $push: {
+          member_ids: {
+            user_id: partner._id,
+          },
+        },
+      })
+
+      return true
+    } catch (error) {
+      log.error(error)
+      return false
+    }
+  }
+
+  async deleteMemberToRoom(params: DeleteMemberInRoomService): Promise<boolean> {
+    const { room, partner } = params
+    try {
+      await Room.findByIdAndUpdate(room._id, {
+        $pull: {
+          member_ids: {
+            user_id: partner._id,
+          },
+        },
+      })
+      return true
+    } catch (error) {
+      log.error(error)
+      return false
     }
   }
 
@@ -258,6 +311,7 @@ class RoomService {
 
       return {
         room_id: room._id,
+        compounding_car_id: room?.compounding_car_id || null,
         room_type: room.room_type,
         room_name,
         room_avatar,
@@ -449,6 +503,7 @@ class RoomService {
       {
         $project: {
           room_id: "$_id",
+          compounding_car_id: { $ifNull: ["$compounding_car_id", null] },
           room_name: "$room_name",
           room_type: "$room_type",
           last_message: "$last_message_id",
@@ -551,6 +606,25 @@ class RoomService {
       //   }
       // )
 
+      return true
+    } catch (error) {
+      log.error(error)
+      return false
+    }
+  }
+
+  async softDeleteRoomByCompoundingCarId(compounding_car_id: number): Promise<boolean> {
+    try {
+      const room: IRoom | null = await Room.findOneAndUpdate(
+        { compounding_car_id },
+        {
+          $set: {
+            is_deleted: true,
+            deleted_at: Date.now(),
+          },
+        }
+      ).lean()
+      if (!room) return false
       return true
     } catch (error) {
       log.error(error)

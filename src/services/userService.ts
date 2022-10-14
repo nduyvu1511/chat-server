@@ -8,7 +8,7 @@ import {
   isObjectID,
   REFRESH_TOKEN_EXPIRED,
   SELECT_USER,
-  USERS_LIMIT,
+  USERS_LIMIT
 } from "../constant"
 import Attachment from "../models/attachment"
 import Room from "../models/room"
@@ -36,7 +36,7 @@ import {
   UpdateProfileService,
   UserPopulate,
   UserRes,
-  UserSocketId,
+  UserSocketId
 } from "../types"
 import { toUserListResponse, toUserResponse } from "../utils"
 import { toListResponse } from "./../utils/commonResponse"
@@ -376,6 +376,7 @@ class UserService {
         },
         {
           $project: {
+            room_id: "$_id",
             user_ids: {
               $filter: {
                 input: "$member_ids",
@@ -399,6 +400,7 @@ class UserService {
         },
         {
           $project: {
+            _id: "$room_id",
             message_unread_ids: 1,
           },
         },

@@ -11,7 +11,8 @@ import {
   IMessage,
   IUser,
   QueryCommonParams,
-  QueryRoomParams, UpdateRoomInfo
+  QueryRoomParams,
+  UpdateRoomInfo,
 } from "../types"
 
 /**
@@ -25,9 +26,12 @@ import {
  *      properties:
  *        partner_id:
  *          type: number
+ *        compounding_car_id:
+ *          type: number
  */
 export const createSingleChatSchema = Joi.object<createSingleChat>({
   partner_id: Joi.alternatives().try(Joi.number(), Joi.string().regex(OBJECT_ID_REGEX)).required(),
+  compounding_car_id: Joi.number().required(),
 })
 
 /**
@@ -52,11 +56,14 @@ export const createSingleChatSchema = Joi.object<createSingleChat>({
  *          summary: Lấy id này từ kết quả trả về của API POST '/api/attachment'
  *        room_name:
  *          type: string
+ *        compounding_car_id:
+ *          type: string
  */
 export const createGroupChatSchema = Joi.object<CreateGroupChat>({
-  member_ids: Joi.array().items(Joi.number()).required().min(2),
+  member_ids: Joi.array().items(Joi.number()).required().min(1),
   room_avatar_id: Joi.string().regex(OBJECT_ID_REGEX).optional(),
   room_name: Joi.string().required(),
+  compounding_car_id: Joi.number().required(),
 })
 
 export const listSchema = Joi.object<QueryCommonParams>({
@@ -104,6 +111,23 @@ export const getRoomListSchema = Joi.object<QueryRoomParams>({
 
 export const roomIdSchema = Joi.object<{ room_id: ObjectId }>({
   room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+})
+
+export const compoundingCarIdSchema = Joi.object<{ compounding_car_id: ObjectId }>({
+  compounding_car_id: Joi.number().required(),
+})
+
+export const addMemberToRoomSchema = Joi.object<{ user_id: ObjectId | number; room_id: ObjectId }>({
+  room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+  user_id: Joi.alternatives().try(Joi.number(), Joi.string().regex(OBJECT_ID_REGEX)).required(),
+})
+
+export const deleteMemberToRoomSchema = Joi.object<{
+  user_id: ObjectId | number
+  room_id: ObjectId
+}>({
+  room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+  user_id: Joi.alternatives().try(Joi.number(), Joi.string().regex(OBJECT_ID_REGEX)).required(),
 })
 
 /**

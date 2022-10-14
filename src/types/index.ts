@@ -16,6 +16,7 @@ declare global {
       message: IMessage
       room: IRoom
       attachment: IAttachment
+      partner: IUser
     }
 
     type NextFunction = Function
