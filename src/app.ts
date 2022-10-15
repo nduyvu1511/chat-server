@@ -45,5 +45,7 @@ httpServer.listen(process.env.CHAT_SOCKET_PORT, () => {
 })
 export const socket = new Server(httpServer, {
   cors: corsConfig,
+  transports: ["websocket"],
+  path: "/",
 })
 socketHandler(socket)
