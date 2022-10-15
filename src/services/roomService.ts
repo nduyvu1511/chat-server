@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb"
-import { PipelineStage, _UpdateQueryDef } from "mongoose"
+import { FilterQuery, PipelineStage, Query, UpdateQuery, _UpdateQueryDef } from "mongoose"
 import log from "../config/logger"
 import { isObjectID, MESSAGES_LIMIT, SELECT_ROOM, SELECT_USER, USERS_LIMIT } from "../constant"
 import Message from "../models/message"
@@ -12,7 +12,7 @@ import {
   ClearMessageUnreadService,
   CreateGroupChatServicesParams,
   createSingleChatServices,
-  DeleteMemberInRoomService,
+  DeleteMemberFromRoomService,
   GetRoomDetailService,
   GetRoomIdByUserId,
   IAttachment,
@@ -128,7 +128,7 @@ class RoomService {
       .lean()
   }
 
-  async deleteRoomFromUserIds(user_ids: string[], room_id: string) {
+  async deleteRoomFromUserIds(user_ids: ObjectId[], room_id: ObjectId) {
     try {
       await Promise.all(
         user_ids.map(async (user_id) => {
@@ -140,6 +140,20 @@ class RoomService {
           return user
         })
       )
+
+      // if slow, use this instead
+      // await User.updateMany(
+      //   {
+      //     _id: {
+      //       $in: user_ids,
+      //     },
+      //   },
+      //   {
+      //     $pull: {
+      //       room_joined_ids: new ObjectId(room._id),
+      //     },
+      //   }
+      // )
     } catch (error) {
       return null
     }
@@ -215,21 +229,23 @@ class RoomService {
   }
 
   async addMemberToRoom(params: AddMemberInRoomService): Promise<boolean> {
-    const { room, partner } = params
+    const {
+      room,
+      partner: { _id: user_id },
+    } = params
 
-    if (room?.member_ids?.some((item) => item.user_id?.toString() === partner._id.toString())) {
+    if (room?.member_ids?.some((item) => item.user_id?.toString() === user_id.toString())) {
       return false
     }
 
     try {
       await Room.findByIdAndUpdate(room._id, {
-        $push: {
-          member_ids: {
-            user_id: partner._id,
-          },
+        $addToSet: {
+          member_ids: { user_id },
         },
       })
 
+      await this.saveRoomToUserIds([user_id], room._id)
       return true
     } catch (error) {
       log.error(error)
@@ -237,16 +253,32 @@ class RoomService {
     }
   }
 
-  async deleteMemberToRoom(params: DeleteMemberInRoomService): Promise<boolean> {
-    const { room, partner } = params
+  async deleteMemberFromRoom(params: DeleteMemberFromRoomService): Promise<boolean> {
+    const {
+      room,
+      partner: { _id: user_id },
+    } = params
+
     try {
+      // if (room.member_ids?.length <= 2 && (room?.message_ids || [])?.length === 0) {
+      //   await Room.findByIdAndDelete(room._id)
+      //   await this.deleteRoomFromUserIds(
+      //     room.member_ids?.map((item) => item.user_id),
+      //     room._id
+      //   )
+      //   return true
+      // }
+
+      // Delete user from room
       await Room.findByIdAndUpdate(room._id, {
         $pull: {
-          member_ids: {
-            user_id: partner._id,
-          },
+          member_ids: { user_id },
         },
       })
+
+      // Also delete room joined ids of user
+      await this.deleteRoomFromUserIds([user_id], room._id)
+
       return true
     } catch (error) {
       log.error(error)
@@ -583,28 +615,26 @@ class RoomService {
     }
   }
 
-  async softDeleteRoom(room_id: ObjectId): Promise<boolean> {
+  async softDeleteRoom(filter: FilterQuery<IRoom>): Promise<boolean> {
     try {
-      const room: IRoom | null = await Room.findByIdAndUpdate(room_id, {
+      const room: IRoom | null = await Room.findOneAndUpdate(filter, {
         $set: {
           is_deleted: true,
           deleted_at: Date.now(),
         },
       }).lean()
+
       if (!room) return false
 
-      // await User.updateMany(
-      //   {
-      //     _id: {
-      //       $in: room.member_ids?.map((item) => item.user_id),
-      //     },
-      //   },
-      //   {
-      //     $pull: {
-      //       room_joined_ids: new ObjectId(room._id),
-      //     },
-      //   }
-      // )
+      if ((room?.message_ids || [])?.length === 0) {
+        await Room.findByIdAndDelete(room._id)
+      }
+
+      // Delete room joined id from user
+      await this.deleteRoomFromUserIds(
+        (room.member_ids || []).map((item) => item.user_id),
+        room._id
+      )
 
       return true
     } catch (error) {
@@ -613,18 +643,21 @@ class RoomService {
     }
   }
 
-  async softDeleteRoomByCompoundingCarId(compounding_car_id: number): Promise<boolean> {
+  async destroyRoom(room: IRoom): Promise<boolean> {
     try {
-      const room: IRoom | null = await Room.findOneAndUpdate(
-        { compounding_car_id },
-        {
-          $set: {
-            is_deleted: true,
-            deleted_at: Date.now(),
-          },
-        }
-      ).lean()
-      if (!room) return false
+      await Room.findByIdAndDelete(room._id)
+
+      // Delete room joined id from user
+      await this.deleteRoomFromUserIds(
+        (room.member_ids || []).map((item) => item.user_id),
+        room._id
+      )
+
+      // Delete all messages in this room
+      if (room?.message_ids?.length) {
+        await Message.deleteMany({ _id: { $in: room.message_ids } })
+      }
+
       return true
     } catch (error) {
       log.error(error)
@@ -632,15 +665,21 @@ class RoomService {
     }
   }
 
-  async restoreSoftDeleteRoom(room_id: ObjectId): Promise<boolean> {
+  async restoreSoftDeleteRoom(filter: FilterQuery<IRoom>): Promise<boolean> {
     try {
-      const room: IRoom = await Room.findByIdAndUpdate(room_id, {
+      const room: IRoom = await Room.findOneAndUpdate(filter, {
         $set: {
           is_deleted: false,
           updated_at: Date.now(),
         },
       }).lean()
       if (!room) return false
+
+      // add room joined id to user
+      await this.saveRoomToUserIds(
+        (room.member_ids || []).map((item) => item.user_id),
+        room._id
+      )
 
       // await User.updateMany(
       //   {

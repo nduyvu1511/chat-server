@@ -136,22 +136,47 @@ class RoomController {
 
   async softDeleteRoom(req: Express.Request, res: Express.Response) {
     try {
-      const status = await RoomService.softDeleteRoom(req.params.room_id as any)
+      const status = await RoomService.softDeleteRoom({ _id: req.params.room_id })
       if (!status) return res.json(new ResponseError("Failed to soft delete room"))
 
       return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
     } catch (error) {
       log.error(error)
-
       return res.status(400).send(error)
     }
   }
 
   async softDeleteRoomByCompoundingCarId(req: Express.Request, res: Express.Response) {
     try {
-      const status = await RoomService.softDeleteRoomByCompoundingCarId(
-        Number(req.params.compounding_car_id)
-      )
+      const status = await RoomService.softDeleteRoom({
+        compounding_car_id: req.room.compounding_car_id,
+      })
+      if (!status) return res.json(new ResponseError("Failed to soft delete room"))
+
+      return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
+    } catch (error) {
+      log.error(error)
+      return res.status(400).send(error)
+    }
+  }
+
+  async destroyRoom(req: Express.Request, res: Express.Response) {
+    try {
+      const status = await RoomService.destroyRoom(req.room)
+      if (!status) return res.json(new ResponseError("Failed to delete room"))
+
+      return res.json(new ResponseData({ room_id: req.params.room_id }, "Deleted room"))
+    } catch (error) {
+      log.error(error)
+      return res.status(400).send(error)
+    }
+  }
+
+  async restoreSoftDeleteRoomByCompoundingCarId(req: Express.Request, res: Express.Response) {
+    try {
+      const status = await RoomService.restoreSoftDeleteRoom({
+        compounding_car_id: Number(req.params.compounding_car_id),
+      })
       if (!status) return res.json(new ResponseError("Failed to soft delete room"))
 
       return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
@@ -164,7 +189,7 @@ class RoomController {
 
   async restoreSoftDeleteRoom(req: Express.Request, res: Express.Response) {
     try {
-      const status = await RoomService.restoreSoftDeleteRoom(req.params.room_id as any)
+      const status = await RoomService.restoreSoftDeleteRoom({ _id: req.params.room_id })
       if (!status) return res.json(new ResponseError("Failed to restore this room"))
 
       return res.json(new ResponseData({ room_id: req.params.room_id }, "Restore deleted room"))
@@ -228,16 +253,14 @@ class RoomController {
 
   async addMemberToRoom(req: Express.Request, res: Express.Response) {
     try {
-      if (
-        !req.room?.member_ids?.some((item) => item.user_id?.toString() === req.user._id?.toString())
-      ) {
-        return res.json(new ResponseError("You are not belong to this room"))
-      }
+      // if (
+      //   !req.room?.member_ids?.some((item) => item.user_id?.toString() === req.user._id?.toString())
+      // ) {
+      //   return res.json(new ResponseError("You are not belong to this room"))
+      // }
 
       const status = await RoomService.addMemberToRoom({ partner: req.partner, room: req.room })
-      if (!status) {
-        return res.json(new ResponseError("Failed to add member to room"))
-      }
+      if (!status) return res.json(new ResponseError("Failed to add member to room"))
 
       return res.json(new ResponseData(null, "Added member to room"))
     } catch (error) {
@@ -249,25 +272,54 @@ class RoomController {
 
   async deleteMemberFromRoom(req: Express.Request, res: Express.Response) {
     try {
-      if (
-        !req.room?.member_ids?.some((item) => item.user_id?.toString() === req.user._id?.toString())
-      ) {
-        return res.json(new ResponseError("You are not belong to this room"))
-      }
+      // if (
+      //   !req.room?.member_ids?.some((item) => item.user_id?.toString() === req.user._id?.toString())
+      // ) {
+      //   return res.json(new ResponseError("You are not belong to this room"))
+      // }
 
-      if (req.partner._id?.toString() === req.user._id?.toString()) {
+      if (req.partner._id?.toString() === req.user._id?.toString())
         return res.json(new ResponseError("You can'\t delete yourself from room"))
-      }
 
-      const status = await RoomService.deleteMemberToRoom({ partner: req.partner, room: req.room })
-      if (!status) {
-        return res.json(new ResponseError("Failed to delete member from room"))
-      }
+      const status = await RoomService.deleteMemberFromRoom({
+        partner: req.partner,
+        room: req.room,
+      })
+      if (!status) return res.json(new ResponseError("Failed to delete member from room"))
 
       return res.json(new ResponseData(null, "deleted member from room"))
     } catch (error) {
       log.error(error)
+      return res.status(400).send(error)
+    }
+  }
 
+  async leaveRoom(req: Express.Request, res: Express.Response) {
+    try {
+      const status = await RoomService.deleteMemberFromRoom({
+        partner: req.user,
+        room: req.room,
+      })
+      if (!status) return res.json(new ResponseError("Failed to delete member from room"))
+
+      return res.json(new ResponseData(null, "left room successfully"))
+    } catch (error) {
+      log.error(error)
+      return res.status(400).send(error)
+    }
+  }
+
+  async joinRoom(req: Express.Request, res: Express.Response) {
+    try {
+      const status = await RoomService.addMemberToRoom({
+        partner: req.user,
+        room: req.room,
+      })
+      if (!status) return res.json(new ResponseError("Failed to join room"))
+
+      return res.json(new ResponseData(null, "Joined room successfully"))
+    } catch (error) {
+      log.error(error)
       return res.status(400).send(error)
     }
   }

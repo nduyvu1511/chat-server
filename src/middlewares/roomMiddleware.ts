@@ -38,3 +38,23 @@ export async function checkRoomParamsExist(
     return res.status(400).send(error)
   }
 }
+
+export async function checkRoomByCompoundingCarIdParamsExist(
+  req: Express.Request,
+  res: Express.Response,
+  next: Express.NextFunction
+) {
+  try {
+    const data: IRoom | null = await Room.findOne({
+      compounding_car_id: req.params.compounding_car_id,
+    }).lean()
+    if (!data) {
+      return res.json(new ResponseError("Room not found"))
+    }
+
+    req.room = data
+    return next()
+  } catch (error) {
+    return res.status(400).send(error)
+  }
+}

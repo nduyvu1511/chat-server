@@ -29,7 +29,7 @@ const verifyTokenAndDriver = async (
   next: express.NextFunction
 ) => {
   verifyToken(req, res, () => {
-    if (req.user?.role === "car_driver") {
+    if (req.user?.role === "car_driver" || req.user?.role === "admin") {
       return next()
     } else {
       return res.json(new ResponseError("You are not driver", 403, false, null))

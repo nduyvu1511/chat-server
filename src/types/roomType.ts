@@ -438,7 +438,7 @@ export interface AddMemberInRoomService {
   room: IRoom
 }
 
-export interface DeleteMemberInRoomService extends AddMemberInRoomService {}
+export interface DeleteMemberFromRoomService extends AddMemberInRoomService {}
 
 export interface AddMessageUnread {
   message_id: ObjectId

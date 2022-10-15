@@ -12,7 +12,7 @@ import {
   IUser,
   QueryCommonParams,
   QueryRoomParams,
-  UpdateRoomInfo,
+  UpdateRoomInfo
 } from "../types"
 
 /**
@@ -122,11 +122,27 @@ export const addMemberToRoomSchema = Joi.object<{ user_id: ObjectId | number; ro
   user_id: Joi.alternatives().try(Joi.number(), Joi.string().regex(OBJECT_ID_REGEX)).required(),
 })
 
-export const deleteMemberToRoomSchema = Joi.object<{
+export const deleteMemberFromRoomSchema = Joi.object<{
   user_id: ObjectId | number
   room_id: ObjectId
 }>({
   room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
+  user_id: Joi.alternatives().try(Joi.number(), Joi.string().regex(OBJECT_ID_REGEX)).required(),
+})
+
+export const deleteMemberFromRoomByCompoundingCarIdSchema = Joi.object<{
+  user_id: ObjectId | number
+  compounding_car_id: number
+}>({
+  compounding_car_id: Joi.number().required(),
+  user_id: Joi.alternatives().try(Joi.number(), Joi.string().regex(OBJECT_ID_REGEX)).required(),
+})
+
+export const addMemberToRoomByCompoundingCarIdSchema = Joi.object<{
+  user_id: ObjectId | number
+  compounding_car_id: number
+}>({
+  compounding_car_id: Joi.number().required(),
   user_id: Joi.alternatives().try(Joi.number(), Joi.string().regex(OBJECT_ID_REGEX)).required(),
 })
 
