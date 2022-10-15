@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb"
-import { FilterQuery, PipelineStage, Query, UpdateQuery, _UpdateQueryDef } from "mongoose"
+import { FilterQuery, PipelineStage, UpdateQuery } from "mongoose"
 import log from "../config/logger"
 import { isObjectID, MESSAGES_LIMIT, SELECT_ROOM, SELECT_USER, USERS_LIMIT } from "../constant"
 import Message from "../models/message"
@@ -31,7 +31,7 @@ import {
   RoomRes,
   UpdateRoomInfoService,
   UserPopulate,
-  UserSocketId,
+  UserSocketId
 } from "../types"
 import {
   toAttachmentResponse,
@@ -39,7 +39,7 @@ import {
   toRoomListResponse,
   toRoomMemberListResponse,
   toRoomMemberResponse,
-  toRoomOfflineAt,
+  toRoomOfflineAt
 } from "../utils"
 import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"
@@ -747,7 +747,7 @@ class RoomService {
   async updateRoomInfo(params: UpdateRoomInfoService): Promise<RoomInfoRes | null> {
     const { room_avatar_id, room_name, room_id } = params
 
-    const updateQuery: _UpdateQueryDef<IRoom> = {}
+    const updateQuery: UpdateQuery<IRoom> = {}
     if (room_avatar_id && isObjectID(room_avatar_id.toString())) {
       updateQuery.room_avatar_id = room_avatar_id
     }
