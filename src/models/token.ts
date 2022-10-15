@@ -1,5 +1,4 @@
 import Mongoose, { Schema } from "mongoose"
-import { REFRESH_TOKEN_EXPIRED_NUMBER } from "../constant"
 import { IToken } from "../types"
 
 const TokenSchema = new Schema<IToken>({
@@ -13,7 +12,7 @@ const TokenSchema = new Schema<IToken>({
     type: Schema.Types.Date,
     default: Date.now,
     index: {
-      expires: REFRESH_TOKEN_EXPIRED_NUMBER,
+      expires: "7d",
     },
   },
 })
