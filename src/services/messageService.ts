@@ -21,7 +21,7 @@ import {
   UserLikedMessageRes,
   UserReadLastMessage,
   UserReadMessage,
-  UserRes,
+  UserRes
 } from "../types"
 import { toMessageResponse } from "../utils"
 
