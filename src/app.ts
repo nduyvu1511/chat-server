@@ -40,7 +40,7 @@ app.listen(PORT, () => {
 
 // Socket io
 const httpServer = createServer(app)
-httpServer.listen(process.env.API_URL, () => {
+httpServer.listen(process.env.CHAT_SOCKET_PORT, () => {
   log.info(`App listening at port ${PORT}`)
 })
 export const socket = new Server(httpServer, {
