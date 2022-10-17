@@ -204,7 +204,7 @@ export type RoomDetailRes = Omit<
 > & {
   offline_at: Date | null
   room_avatar: AttachmentRes | null
-  pinned_messages: ListRes<MessageRes[]>
+  // pinned_messages: ListRes<MessageRes[]>
   messages: ListRes<MessageRes[]>
   members: ListRes<RoomMemberRes[]>
   leader_info: RoomMemberRes | null
@@ -243,13 +243,13 @@ export type RoomDetailRes = Omit<
  *        type: number
  *        messages:
  *          $ref: '#components/schema/MessageListRes'
- *        pinned_messages:
- *          $ref: '#components/schema/MessageListRes'
  *        members:
  *          $ref: '#components/schema/RoomMemberListRes'
  *        leader_info:
  *          $ref: '#components/schema/RoomMemberListRes'
  */
+// pinned_messages:
+// $ref: '#components/schema/MessageListRes'
 
 /**
  * @openapi
@@ -413,6 +413,7 @@ export type RoomMemberRes = Pick<
 > & {
   user_id: ObjectId
   avatar: AttachmentRes
+  socket_id: string | null
 }
 
 export type RoomDetailQueryRes = IRoom & {
@@ -458,4 +459,10 @@ export interface RoomTypingRes {
 export interface GetRoomIdByUserId {
   room_joined_ids: ObjectId[]
   partner_id: ObjectId
+  compounding_car_id: number
+}
+
+export interface EmitCreateRoomChat {
+  room: RoomDetailRes
+  current_user_id: ObjectId
 }

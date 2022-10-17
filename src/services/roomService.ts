@@ -70,21 +70,19 @@ class RoomService {
   async getRoomIdByUserId({
     room_joined_ids,
     partner_id,
+    compounding_car_id,
   }: GetRoomIdByUserId): Promise<ObjectId | undefined> {
     try {
-      const roomIds = await this.getSingleRoomIds(room_joined_ids as any[])
-
-      let room_id
-      roomIds.forEach((room) => {
-        room.member_ids.forEach((item) => {
-          if (item.user_id.toString() === partner_id.toString()) {
-            room_id = room._id
-            return
-          }
-        })
+      const room = await Room.findOne({
+        $and: [{ _id: { $in: room_joined_ids } }, { compounding_car_id }, { room_type: "single" }],
       })
+        .select("member_ids")
+        .lean()
 
-      return room_id
+      if (room?.member_ids?.some((item) => item.user_id.toString() === partner_id.toString()))
+        return room._id
+
+      return undefined
     } catch (error) {
       log.error(error)
       return undefined
@@ -119,14 +117,6 @@ class RoomService {
       log.error(error)
       return null
     }
-  }
-
-  async getSingleRoomIds(room_ids: string[]): Promise<RoomMemberWithId[]> {
-    return await Room.find({
-      $and: [{ _id: { $in: room_ids } }, { room_type: "single" }],
-    })
-      .select(["member_ids"])
-      .lean()
   }
 
   async deleteRoomFromUserIds(user_ids: ObjectId[], room_id: ObjectId) {
@@ -302,8 +292,6 @@ class RoomService {
         room_id: room._id,
       })
 
-      // const members
-
       // Get messages in room
       const messages = await this.getMessagesByFilter({
         limit: MESSAGES_LIMIT,
@@ -313,16 +301,16 @@ class RoomService {
       })
 
       // Get messages pinned in room
-      const pinned_messages = await this.getMessagesByFilter({
-        limit: MESSAGES_LIMIT,
-        offset: 0,
-        current_user: params.user,
-        filter: {
-          _id: {
-            $in: room.pinned_message_ids,
-          },
-        },
-      })
+      // const pinned_messages = await this.getMessagesByFilter({
+      //   limit: MESSAGES_LIMIT,
+      //   offset: 0,
+      //   current_user: params.user,
+      //   filter: {
+      //     _id: {
+      //       $in: room.pinned_message_ids,
+      //     },
+      //   },
+      // })
 
       // Get leader room info
       const leader_info: UserPopulate | null = room?.leader_id
@@ -354,7 +342,6 @@ class RoomService {
         offline_at: toRoomOfflineAt({ current_user_id: params.user._id, data: members.data }),
         members,
         messages,
-        pinned_messages,
       }
     } catch (error) {
       log.error(error)

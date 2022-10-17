@@ -1,16 +1,40 @@
 import Express from "express"
 import _ from "lodash"
+import { socket } from "../app"
 import log from "../config/logger"
 import { isObjectID, MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constant"
 import MessageService from "../services/messageService"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import { CreateGroupChat, createSingleChat, IUser, UpdateRoomInfo } from "../types"
+import {
+  CreateGroupChat,
+  createSingleChat,
+  EmitCreateRoomChat,
+  IUser,
+  UpdateRoomInfo,
+} from "../types"
 import { toMessageUnreadCount } from "../utils"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
 
 class RoomController {
+  async socketCreateRoom({ room, current_user_id }: EmitCreateRoomChat) {
+    if (!room || !room.members?.data?.length) return
+
+    const users = await UserService.getSocketIdsByUserIds(
+      room.members.data?.map((item) => item.user_id.toString())
+    )
+
+    const partners = users.filter(
+      (item) => item.socket_id && item.user_id.toString() !== current_user_id.toString()
+    )
+    if (partners?.length) {
+      partners.forEach((item) => {
+        socket?.to(item.socket_id).emit("create_room", room)
+      })
+    }
+  }
+
   async createSingleChat(req: Express.Request, res: Express.Response) {
     try {
       const { user_id } = req.user
@@ -20,10 +44,10 @@ class RoomController {
       if (user_id === partner_id || req.user?._id.toString() === partner_id.toString())
         return res.json(new ResponseError("Can not create room failed because missing partner"))
 
+      // Get partner
       const partner = isObjectID(partner_id)
         ? await UserService.getUserById(partner_id)
         : await UserService.getUserByPartnerId(partner_id)
-
       if (!partner)
         return res.json(new ResponseError("Create room chat failed because partner ID is invalid"))
 
@@ -31,6 +55,7 @@ class RoomController {
       const room_id = await RoomService.getRoomIdByUserId({
         room_joined_ids: req.user.room_joined_ids as any[],
         partner_id: partner._id,
+        compounding_car_id: bodyParams.compounding_car_id,
       })
 
       // Return room detail if partner_id is already exists in room
@@ -63,6 +88,10 @@ class RoomController {
         room_id: room._id,
         user: req.user,
       })
+
+      if (!roomRes) return res.json(new ResponseError("Room not found"))
+
+      this.socketCreateRoom({ room: roomRes, current_user_id: req.user._id })
 
       return res.json(new ResponseData(roomRes, "create room chat successfully"))
     } catch (error) {
@@ -146,7 +175,7 @@ class RoomController {
     }
   }
 
-  async softDeleteRoomByCompoundingCarId(req: Express.Request, res: Express.Response) {
+  async softDeleteRoomsByCompoundingCarId(req: Express.Request, res: Express.Response) {
     try {
       const status = await RoomService.softDeleteRoomsByCompoundingCarId({
         compounding_car_id: req.room.compounding_car_id,

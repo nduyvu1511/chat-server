@@ -175,7 +175,7 @@ router.delete(
  *         schema:
  *           type: number
  *     summary: Xoá cuộc hội thoại cho hủy chuyến
- *     description: Dùng để xóa cuộc hội thoại trong trường hợp hủy chuyến, dành cho tài xế
+ *     description: Dùng để xóa cuộc hội thoại trong trường hợp hủy chuyến, dành cho tài xế, lưu ý: sẽ xóa vĩnh viễn, chỉ dùng trong trường hợp hủy chuyến
  *     security:
  *      - BearerAuth: []
  *     responses:
@@ -231,7 +231,7 @@ router.delete(
   verifyTokenAndDriver,
   paramsMiddleware(compoundingCarIdSchema),
   checkRoomByCompoundingCarIdParamsExist,
-  RoomController.softDeleteRoomByCompoundingCarId
+  RoomController.softDeleteRoomsByCompoundingCarId
 )
 
 // router.patch(

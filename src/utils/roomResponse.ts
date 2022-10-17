@@ -109,17 +109,17 @@ export const toRoomDetailResponse = ({
     room_type: data.room_type,
     room_avatar: data?.room_avatar_id ? toAttachmentResponse(data.room_avatar_id) : null,
     leader_info: data.leader_id ? toRoomMemberResponse(data.leader_id) : null,
-    pinned_messages: data?.pinned_message_ids?.data?.length
-      ? toListResponse({
-          total: data.pinned_message_ids.total,
-          limit: data.pinned_message_ids.limit,
-          offset: data.pinned_message_ids.offset,
-          data: toMessageListResponse({
-            data: data.pinned_message_ids.data,
-            current_user,
-          }),
-        })
-      : toDefaultListResponse(),
+    // pinned_messages: data?.pinned_message_ids?.data?.length
+    //   ? toListResponse({
+    //       total: data.pinned_message_ids.total,
+    //       limit: data.pinned_message_ids.limit,
+    //       offset: data.pinned_message_ids.offset,
+    //       data: toMessageListResponse({
+    //         data: data.pinned_message_ids.data,
+    //         current_user,
+    //       }),
+    //     })
+    //   : toDefaultListResponse(),
     messages: data?.message_ids?.data?.length
       ? toListResponse({
           total: data.message_ids.total,
@@ -159,6 +159,7 @@ export const toRoomMemberResponse = (data: UserPopulate): RoomMemberRes => ({
   gender: data?.gender || "",
   is_online: data?.is_online || false,
   offline_at: data?.offline_at || null,
+  socket_id: data?.socket_id || null,
 })
 
 export const toRoomMemberListResponse = (data: UserPopulate[]): RoomMemberRes[] => {
