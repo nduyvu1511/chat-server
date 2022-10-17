@@ -3,7 +3,7 @@ import { IRoom } from "../types/roomType"
 import Attachment from "./attachment"
 
 const RoomSchema = new Schema<IRoom>({
-  room_name: { type: String, default: "" },
+  room_name: { type: String, required: false, default: null },
   room_avatar_id: {
     type: Schema.Types.ObjectId,
     ref: Attachment,

@@ -308,8 +308,9 @@ export interface AddUserSocketId {
   socket_id: string
 }
 
-export interface AddUserIdsChattedWith {
+export interface SetUserIdsChattedWith {
   user_ids: ObjectId[]
+  type: "add" | "delete"
 }
 
 export interface LoginToSocket {

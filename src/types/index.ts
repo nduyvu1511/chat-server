@@ -1,3 +1,4 @@
+import { Socket } from "socket.io"
 import { IAttachment } from "./attachmentType"
 import { IMessage } from "./messageType"
 import { IRoom } from "./roomType"
@@ -10,6 +11,12 @@ export * from "./attachmentType"
 export * from "./commonType"
 
 declare global {
+  namespace socket {
+    interface socket {
+      socket: Socket
+    }
+  }
+
   namespace Express {
     interface Request {
       user: IUser

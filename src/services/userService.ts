@@ -8,14 +8,13 @@ import {
   isObjectID,
   REFRESH_TOKEN_EXPIRED,
   SELECT_USER,
-  USERS_LIMIT,
+  USERS_LIMIT
 } from "../constant"
 import Attachment from "../models/attachment"
 import Room from "../models/room"
 import Token from "../models/token"
 import User from "../models/user"
 import {
-  AddUserIdsChattedWith,
   AddUserSocketId,
   BlockOrUnBlockUserParams,
   changeUserStatusParams,
@@ -31,12 +30,13 @@ import {
   MessageUnreadCountRes,
   RegisterParams,
   RequestRefreshToken,
+  SetUserIdsChattedWith,
   TopMember,
   UpdateProfile,
   UpdateProfileService,
   UserPopulate,
   UserRes,
-  UserSocketId,
+  UserSocketId
 } from "../types"
 import { toUserListResponse, toUserResponse } from "../utils"
 import { toListResponse } from "./../utils/commonResponse"
@@ -266,7 +266,7 @@ class UserService {
     }
   }
 
-  async addUserIdsChattedWith({ user_ids }: AddUserIdsChattedWith): Promise<boolean> {
+  async setUserIdsChattedWith({ user_ids, type }: SetUserIdsChattedWith): Promise<boolean> {
     try {
       await Promise.all(
         user_ids.map(async (user_id) => {
@@ -274,7 +274,7 @@ class UserService {
           return await User.findByIdAndUpdate(
             user_id,
             {
-              $addToSet: {
+              [type === "add" ? "$addToSet" : "$pull"]: {
                 user_chatted_with_ids: { $each: partner_ids },
               },
             },

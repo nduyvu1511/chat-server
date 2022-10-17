@@ -1,11 +1,12 @@
 import Express from "express"
 import _ from "lodash"
+import { socket } from "../app"
 import log from "../config/logger"
 import { isObjectID, MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constant"
 import MessageService from "../services/messageService"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import { CreateGroupChat, createSingleChat, IUser, UpdateRoomInfo } from "../types"
+import { CreateGroupChat, createSingleChat, IRoom, IUser, UpdateRoomInfo } from "../types"
 import { toMessageUnreadCount } from "../utils"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
@@ -49,17 +50,16 @@ class RoomController {
       })
       if (!room) return res.json(new ResponseError("Create room chat failed"))
 
-      // Add partner id to user chatted with field
-      await UserService.addUserIdsChattedWith({
-        user_ids: [req.user._id, partner._id],
-      })
-
       const roomRes = await RoomService.getRoomDetail({
         room_id: room._id,
         user: req.user,
       })
 
       if (!roomRes) return res.json(new ResponseError("Room not found"))
+
+      if (partner?.socket_id) {
+        socket.to(partner.socket_id).emit("create_room", roomRes)
+      }
 
       return res.json(new ResponseData(roomRes, "create room chat successfully"))
     } catch (error) {
@@ -96,10 +96,11 @@ class RoomController {
 
       if (!room) return new ResponseError("Create group chat failed")
 
-      await UserService.addUserIdsChattedWith({
-        user_ids: partnerIds,
-      })
       const roomRes = await RoomService.getRoomDetail({ room_id: room._id, user: req.user })
+
+      partnerObjectIds.forEach((item) => {
+        item.socket_id && socket.to(item.socket_id)?.emit("create_room", roomRes)
+      })
 
       return res.json(new ResponseData(roomRes, "Create group chat successfully"))
     } catch (error) {
@@ -128,8 +129,13 @@ class RoomController {
 
   async softDeleteRoom(req: Express.Request, res: Express.Response) {
     try {
-      const status = await RoomService.softDeleteRoom(req.room)
-      if (!status) return res.json(new ResponseError("Failed to soft delete room"))
+      const room = await RoomService.softDeleteRoom(req.room)
+      if (!room) return res.json(new ResponseError("Failed to soft delete room"))
+
+      const users = await RoomService.getSocketIdsFromRoom(room._id.toString())
+      users.forEach(
+        (item) => item?.socket_id && socket.to(item.socket_id)?.emit("delete_room", room._id)
+      )
 
       return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
     } catch (error) {
@@ -141,8 +147,15 @@ class RoomController {
   async softDeleteRoomsByCompoundingCarId(req: Express.Request, res: Express.Response) {
     try {
       const compounding_car_id = Number(req.params.compounding_car_id)
-      const status = await RoomService.softDeleteRoomsByCompoundingCarId({ compounding_car_id })
-      if (!status) return res.json(new ResponseError("Failed to soft delete room"))
+      const rooms = await RoomService.softDeleteRoomsByCompoundingCarId({ compounding_car_id })
+      if (!rooms?.length) return res.json(new ResponseError("Failed to soft delete room"))
+
+      rooms.map((item) => {})
+
+      // const users = await RoomService.getSocketIdsFromRoom(room._id.toString())
+      // socket
+      //   .to(users.filter((item) => item.socket_id).map((item) => item.socket_id))
+      //   ?.emit("delete_room", room._id)
 
       return res.json(new ResponseData({ compounding_car_id }, "Soft deleted room"))
     } catch (error) {

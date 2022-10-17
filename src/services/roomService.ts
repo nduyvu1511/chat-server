@@ -30,15 +30,14 @@ import {
   RoomRes,
   UpdateRoomInfoService,
   UserPopulate,
-  UserSocketId,
+  UserSocketId
 } from "../types"
 import {
   toAttachmentResponse,
   toListResponse,
   toRoomListResponse,
   toRoomMemberListResponse,
-  toRoomMemberResponse,
-  toRoomOfflineAt,
+  toRoomOfflineAt
 } from "../utils"
 import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"
@@ -57,7 +56,11 @@ class RoomService {
       })
 
       const roomRes: IRoom = (await room.save()).toObject()
-      await this.saveRoomToUserIds([partner._id, user._id], room._id)
+      this.saveRoomToUserIds([partner._id, user._id], room._id)
+      UserService.setUserIdsChattedWith({
+        user_ids: [user._id, partner._id],
+        type: "add",
+      })
 
       return roomRes
     } catch (error) {
@@ -111,7 +114,11 @@ class RoomService {
       })
 
       const roomRes: IRoom = (await room.save()).toObject()
-      await this.saveRoomToUserIds(member_ids, room._id)
+      this.saveRoomToUserIds(member_ids, room._id)
+      UserService.setUserIdsChattedWith({
+        user_ids: member_ids,
+        type: "add",
+      })
 
       return roomRes
     } catch (error) {
@@ -314,9 +321,9 @@ class RoomService {
       // })
 
       // Get leader room info
-      const leader_info: UserPopulate | null = room?.leader_id
-        ? await User.findById(room.leader_id).populate("avatar_id")
-        : null
+      // const leader_info: UserPopulate | null = room?.leader_id
+      //   ? await User.findById(room.leader_id).populate("avatar_id")
+      //   : null
 
       let room_name: null | string = room?.room_name
       let room_avatar: AttachmentRes | null = room?.room_avatar_id
@@ -337,7 +344,7 @@ class RoomService {
         room_type: room.room_type,
         room_name,
         room_avatar,
-        leader_info: leader_info?._id ? toRoomMemberResponse(leader_info) : null,
+        // leader_info: leader_info?._id ? toRoomMemberResponse(leader_info) : null,
         member_count: room.member_ids?.length || 0,
         is_online: members.data?.filter((item) => item.is_online)?.length >= 2,
         offline_at: toRoomOfflineAt({ current_user_id: params.user._id, data: members.data }),
@@ -604,7 +611,7 @@ class RoomService {
     }
   }
 
-  async softDeleteRoom(params: IRoom): Promise<boolean> {
+  async softDeleteRoom(params: IRoom): Promise<IRoom | null> {
     try {
       const room: IRoom | null = await Room.findByIdAndUpdate(params._id, {
         $set: {
@@ -614,7 +621,7 @@ class RoomService {
         },
       }).lean()
 
-      if (!room) return false
+      if (!room) return null
 
       // Delete room if do not have messages
       if ((room?.message_ids || [])?.length === 0) {
@@ -627,10 +634,10 @@ class RoomService {
         room._id
       )
 
-      return true
+      return room
     } catch (error) {
       log.error(error)
-      return false
+      return null
     }
   }
 
@@ -638,10 +645,10 @@ class RoomService {
     compounding_car_id,
   }: {
     compounding_car_id: number
-  }): Promise<boolean> {
+  }): Promise<IRoom[]> {
     try {
       const rooms: IRoom[] = await Room.find({ compounding_car_id }).lean()
-      if (rooms?.length === 0) return false
+      if (rooms?.length === 0) return []
 
       await Promise.all(rooms.map(async (item) => this.softDeleteRoom(item)))
 
@@ -655,10 +662,10 @@ class RoomService {
       //   }
       // ).lean()
 
-      return true
+      return rooms
     } catch (error) {
       log.error(error)
-      return false
+      return []
     }
   }
 

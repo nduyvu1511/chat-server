@@ -206,7 +206,7 @@ export type RoomDetailRes = Omit<
   // pinned_messages: ListRes<MessageRes[]>
   messages: ListRes<MessageRes[]>
   members: ListRes<RoomMemberRes[]>
-  leader_info: RoomMemberRes | null
+  // leader_info: RoomMemberRes | null
 }
 
 /**
@@ -240,15 +240,16 @@ export type RoomDetailRes = Omit<
  *        format: YYYY-MM-DD
  *       member_count:
  *        type: number
- *        messages:
+ *       messages:
  *          $ref: '#components/schema/MessageListRes'
- *        members:
- *          $ref: '#components/schema/RoomMemberListRes'
- *        leader_info:
+ *       members:
  *          $ref: '#components/schema/RoomMemberListRes'
  */
+
 // pinned_messages:
 // $ref: '#components/schema/MessageListRes'
+// leader_info:
+// $ref: '#components/schema/RoomMemberListRes'
 
 /**
  * @openapi

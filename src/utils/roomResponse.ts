@@ -108,7 +108,7 @@ export const toRoomDetailResponse = ({
     room_name: data?.room_name || null,
     room_type: data.room_type,
     room_avatar: data?.room_avatar_id ? toAttachmentResponse(data.room_avatar_id) : null,
-    leader_info: data.leader_id ? toRoomMemberResponse(data.leader_id) : null,
+    // leader_info: data.leader_id ? toRoomMemberResponse(data.leader_id) : null,
     // pinned_messages: data?.pinned_message_ids?.data?.length
     //   ? toListResponse({
     //       total: data.pinned_message_ids.total,
