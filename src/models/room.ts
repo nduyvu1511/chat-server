@@ -10,7 +10,7 @@ const RoomSchema = new Schema<IRoom>({
     default: null,
   },
   room_type: {
-  type: String,
+    type: String,
     enum: ["group", "single", "admin"],
     required: true,
   },
@@ -19,8 +19,6 @@ const RoomSchema = new Schema<IRoom>({
       type: Schema.Types.ObjectId,
       ref: "Message",
       default: [],
-    },
-    {
       _id: false,
     },
   ],
@@ -31,6 +29,7 @@ const RoomSchema = new Schema<IRoom>({
   member_ids: [
     {
       type: {
+        _id: false,
         user_id: {
           type: Schema.Types.ObjectId,
           ref: "User",
@@ -45,24 +44,19 @@ const RoomSchema = new Schema<IRoom>({
           {
             type: Schema.Types.ObjectId,
             ref: "Message",
-          },
-          {
             default: [],
             _id: false,
           },
         ],
       },
-      _id: false,
       required: true,
       min: 2,
-    },
-    {
-      _id: false,
     },
   ],
   members_leaved: [
     {
       type: {
+        _id: false,
         user_id: {
           type: Schema.Types.ObjectId,
           ref: "User",
@@ -73,9 +67,6 @@ const RoomSchema = new Schema<IRoom>({
         },
       },
       default: [],
-    },
-    {
-      _id: false,
     },
   ],
   leader_id: {
@@ -93,8 +84,6 @@ const RoomSchema = new Schema<IRoom>({
       type: Schema.Types.ObjectId,
       ref: "Message",
       default: [],
-    },
-    {
       _id: false,
     },
   ],

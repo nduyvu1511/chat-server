@@ -158,7 +158,6 @@ export interface RoomInfoRes {
 
 export interface LastMessagePopulate {
   text: string
-  tag_ids: string[]
   location: Lnglat | null
   attachment_ids: string[]
   message_id: ObjectId

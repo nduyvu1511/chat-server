@@ -14,7 +14,7 @@ import { LngLatSchema } from "./common"
  *      properties:
  *        text:
  *          type: string
- *          summary: Là trường bắt buộc khi không có 1 trong cấc tham số location, tag_ids và attachment_ids
+ *          summary: Là trường bắt buộc khi không có 1 trong cấc tham số location, attachment_ids
  *        room_id:
  *          type: string
  *        attachment_ids:
@@ -30,8 +30,6 @@ import { LngLatSchema } from "./common"
  *            attachment_id:
  *              type: string
  *              summary: Lấy từ bảng Attachment
- *        tag_ids:
- *          type: array
  *          items:
  *            type: string
  *            summary: Lấy từ bảng Attachment
@@ -44,9 +42,6 @@ export const sendMessageSchema = Joi.object<SendMessage>({
     })
     .when("attachment_ids", {
       then: Joi.string().allow("").optional(),
-    })
-    .when("tag_ids", {
-      then: Joi.string().allow("").optional(),
     }),
   room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
   location: LngLatSchema.optional(),
@@ -55,7 +50,6 @@ export const sendMessageSchema = Joi.object<SendMessage>({
     message_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
     attachment_id: Joi.string().regex(OBJECT_ID_REGEX).optional(),
   }).optional(),
-  tag_ids: Joi.array().items(Joi.string().regex(OBJECT_ID_REGEX).required()).allow(null).optional(),
 })
 
 export const readMessageSchema = Joi.object<UserReadMessage>({

@@ -1,6 +1,5 @@
 import Express from "express"
 import _ from "lodash"
-import { socket } from "../app"
 import log from "../config/logger"
 import { isObjectID, MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constant"
 import MessageService from "../services/messageService"
@@ -18,9 +17,6 @@ class RoomController {
       const bodyParams: createSingleChat = req.body
       const { partner_id } = bodyParams as any
 
-      if (user_id === partner_id || req.user?._id.toString() === partner_id.toString())
-        return res.json(new ResponseError("Can not create room failed because missing partner"))
-
       // Get partner
       const partner = isObjectID(partner_id)
         ? await UserService.getUserById(partner_id)
@@ -28,26 +24,23 @@ class RoomController {
       if (!partner)
         return res.json(new ResponseError("Create room chat failed because partner ID is invalid"))
 
-      // Check partner id exists
-      const room_id = await RoomService.getRoomIdByUserId({
-        room_joined_ids: req.user.room_joined_ids as any[],
-        partner_id: partner._id,
+      // Check partner and user already has room
+      const r_id = await RoomService.getRoomIdByUserId({
         compounding_car_id: bodyParams.compounding_car_id,
+        partner_id: partner._id,
+        room_joined_ids: req.user.room_joined_ids as any[],
       })
-
-      // Return room detail if partner_id is already exists in room
-      if (room_id) {
+      if (r_id) {
         const roomRes = await RoomService.getRoomDetail({
-          room_id,
+          room_id: r_id,
           user: req.user,
         })
 
-        if (roomRes) {
-          return res.json(new ResponseData(roomRes))
-        }
-
-        return res.json(new ResponseError("Room not found"))
+        return res.json(new ResponseData(roomRes))
       }
+
+      if (user_id === partner_id || req.user?._id.toString() === partner_id.toString())
+        return res.json(new ResponseError("Can not create room failed because missing partner"))
 
       const room = await RoomService.createSingleChat({
         partner: partner as any,
@@ -74,11 +67,6 @@ class RoomController {
 
       return res.status(400).send(error)
     }
-  }
-
-  async getRoomByCompoundingCarId(req: Express.Request, res: Express.Response) {
-    try {
-    } catch (error) {}
   }
 
   async createGroupChat(req: Express.Request, res: Express.Response) {
@@ -140,7 +128,7 @@ class RoomController {
 
   async softDeleteRoom(req: Express.Request, res: Express.Response) {
     try {
-      const status = await RoomService.softDeleteRoom({ _id: req.params.room_id })
+      const status = await RoomService.softDeleteRoom(req.room)
       if (!status) return res.json(new ResponseError("Failed to soft delete room"))
 
       return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
@@ -152,24 +140,11 @@ class RoomController {
 
   async softDeleteRoomsByCompoundingCarId(req: Express.Request, res: Express.Response) {
     try {
-      const status = await RoomService.softDeleteRoomsByCompoundingCarId({
-        compounding_car_id: req.room.compounding_car_id,
-      })
+      const compounding_car_id = Number(req.params.compounding_car_id)
+      const status = await RoomService.softDeleteRoomsByCompoundingCarId({ compounding_car_id })
       if (!status) return res.json(new ResponseError("Failed to soft delete room"))
 
-      return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
-    } catch (error) {
-      log.error(error)
-      return res.status(400).send(error)
-    }
-  }
-
-  async destroyRoom(req: Express.Request, res: Express.Response) {
-    try {
-      const status = await RoomService.destroyRoom(req.room)
-      if (!status) return res.json(new ResponseError("Failed to delete room"))
-
-      return res.json(new ResponseData({ room_id: req.params.room_id }, "Deleted room"))
+      return res.json(new ResponseData({ compounding_car_id }, "Soft deleted room"))
     } catch (error) {
       log.error(error)
       return res.status(400).send(error)

@@ -26,7 +26,6 @@ import {
   RoomDetailRes,
   RoomInfoRes,
   RoomMemberRes,
-  RoomMemberWithId,
   RoomPopulate,
   RoomRes,
   UpdateRoomInfoService,
@@ -73,12 +72,14 @@ class RoomService {
     compounding_car_id,
   }: GetRoomIdByUserId): Promise<ObjectId | undefined> {
     try {
+      console.log({ room_joined_ids, partner_id, compounding_car_id })
       const room = await Room.findOne({
         $and: [{ _id: { $in: room_joined_ids } }, { compounding_car_id }, { room_type: "single" }],
       })
         .select("member_ids")
         .lean()
 
+      console.log({ rooms: room?.member_ids.map((item) => item.user_id) })
       if (room?.member_ids?.some((item) => item.user_id.toString() === partner_id.toString()))
         return room._id
 
@@ -603,12 +604,13 @@ class RoomService {
     }
   }
 
-  async softDeleteRoom(filter: FilterQuery<IRoom>): Promise<boolean> {
+  async softDeleteRoom(params: IRoom): Promise<boolean> {
     try {
-      const room: IRoom | null = await Room.findOneAndUpdate(filter, {
+      const room: IRoom | null = await Room.findByIdAndUpdate(params._id, {
         $set: {
           is_deleted: true,
           deleted_at: Date.now(),
+          members_leaved: params.member_ids.map((item) => ({ user_id: item.user_id })),
         },
       }).lean()
 
@@ -641,7 +643,7 @@ class RoomService {
       const rooms: IRoom[] = await Room.find({ compounding_car_id }).lean()
       if (rooms?.length === 0) return false
 
-      await Promise.all(rooms.map(async (item) => this.softDeleteRoom({ _id: item._id })))
+      await Promise.all(rooms.map(async (item) => this.softDeleteRoom(item)))
 
       // const status: IRoom | null = await Room.updateMany(
       //   { compounding_car_id: room.compounding_car_id },
@@ -652,29 +654,6 @@ class RoomService {
       //     },
       //   }
       // ).lean()
-
-      return true
-    } catch (error) {
-      log.error(error)
-      return false
-    }
-  }
-
-  // Will delete in DB and also delete all messages from room
-  async destroyRoom(room: IRoom): Promise<boolean> {
-    try {
-      await Room.findByIdAndDelete(room._id)
-
-      // Delete room joined id from user
-      await this.deleteRoomFromUserIds(
-        (room.member_ids || []).map((item) => item.user_id),
-        room._id
-      )
-
-      // Delete all messages in this room
-      if (room?.message_ids?.length) {
-        await Message.deleteMany({ _id: { $in: room.message_ids } })
-      }
 
       return true
     } catch (error) {
@@ -745,7 +724,6 @@ class RoomService {
         },
       })
       .populate("reply_to.attachment_id")
-      .populate("tag_ids")
       .populate("attachment_ids")
       .limit(limit)
       .skip(offset)

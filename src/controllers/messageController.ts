@@ -23,12 +23,6 @@ class MessageController {
       if (!params.text && !params.location && !params?.attachment_ids?.length)
         return res.json(new ResponseError("Can not send a message because missing fields"))
 
-      let tag_ids: ObjectId[] = []
-      if (params?.tag_ids?.length) {
-        const tagsRes = await MessageService.getTags(params.tag_ids)
-        tag_ids = tagsRes?.map((item) => item._id)
-      }
-
       let attachment_ids: ObjectId[] = []
       if (params?.attachment_ids?.length) {
         const attachmentsRes = await AttachmentService.getAttachments(params.attachment_ids)
@@ -48,7 +42,7 @@ class MessageController {
       }
 
       const message = await MessageService.sendMessage({
-        message: { ...params, tag_ids, attachment_ids },
+        message: { ...params, attachment_ids },
         user,
         room_id: params.room_id,
       })

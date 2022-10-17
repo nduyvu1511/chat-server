@@ -35,8 +35,8 @@ import {
  *          default: 1
  *        avatar:
  *          type: string
- *          default: https://exxe.vn/......
- *          summary: Lấy từ URL avatar của user, phải ghép thêm domain vào 'https:exxe.vn/.....'
+ *          default: https://quanly.exxe.vn/......
+ *          summary: Lấy từ URL avatar của user, phải ghép thêm domain vào 'https:quanly.exxe.vn/.....'
  *        bio:
  *          type: string
  *          summary: person's biography
@@ -108,7 +108,7 @@ export const GetTokenSchema = Joi.object<GetTokenParams>({
  *          example: user name
  *        avatar:
  *          type: string
- *          summary: Lấy từ URL avatar của user, phải ghép thêm domain vào 'https:exxe.vn/.....'
+ *          summary: Lấy từ URL avatar của user, phải ghép thêm domain vào 'https:quanly.exxe.vn/.....'
  *        bio:
  *          type: string
  *        date_of_birth:

@@ -61,8 +61,8 @@ const UserSchema = new Schema<IUser>({
       type: Schema.Types.ObjectId,
       ref: "User",
       default: [],
+      _id: false,
     },
-    { _id: false },
   ],
   password: {
     type: String,

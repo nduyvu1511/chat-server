@@ -10,7 +10,6 @@ export interface IMessage {
   user_id: ObjectId
   room_id: ObjectId
   text: string
-  tag_ids: ObjectId[]
   location: Lnglat
   attachment_ids: IAttachment[]
   reply_to: {
@@ -83,10 +82,7 @@ export interface UserLikedMessageRes {
   [key: string]: UserRes[]
 }
 
-export type MessagePopulate = Omit<
-  IMessage,
-  "user_id" | "reply_to" | "tag_ids" | "attachment_ids"
-> & {
+export type MessagePopulate = Omit<IMessage, "user_id" | "reply_to" | "attachment_ids"> & {
   user_id: UserPopulate
   reply_to?:
     | {
@@ -96,7 +92,6 @@ export type MessagePopulate = Omit<
         attachment_id?: IAttachment
       }
     | undefined
-  tag_ids?: ITag[]
   attachment_ids: IAttachment[]
 }
 
@@ -397,7 +392,6 @@ export type MessageType = "attachment" | "text" | "location"
 export type MessageEmotionType = "like" | "angry" | "sad" | "laugh" | "heart" | "wow"
 
 export type SendMessage = Pick<IMessage, "text" | "room_id"> & {
-  tag_ids?: ObjectId[]
   attachment_ids: ObjectId[]
   location?: Lnglat
   reply_to?: {
