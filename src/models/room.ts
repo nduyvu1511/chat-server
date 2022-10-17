@@ -10,7 +10,7 @@ const RoomSchema = new Schema<IRoom>({
     default: null,
   },
   room_type: {
-    type: String,
+  type: String,
     enum: ["group", "single", "admin"],
     required: true,
   },

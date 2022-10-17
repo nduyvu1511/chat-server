@@ -54,6 +54,7 @@ class RoomService {
         room_type: "single",
         room_name: null,
         member_ids: [{ user_id: user._id }, { user_id: partner._id }],
+        compounding_car_id: params.compounding_car_id,
       })
 
       const roomRes: IRoom = (await room.save()).toObject()
