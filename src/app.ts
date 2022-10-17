@@ -12,7 +12,7 @@ import routes from "./routes"
 dotenv.config()
 
 const corsConfig = {
-  origin: true,
+  origin: ["http://localhost:3000", process.env.DOMAIN_URL as string],
   Credential: true,
 }
 

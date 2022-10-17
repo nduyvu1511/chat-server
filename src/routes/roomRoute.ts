@@ -155,34 +155,6 @@ router.post(
   RoomController.addMessageUnReadToRoom
 )
 
-/**
- * @openapi
- * '/api/room/{room_id}':
- *  delete:
- *     tags:
- *      - Room
- *     parameters:
- *       - in: path
- *         name: room_id
- *         required: true
- *         schema:
- *           type: string
- *     summary: Xoá cuộc hội thoại cho kết thúc chuyến đi
- *     description: Dùng để xóa cuộc hội thoại trong trường hợp kết thúc chuyến đi ghép, dành cho tài xế
- *     security:
- *      - BearerAuth: []
- *     responses:
- *       200:
- *         content:
- *          application/json:
- *           schema:
- *             type: object
- *             properties:
- *              room_id:
- *                type: string
- *       400:
- *         description: Bad Request
- */
 router.delete(
   "/:room_id",
   verifyTokenAndDriver,
@@ -239,7 +211,7 @@ router.delete(
  *         schema:
  *           type: number
  *     summary: Xoá cuộc hội thoại cho kết thúc chuyến đi
- *     description: Dùng để xóa cuộc hội thoại trong trường hợp kết thúc chuyến đi ghép, dành cho tài xế
+ *     description: Dùng để xóa các cuộc hội thoại(đơn, nhóm) của tài xế đối với hành khách trong chuyến đi này, dùng trong trường hợp kết thúc chuyến đi, dành cho tài xế
  *     security:
  *      - BearerAuth: []
  *     responses:

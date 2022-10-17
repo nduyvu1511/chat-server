@@ -30,7 +30,7 @@ class RoomController {
       // Check partner id exists
       const room_id = await RoomService.getRoomIdByUserId({
         room_joined_ids: req.user.room_joined_ids as any[],
-        partner_id: partner._id as any,
+        partner_id: partner._id,
       })
 
       // Return room detail if partner_id is already exists in room
@@ -148,7 +148,7 @@ class RoomController {
 
   async softDeleteRoomByCompoundingCarId(req: Express.Request, res: Express.Response) {
     try {
-      const status = await RoomService.softDeleteRoom({
+      const status = await RoomService.softDeleteRoomsByCompoundingCarId({
         compounding_car_id: req.room.compounding_car_id,
       })
       if (!status) return res.json(new ResponseError("Failed to soft delete room"))

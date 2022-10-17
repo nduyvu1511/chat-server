@@ -31,7 +31,7 @@ import {
   RoomRes,
   UpdateRoomInfoService,
   UserPopulate,
-  UserSocketId
+  UserSocketId,
 } from "../types"
 import {
   toAttachmentResponse,
@@ -39,7 +39,7 @@ import {
   toRoomListResponse,
   toRoomMemberListResponse,
   toRoomMemberResponse,
-  toRoomOfflineAt
+  toRoomOfflineAt,
 } from "../utils"
 import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"
@@ -626,6 +626,7 @@ class RoomService {
 
       if (!room) return false
 
+      // Delete room if do not have messages
       if ((room?.message_ids || [])?.length === 0) {
         await Room.findByIdAndDelete(room._id)
       }
@@ -643,6 +644,35 @@ class RoomService {
     }
   }
 
+  async softDeleteRoomsByCompoundingCarId({
+    compounding_car_id,
+  }: {
+    compounding_car_id: number
+  }): Promise<boolean> {
+    try {
+      const rooms: IRoom[] = await Room.find({ compounding_car_id }).lean()
+      if (rooms?.length === 0) return false
+
+      await Promise.all(rooms.map(async (item) => this.softDeleteRoom({ _id: item._id })))
+
+      // const status: IRoom | null = await Room.updateMany(
+      //   { compounding_car_id: room.compounding_car_id },
+      //   {
+      //     $set: {
+      //       is_deleted: true,
+      //       deleted_at: Date.now(),
+      //     },
+      //   }
+      // ).lean()
+
+      return true
+    } catch (error) {
+      log.error(error)
+      return false
+    }
+  }
+
+  // Will delete in DB and also delete all messages from room
   async destroyRoom(room: IRoom): Promise<boolean> {
     try {
       await Room.findByIdAndDelete(room._id)

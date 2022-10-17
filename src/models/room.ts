@@ -27,7 +27,6 @@ const RoomSchema = new Schema<IRoom>({
   compounding_car_id: {
     type: Schema.Types.Number,
     required: true,
-    unique: true,
   },
   member_ids: [
     {

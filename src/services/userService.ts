@@ -8,7 +8,7 @@ import {
   isObjectID,
   REFRESH_TOKEN_EXPIRED,
   SELECT_USER,
-  USERS_LIMIT
+  USERS_LIMIT,
 } from "../constant"
 import Attachment from "../models/attachment"
 import Room from "../models/room"
@@ -36,7 +36,7 @@ import {
   UpdateProfileService,
   UserPopulate,
   UserRes,
-  UserSocketId
+  UserSocketId,
 } from "../types"
 import { toUserListResponse, toUserResponse } from "../utils"
 import { toListResponse } from "./../utils/commonResponse"
@@ -46,13 +46,12 @@ class UserService {
   async register(params: RegisterParams): Promise<UserRes | null> {
     try {
       const password = await this.hashPassword(params.password)
-      const avatar = await Attachment.findById(process.env.BLANK_AVATAR_ID)
 
       const user = new User({
         ...params,
         user_name: params.phone,
         password,
-        avatar_id: avatar?._id || null,
+        avatar_id: null,
       })
       return (await user.save()).toObject()
     } catch (error) {
