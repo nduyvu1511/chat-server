@@ -6,35 +6,12 @@ import { isObjectID, MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constan
 import MessageService from "../services/messageService"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import {
-  CreateGroupChat,
-  createSingleChat,
-  EmitCreateRoomChat,
-  IUser,
-  UpdateRoomInfo,
-} from "../types"
+import { CreateGroupChat, createSingleChat, IUser, UpdateRoomInfo } from "../types"
 import { toMessageUnreadCount } from "../utils"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
 
 class RoomController {
-  async socketCreateRoom({ room, current_user_id }: EmitCreateRoomChat) {
-    if (!room || !room.members?.data?.length) return
-
-    const users = await UserService.getSocketIdsByUserIds(
-      room.members.data?.map((item) => item.user_id.toString())
-    )
-
-    const partners = users.filter(
-      (item) => item.socket_id && item.user_id.toString() !== current_user_id.toString()
-    )
-    if (partners?.length) {
-      partners.forEach((item) => {
-        socket?.to(item.socket_id).emit("create_room", room)
-      })
-    }
-  }
-
   async createSingleChat(req: Express.Request, res: Express.Response) {
     try {
       const { user_id } = req.user
@@ -90,8 +67,6 @@ class RoomController {
       })
 
       if (!roomRes) return res.json(new ResponseError("Room not found"))
-
-      this.socketCreateRoom({ room: roomRes, current_user_id: req.user._id })
 
       return res.json(new ResponseData(roomRes, "create room chat successfully"))
     } catch (error) {

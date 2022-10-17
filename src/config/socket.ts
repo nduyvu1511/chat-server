@@ -10,6 +10,7 @@ import {
   IUser,
   LikeMessageRes,
   MessageRes,
+  RoomDetailRes,
   RoomTypingRes,
   UnlikeMessageRes,
 } from "../types"
@@ -128,24 +129,18 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
         socket.leave(room_id)
       })
 
-      socket.on("create_room", async (room_id: string) => {
-        const room = await RoomService.getRoomByRoomId(room_id)
-        if (!room || !room.member_ids?.length) return
-
+      socket.on("create_room", async (room: RoomDetailRes) => {
         const users = await UserService.getSocketIdsByUserIds(
-          room.member_ids?.map((item) => item.user_id.toString())
+          room.members?.data?.map((item) => item.user_id.toString())
         )
 
         const user = await UserService.getUserById(socket.data._id)
         if (!user) return
 
-        const roomRes = await RoomService.getRoomDetail({ room_id: room_id as any, user })
-        if (!roomRes) return
-
         const partners = users.filter((item) => item.socket_id && item.socket_id !== socket.id)
         if (partners?.length) {
           partners.forEach((item) => {
-            socket.to(item.socket_id).emit("create_room", roomRes)
+            socket.to(item.socket_id).emit("create_room", room)
           })
         }
       })
