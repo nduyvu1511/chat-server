@@ -28,6 +28,7 @@ import {
   RoomMemberRes,
   RoomPopulate,
   RoomRes,
+  SoftDeleteRoomsByCompoundingCarId,
   UpdateRoomInfoService,
   UserPopulate,
   UserSocketId,
@@ -92,7 +93,7 @@ class RoomService {
   }
 
   async getSocketIdsFromRoom(room_id: string): Promise<UserSocketId[]> {
-    const room: IRoom | null = await Room.findById(room_id)
+    const room: IRoom | null = await this.getRoomById(new ObjectId(room_id))
     if (!room?.member_ids?.length) return []
     return await UserService.getSocketIdsByUserIds(
       room.member_ids.map((item) => item.user_id.toString())
@@ -218,7 +219,7 @@ class RoomService {
 
   async getRoomByCompoundingCarId(compounding_car_id: number): Promise<IRoom | null> {
     try {
-      return await Room.findOne({ compounding_car_id })
+      return await Room.findOne({ $and: [{ compounding_car_id }, { is_deleted: false }] })
     } catch (error) {
       log.error(error)
       return null
@@ -229,7 +230,7 @@ class RoomService {
   async addMemberToRoom(params: AddMemberInRoomService): Promise<string[] | undefined> {
     const {
       room,
-      partner: { _id: user_id },
+      user: { _id: user_id },
     } = params
 
     if (room?.member_ids?.some((item) => item.user_id?.toString() === user_id.toString())) {
@@ -249,7 +250,7 @@ class RoomService {
       // Save room id to this user
       await this.saveRoomToUserIds([user_id], room._id)
 
-      return await this.getSocketIdsFromIRoom(room)
+      return await this.getSocketIdsFromIRoom({ current_user_id: params.user._id, room })
     } catch (error) {
       log.error(error)
       return undefined
@@ -260,7 +261,7 @@ class RoomService {
   async deleteMemberFromRoom(params: DeleteMemberFromRoomService): Promise<string[] | undefined> {
     const {
       room,
-      partner: { _id: user_id },
+      user: { _id: user_id },
     } = params
 
     try {
@@ -289,16 +290,24 @@ class RoomService {
       // Also delete room joined ids of user
       await this.deleteRoomFromUserIds([user_id], room._id)
 
-      return await this.getSocketIdsFromIRoom(room)
+      return await this.getSocketIdsFromIRoom({ room, current_user_id: params.user._id })
     } catch (error) {
       log.error(error)
       return undefined
     }
   }
 
-  async getSocketIdsFromIRoom(room: IRoom): Promise<string[]> {
+  async getSocketIdsFromIRoom({
+    current_user_id,
+    room,
+  }: {
+    room: IRoom
+    current_user_id: ObjectId
+  }): Promise<string[]> {
     const socket_ids = await UserService.getSocketIdsByUserIds(
-      room.member_ids.map((item) => item?.user_id?.toString())
+      room.member_ids
+        .filter((id) => id.user_id.toString() !== current_user_id.toString())
+        .map((item) => item?.user_id?.toString())
     )
 
     return socket_ids?.filter((item) => item?.socket_id)?.map((item) => item?.socket_id) || []
@@ -306,7 +315,9 @@ class RoomService {
 
   async getRoomDetail(params: GetRoomDetailService): Promise<RoomDetailRes | null> {
     try {
-      const room: any = await Room.findById(params.room_id)
+      const room: any = await Room.findOne({
+        $and: [{ _id: params.room_id }, { is_deleted: false }],
+      })
         .select(SELECT_ROOM)
         .populate("room_avatar_id")
         .lean()
@@ -379,7 +390,7 @@ class RoomService {
   async getMembersInRoom(params: QueryMembersInRoomService): Promise<ListRes<RoomMemberRes[]>> {
     const { limit, offset, room_id } = params
 
-    const room = await Room.findById(room_id).select(SELECT_ROOM)
+    const room = await this.getRoomById(room_id)
     const filter = {
       _id: {
         $in: room?.member_ids?.map((item) => item.user_id) || [],
@@ -463,7 +474,7 @@ class RoomService {
               $project: {
                 _id: 0,
                 user_id: "$_id",
-                user_avatar: "$avatar_id.thumbnail_url",
+                user_avatar: { $ifNull: ["$avatar_id.thumbnail_url", null] },
                 user_name: "$user_name",
                 is_online: "$is_online",
               },
@@ -597,11 +608,13 @@ class RoomService {
   }
 
   async getRoomById(room_id: ObjectId): Promise<IRoom | null> {
-    return await Room.findById(room_id).select(SELECT_ROOM).lean()
+    return await Room.findOne({ $and: [{ _id: room_id }, { is_deleted: false }] })
+      .select(SELECT_ROOM)
+      .lean()
   }
 
   async getRoomByRoomId(room_id: string): Promise<IRoom | null> {
-    return await Room.findById(room_id).lean()
+    return await Room.findOne({ $and: [{ _id: room_id }, { is_deleted: false }] }).lean()
   }
 
   async pinMessageToRoom(params: IMessage): Promise<IRoom | null> {
@@ -663,11 +676,10 @@ class RoomService {
   // This function will return list socket id of user who in the room deleted
   async softDeleteRoomsByCompoundingCarId({
     compounding_car_id,
-  }: {
-    compounding_car_id: number
-  }): Promise<string[] | undefined> {
+    current_user_id,
+  }: SoftDeleteRoomsByCompoundingCarId): Promise<string[] | undefined> {
     try {
-      const rooms: IRoom[] = await Room.find({ compounding_car_id }).lean()
+      const rooms: IRoom[] = await Room.find({ compounding_car_id, is_deleted: false }).lean()
       if (rooms?.length === 0) return undefined
 
       await Promise.all(rooms.map(async (item) => this.softDeleteRoom(item)))
@@ -685,11 +697,16 @@ class RoomService {
       const user_ids: string[] = []
       rooms.forEach((item) => {
         ;(item?.member_ids || [])?.forEach((_item) => {
-          if (!user_ids?.includes(_item.user_id?.toString())) {
+          if (
+            _item?.user_id.toString() !== current_user_id.toString() &&
+            !user_ids?.includes(_item.user_id?.toString())
+          ) {
             user_ids.push(_item.user_id.toString())
           }
         })
       })
+
+      console.log({ user_ids })
 
       const users = await UserService.getSocketIdsByUserIds(user_ids)
 

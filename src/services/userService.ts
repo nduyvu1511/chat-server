@@ -8,7 +8,7 @@ import {
   isObjectID,
   REFRESH_TOKEN_EXPIRED,
   SELECT_USER,
-  USERS_LIMIT
+  USERS_LIMIT,
 } from "../constant"
 import Attachment from "../models/attachment"
 import Room from "../models/room"
@@ -36,7 +36,7 @@ import {
   UpdateProfileService,
   UserPopulate,
   UserRes,
-  UserSocketId
+  UserSocketId,
 } from "../types"
 import { toUserListResponse, toUserResponse } from "../utils"
 import { toListResponse } from "./../utils/commonResponse"
@@ -346,7 +346,7 @@ class UserService {
           $project: {
             _id: 0,
             user_id: "$_id",
-            user_avatar: "$avatar_id.thumbnail_url",
+            user_avatar: { $ifNull: ["$avatar_id.thumbnail_url", null] },
             user_name: "$user_name",
             is_online: "$is_online",
           },

@@ -9,7 +9,9 @@ export async function checkRoomBodyExist(
   next: Express.NextFunction
 ) {
   try {
-    const data: IRoom | null = await Room.findById(req.body.room_id).lean()
+    const data: IRoom | null = await Room.findOne({
+      $and: [{ _id: req.body.room_id }, { is_deleted: false }],
+    }).lean()
     if (!data) {
       return res.json(new ResponseError("Room not found"))
     }
@@ -27,7 +29,9 @@ export async function checkRoomParamsExist(
   next: Express.NextFunction
 ) {
   try {
-    const data: IRoom | null = await Room.findById(req.params.room_id).lean()
+    const data: IRoom | null = await Room.findOne({
+      $and: [{ _id: req.params.room_id }, { is_deleted: false }],
+    }).lean()
     if (!data) {
       return res.json(new ResponseError("Room not found"))
     }
@@ -45,9 +49,16 @@ export async function checkRoomByCompoundingCarIdParamsExist(
   next: Express.NextFunction
 ) {
   try {
-    const data: IRoom | null = await Room.findOne({
-      compounding_car_id: req.params.compounding_car_id,
-    }).lean()
+    const data: IRoom | null = await Room.findOne(
+      {
+        $and: [
+          {
+            compounding_car_id: req.params.compounding_car_id,
+          },
+        ],
+      },
+      { is_deleted: false }
+    ).lean()
     if (!data) {
       return res.json(new ResponseError("Room not found"))
     }

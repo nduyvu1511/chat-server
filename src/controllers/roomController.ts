@@ -1,5 +1,4 @@
 import Express from "express"
-import { string } from "joi"
 import _ from "lodash"
 import { socket } from "../app"
 import log from "../config/logger"
@@ -77,7 +76,7 @@ class RoomController {
       const memberIds: number[] = _.uniq([...params.member_ids, user.user_id])
 
       if (await RoomService.getRoomByCompoundingCarId(params.compounding_car_id)) {
-        return res.json(new ResponseError("This compounding car already has group chat"))
+        return res.json(new ResponseError("This compounding car already contain room chat"))
       }
 
       if (memberIds?.length < 2) {
@@ -99,8 +98,11 @@ class RoomController {
 
       const roomRes = await RoomService.getRoomDetail({ room_id: room._id, user: req.user })
 
+      // Emit to client online and except the sender
       partnerObjectIds.forEach((item) => {
-        item.socket_id && socket?.to(item.socket_id)?.emit("create_room", roomRes)
+        if (item._id.toString() !== user._id.toString() && item?.socket_id) {
+          socket?.to(item.socket_id)?.emit("create_room", roomRes)
+        }
       })
 
       return res.json(new ResponseData(roomRes, "Create group chat successfully"))
@@ -133,10 +135,14 @@ class RoomController {
       const room = await RoomService.softDeleteRoom(req.room)
       if (!room) return res.json(new ResponseError("Failed to soft delete room"))
 
-      const users = await RoomService.getSocketIdsFromRoom(room._id.toString())
-      users.forEach(
-        (item) => item?.socket_id && socket?.to(item.socket_id)?.emit("delete_room", room._id)
-      )
+      setTimeout(async () => {
+        const users = await RoomService.getSocketIdsFromRoom(room._id.toString())
+        users.forEach((item) => {
+          if (item?.socket_id && item.user_id.toString() !== req.user._id.toString()) {
+            socket?.to(item.socket_id)?.emit("delete_room", room._id)
+          }
+        })
+      }, 0)
 
       return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
     } catch (error) {
@@ -148,7 +154,11 @@ class RoomController {
   async softDeleteRoomsByCompoundingCarId(req: Express.Request, res: Express.Response) {
     try {
       const compounding_car_id = Number(req.params.compounding_car_id)
-      const socketIds = await RoomService.softDeleteRoomsByCompoundingCarId({ compounding_car_id })
+      const socketIds = await RoomService.softDeleteRoomsByCompoundingCarId({
+        compounding_car_id,
+        current_user_id: req.user._id,
+      })
+
       if (socketIds === undefined)
         return res.json(new ResponseError("This compounding car does not contain any room chat"))
 
@@ -242,60 +252,18 @@ class RoomController {
     }
   }
 
-  async addMemberToRoom(req: Express.Request, res: Express.Response) {
-    try {
-      // if (
-      //   !req.room?.member_ids?.some((item) => item.user_id?.toString() === req.user._id?.toString())
-      // ) {
-      //   return res.json(new ResponseError("You are not belong to this room"))
-      // }
-
-      const status = await RoomService.addMemberToRoom({ partner: req.partner, room: req.room })
-      if (!status) return res.json(new ResponseError("Failed to add member to room"))
-
-      return res.json(new ResponseData(null, "Added member to room"))
-    } catch (error) {
-      log.error(error)
-
-      return res.status(400).send(error)
-    }
-  }
-
-  async deleteMemberFromRoom(req: Express.Request, res: Express.Response) {
-    try {
-      // if (
-      //   !req.room?.member_ids?.some((item) => item.user_id?.toString() === req.user._id?.toString())
-      // ) {
-      //   return res.json(new ResponseError("You are not belong to this room"))
-      // }
-
-      if (req.partner._id?.toString() === req.user._id?.toString())
-        return res.json(new ResponseError("You can'\t delete yourself from room"))
-
-      const status = await RoomService.deleteMemberFromRoom({
-        partner: req.partner,
-        room: req.room,
-      })
-      if (!status) return res.json(new ResponseError("Failed to delete member from room"))
-
-      return res.json(new ResponseData(null, "deleted member from room"))
-    } catch (error) {
-      log.error(error)
-      return res.status(400).send(error)
-    }
-  }
-
   async leaveRoom(req: Express.Request, res: Express.Response) {
     try {
-      const socketIds = await RoomService.deleteMemberFromRoom({
-        partner: req.user,
-        room: req.room,
-      })
+      const { room, user } = req
+      if (room.room_type === "single")
+        return res.json(new ResponseError("This is single chat room, so you can not leave"))
+
+      const socketIds = await RoomService.deleteMemberFromRoom({ user, room })
 
       if (socketIds === undefined)
         return res.json(new ResponseError("Failed to delete member from room"))
 
-      const response = { user_id: req.user?._id, room_id: req.room?._id }
+      const response = { user_id: user?._id, room_id: room?._id }
       socketIds.forEach((id) => {
         socket?.to(id)?.emit("member_leave_room", response)
       })
@@ -309,13 +277,15 @@ class RoomController {
 
   async joinRoom(req: Express.Request, res: Express.Response) {
     try {
-      const socketIds = await RoomService.addMemberToRoom({
-        partner: req.user,
-        room: req.room,
-      })
+      const { user, room } = req
+
+      if (room.room_type === "single")
+        return res.json(new ResponseError("This is single room chat, so you can not join in"))
+
+      const socketIds = await RoomService.addMemberToRoom({ user, room })
       if (socketIds === undefined) return res.json(new ResponseError("Failed to join room"))
 
-      const response = { user_id: req.user?._id, room_id: req.room?._id }
+      const response = { user_id: user?._id, room_id: room?._id }
       socketIds.forEach((id) => {
         socket?.to(id)?.emit("member_join_room", response)
       })

@@ -1,23 +1,25 @@
 import Express from "express"
 import RoomController from "../controllers/roomController"
 import {
-  bodyMiddleware, checkRoomByCompoundingCarIdParamsExist,
+  bodyMiddleware,
+  checkRoomByCompoundingCarIdParamsExist,
   checkRoomParamsExist,
   checkUserExist,
   paramsMiddleware,
   queryMiddleware,
   verifyToken,
-  verifyTokenAndDriver
+  verifyTokenAndDriver,
 } from "../middlewares"
 import {
   addMessagePinnedSchema,
   addMessageUnReadSchema,
   compoundingCarIdSchema,
   createGroupChatSchema,
-  createSingleChatSchema, getRoomListSchema,
+  createSingleChatSchema,
+  getRoomListSchema,
   listSchema,
   roomIdSchema,
-  updateRoomSchema
+  updateRoomSchema,
 } from "../validators"
 
 const router = Express.Router()
@@ -210,7 +212,7 @@ router.delete(
  *              room_id:
  *                type: string
  *       400:
- *         description: Bad Request
+ *         description: Bad Request1
  */
 router.delete(
   "/compounding_car_id/:compounding_car_id",

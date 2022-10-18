@@ -5,15 +5,7 @@ import { DefaultEventsMap } from "socket.io/dist/typed-events"
 import MessageService from "../services/messageService"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import {
-  FriendStatusRes,
-  IUser,
-  LikeMessageRes,
-  MessageRes,
-  RoomDetailRes,
-  RoomTypingRes,
-  UnlikeMessageRes,
-} from "../types"
+import { FriendStatusRes, IUser, MessageRes, RoomTypingRes } from "../types"
 import log from "./logger"
 
 const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) => {

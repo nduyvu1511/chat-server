@@ -411,7 +411,7 @@ class MessageService {
   }
 
   async getRoomById(room_id: ObjectId): Promise<IRoom | null> {
-    return await Room.findById(room_id)
+    return await Room.findOne({ $and: [{ _id: room_id }, { is_deleted: false }] })
   }
 
   async appendLastMessageIdToRoom({ room_id, message_id }: appendLastMessageIdToRoomParams) {

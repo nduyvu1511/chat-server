@@ -435,7 +435,7 @@ export interface ClearMessageUnreadService extends ClearMessageUnread {
 }
 
 export interface AddMemberInRoomService {
-  partner: IUser
+  user: IUser
   room: IRoom
 }
 
@@ -460,4 +460,9 @@ export interface GetRoomIdByUserId {
   room_joined_ids: ObjectId[]
   partner_id: ObjectId
   compounding_car_id: number
+}
+
+export interface SoftDeleteRoomsByCompoundingCarId {
+  compounding_car_id: number
+  current_user_id: ObjectId
 }
