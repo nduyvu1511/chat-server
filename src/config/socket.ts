@@ -94,7 +94,6 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
         const { _id } = socket.data
 
         socket.join(room_id.toString())
-        console.log(socket.rooms)
 
         const room = await RoomService.getRoomById(room_id)
         if (!room) return

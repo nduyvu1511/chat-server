@@ -6,7 +6,7 @@ import { isObjectID, MESSAGES_LIMIT, ROOMS_LIMIT, USERS_LIMIT } from "../constan
 import MessageService from "../services/messageService"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import { CreateGroupChat, createSingleChat, IRoom, IUser, UpdateRoomInfo } from "../types"
+import { CreateGroupChat, createSingleChat, IUser, UpdateRoomInfo } from "../types"
 import { toMessageUnreadCount } from "../utils"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
@@ -147,15 +147,13 @@ class RoomController {
   async softDeleteRoomsByCompoundingCarId(req: Express.Request, res: Express.Response) {
     try {
       const compounding_car_id = Number(req.params.compounding_car_id)
-      const rooms = await RoomService.softDeleteRoomsByCompoundingCarId({ compounding_car_id })
-      if (!rooms?.length) return res.json(new ResponseError("Failed to soft delete room"))
+      const socketIds = await RoomService.softDeleteRoomsByCompoundingCarId({ compounding_car_id })
+      if (!socketIds?.length)
+        return res.json(new ResponseError("This compounding car does not contain any room chat"))
 
-      rooms.map((item) => {})
-
-      // const users = await RoomService.getSocketIdsFromRoom(room._id.toString())
-      // socket
-      //   .to(users.filter((item) => item.socket_id).map((item) => item.socket_id))
-      //   ?.emit("delete_room", room._id)
+      socketIds.forEach((id) => {
+        socket?.to(id).emit("delete_room_by_compounding_car", compounding_car_id)
+      })
 
       return res.json(new ResponseData({ compounding_car_id }, "Soft deleted room"))
     } catch (error) {

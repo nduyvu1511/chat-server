@@ -30,14 +30,14 @@ import {
   RoomRes,
   UpdateRoomInfoService,
   UserPopulate,
-  UserSocketId
+  UserSocketId,
 } from "../types"
 import {
   toAttachmentResponse,
   toListResponse,
   toRoomListResponse,
   toRoomMemberListResponse,
-  toRoomOfflineAt
+  toRoomOfflineAt,
 } from "../utils"
 import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"
@@ -75,14 +75,12 @@ class RoomService {
     compounding_car_id,
   }: GetRoomIdByUserId): Promise<ObjectId | undefined> {
     try {
-      console.log({ room_joined_ids, partner_id, compounding_car_id })
       const room = await Room.findOne({
         $and: [{ _id: { $in: room_joined_ids } }, { compounding_car_id }, { room_type: "single" }],
       })
         .select("member_ids")
         .lean()
 
-      console.log({ rooms: room?.member_ids.map((item) => item.user_id) })
       if (room?.member_ids?.some((item) => item.user_id.toString() === partner_id.toString()))
         return room._id
 
@@ -641,11 +639,12 @@ class RoomService {
     }
   }
 
+  // This function will return list socket id of user who in the room deleted
   async softDeleteRoomsByCompoundingCarId({
     compounding_car_id,
   }: {
     compounding_car_id: number
-  }): Promise<IRoom[]> {
+  }): Promise<string[]> {
     try {
       const rooms: IRoom[] = await Room.find({ compounding_car_id }).lean()
       if (rooms?.length === 0) return []
@@ -662,7 +661,18 @@ class RoomService {
       //   }
       // ).lean()
 
-      return rooms
+      const user_ids: string[] = []
+      rooms.forEach((item) => {
+        ;(item?.member_ids || [])?.forEach((_item) => {
+          if (!user_ids?.includes(_item.user_id?.toString())) {
+            user_ids.push(_item.user_id.toString())
+          }
+        })
+      })
+
+      const users = await UserService.getSocketIdsByUserIds(user_ids)
+
+      return users?.filter((item) => item.socket_id)?.map((item) => item.socket_id)
     } catch (error) {
       log.error(error)
       return []
