@@ -31,14 +31,14 @@ import {
   SoftDeleteRoomsByCompoundingCarId,
   UpdateRoomInfoService,
   UserPopulate,
-  UserSocketId
+  UserSocketId,
 } from "../types"
 import {
   toAttachmentResponse,
   toListResponse,
   toRoomListResponse,
   toRoomMemberListResponse,
-  toRoomOfflineAt
+  toRoomOfflineAt,
 } from "../utils"
 import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"
@@ -705,8 +705,6 @@ class RoomService {
           }
         })
       })
-
-      console.log({ user_ids })
 
       const users = await UserService.getSocketIdsByUserIds(user_ids)
 
