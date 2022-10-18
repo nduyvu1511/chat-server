@@ -49,16 +49,14 @@ export async function checkRoomByCompoundingCarIdParamsExist(
   next: Express.NextFunction
 ) {
   try {
-    const data: IRoom | null = await Room.findOne(
-      {
-        $and: [
-          {
-            compounding_car_id: req.params.compounding_car_id,
-          },
-        ],
-      },
-      { is_deleted: false }
-    ).lean()
+    const data: IRoom | null = await Room.findOne({
+      $and: [
+        {
+          compounding_car_id: req.params.compounding_car_id,
+        },
+        { is_deleted: false },
+      ],
+    }).lean()
     if (!data) {
       return res.json(new ResponseError("Room not found"))
     }

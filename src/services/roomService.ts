@@ -31,14 +31,14 @@ import {
   SoftDeleteRoomsByCompoundingCarId,
   UpdateRoomInfoService,
   UserPopulate,
-  UserSocketId,
+  UserSocketId
 } from "../types"
 import {
   toAttachmentResponse,
   toListResponse,
   toRoomListResponse,
   toRoomMemberListResponse,
-  toRoomOfflineAt,
+  toRoomOfflineAt
 } from "../utils"
 import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"
@@ -70,6 +70,7 @@ class RoomService {
     }
   }
 
+  // This function will get single room
   async getRoomIdByUserId({
     room_joined_ids,
     partner_id,
@@ -232,10 +233,6 @@ class RoomService {
       room,
       user: { _id: user_id },
     } = params
-
-    if (room?.member_ids?.some((item) => item.user_id?.toString() === user_id.toString())) {
-      return undefined
-    }
 
     try {
       await Room.findByIdAndUpdate(room._id, {
@@ -679,7 +676,10 @@ class RoomService {
     current_user_id,
   }: SoftDeleteRoomsByCompoundingCarId): Promise<string[] | undefined> {
     try {
-      const rooms: IRoom[] = await Room.find({ compounding_car_id, is_deleted: false }).lean()
+      let rooms: IRoom[] = await Room.find({
+        $and: [{ compounding_car_id }, { is_deleted: false }],
+      }).lean()
+
       if (rooms?.length === 0) return undefined
 
       await Promise.all(rooms.map(async (item) => this.softDeleteRoom(item)))

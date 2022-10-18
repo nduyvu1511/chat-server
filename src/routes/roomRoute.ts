@@ -322,8 +322,8 @@ router.delete(
  *  delete:
  *     tags:
  *      - Room
- *     summary: Khách hàng rời nhóm chat sau khi hủy chuyến
- *     description: Được dùng sau khi khách hàng hủy chuyến
+ *     summary: Rời nhóm chat
+ *     description: API này dành cho khách hàng sau khi hủy chuyến, chỉ dùng cho group chat
  *     security:
  *      - BearerAuth: []
  *     parameters:
@@ -360,7 +360,8 @@ router.delete(
  *  post:
  *     tags:
  *      - Room
- *     summary: Thêm user vào phòng theo compounding_car_id
+ *     summary: Tham gia nhóm chat
+ *     description: API này được dùng trong trường hợp khách hàng tham gia nhóm chat sau khi đặt cọc thành công, chỉ dùng cho group chat
  *     security:
  *      - BearerAuth: []
  *     parameters:

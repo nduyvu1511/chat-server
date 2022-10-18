@@ -258,6 +258,9 @@ class RoomController {
       if (room.room_type === "single")
         return res.json(new ResponseError("This is single chat room, so you can not leave"))
 
+      if (!room.member_ids?.some((item) => item.user_id.toString() === user._id.toString()))
+        return res.json(new ResponseError("You are not belong to this room"))
+
       const socketIds = await RoomService.deleteMemberFromRoom({ user, room })
 
       if (socketIds === undefined)
@@ -281,6 +284,9 @@ class RoomController {
 
       if (room.room_type === "single")
         return res.json(new ResponseError("This is single room chat, so you can not join in"))
+
+      if (room?.member_ids?.some((item) => item.user_id?.toString() === user._id.toString()))
+        return res.json(new ResponseError("You are already in this room"))
 
       const socketIds = await RoomService.addMemberToRoom({ user, room })
       if (socketIds === undefined) return res.json(new ResponseError("Failed to join room"))
