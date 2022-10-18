@@ -13,7 +13,7 @@ export interface IRoom {
   leader_id: ObjectId
   last_message_id?: ObjectId
   pinned_message_ids: ObjectId[]
-  members_leaved: MemberLeaved
+  members_leaved: MemberLeaved[]
   compounding_car_id: number
   message_ids: ObjectId[]
   is_deleted: boolean

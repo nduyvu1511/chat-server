@@ -1,4 +1,5 @@
 import Express from "express"
+import { string } from "joi"
 import _ from "lodash"
 import { socket } from "../app"
 import log from "../config/logger"
@@ -58,7 +59,7 @@ class RoomController {
       if (!roomRes) return res.json(new ResponseError("Room not found"))
 
       if (partner?.socket_id) {
-        socket.to(partner.socket_id).emit("create_room", roomRes)
+        socket?.to(partner.socket_id).emit("create_room", roomRes)
       }
 
       return res.json(new ResponseData(roomRes, "create room chat successfully"))
@@ -76,7 +77,7 @@ class RoomController {
       const memberIds: number[] = _.uniq([...params.member_ids, user.user_id])
 
       if (await RoomService.getRoomByCompoundingCarId(params.compounding_car_id)) {
-        return res.json(new ResponseError("This ride already has group chat"))
+        return res.json(new ResponseError("This compounding car already has group chat"))
       }
 
       if (memberIds?.length < 2) {
@@ -99,7 +100,7 @@ class RoomController {
       const roomRes = await RoomService.getRoomDetail({ room_id: room._id, user: req.user })
 
       partnerObjectIds.forEach((item) => {
-        item.socket_id && socket.to(item.socket_id)?.emit("create_room", roomRes)
+        item.socket_id && socket?.to(item.socket_id)?.emit("create_room", roomRes)
       })
 
       return res.json(new ResponseData(roomRes, "Create group chat successfully"))
@@ -134,7 +135,7 @@ class RoomController {
 
       const users = await RoomService.getSocketIdsFromRoom(room._id.toString())
       users.forEach(
-        (item) => item?.socket_id && socket.to(item.socket_id)?.emit("delete_room", room._id)
+        (item) => item?.socket_id && socket?.to(item.socket_id)?.emit("delete_room", room._id)
       )
 
       return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
@@ -148,7 +149,7 @@ class RoomController {
     try {
       const compounding_car_id = Number(req.params.compounding_car_id)
       const socketIds = await RoomService.softDeleteRoomsByCompoundingCarId({ compounding_car_id })
-      if (!socketIds?.length)
+      if (socketIds === undefined)
         return res.json(new ResponseError("This compounding car does not contain any room chat"))
 
       socketIds.forEach((id) => {
@@ -286,13 +287,20 @@ class RoomController {
 
   async leaveRoom(req: Express.Request, res: Express.Response) {
     try {
-      const status = await RoomService.deleteMemberFromRoom({
+      const socketIds = await RoomService.deleteMemberFromRoom({
         partner: req.user,
         room: req.room,
       })
-      if (!status) return res.json(new ResponseError("Failed to delete member from room"))
 
-      return res.json(new ResponseData(null, "left room successfully"))
+      if (socketIds === undefined)
+        return res.json(new ResponseError("Failed to delete member from room"))
+
+      const response = { user_id: req.user?._id, room_id: req.room?._id }
+      socketIds.forEach((id) => {
+        socket?.to(id)?.emit("member_leave_room", response)
+      })
+
+      return res.json(new ResponseData(response, "Leave room successfully"))
     } catch (error) {
       log.error(error)
       return res.status(400).send(error)
@@ -301,13 +309,18 @@ class RoomController {
 
   async joinRoom(req: Express.Request, res: Express.Response) {
     try {
-      const status = await RoomService.addMemberToRoom({
+      const socketIds = await RoomService.addMemberToRoom({
         partner: req.user,
         room: req.room,
       })
-      if (!status) return res.json(new ResponseError("Failed to join room"))
+      if (socketIds === undefined) return res.json(new ResponseError("Failed to join room"))
 
-      return res.json(new ResponseData(null, "Joined room successfully"))
+      const response = { user_id: req.user?._id, room_id: req.room?._id }
+      socketIds.forEach((id) => {
+        socket?.to(id)?.emit("member_join_room", response)
+      })
+
+      return res.json(new ResponseData(response, "Joined room successfully"))
     } catch (error) {
       log.error(error)
       return res.status(400).send(error)

@@ -128,21 +128,21 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
         socket.leave(room_id)
       })
 
-      socket.on("create_room", async (room: RoomDetailRes) => {
-        const users = await UserService.getSocketIdsByUserIds(
-          room.members?.data?.map((item) => item.user_id.toString())
-        )
+      // socket.on("create_room", async (room: RoomDetailRes) => {
+      //   const users = await UserService.getSocketIdsByUserIds(
+      //     room.members?.data?.map((item) => item.user_id.toString())
+      //   )
 
-        const user = await UserService.getUserById(socket.data._id)
-        if (!user) return
+      //   const user = await UserService.getUserById(socket.data._id)
+      //   if (!user) return
 
-        const partners = users.filter((item) => item.socket_id && item.socket_id !== socket.id)
-        if (partners?.length) {
-          partners.forEach((item) => {
-            socket.to(item.socket_id).emit("create_room", room)
-          })
-        }
-      })
+      //   const partners = users.filter((item) => item.socket_id && item.socket_id !== socket.id)
+      //   if (partners?.length) {
+      //     partners.forEach((item) => {
+      //       socket.to(item.socket_id).emit("create_room", room)
+      //     })
+      //   }
+      // })
 
       // Message handler
       socket.on("send_message", async (payload: MessageRes) => {
@@ -196,13 +196,13 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
         })
       })
 
-      socket.on("like_message", async (payload: LikeMessageRes) => {
-        socket.to(payload.room_id.toString()).emit("like_message", payload)
-      })
+      // socket.on("like_message", async (payload: LikeMessageRes) => {
+      //   socket.to(payload.room_id.toString()).emit("like_message", payload)
+      // })
 
-      socket.on("unlike_message", async (payload: UnlikeMessageRes) => {
-        socket.to(payload.room_id.toString()).emit("unlike_message", payload)
-      })
+      // socket.on("unlike_message", async (payload: UnlikeMessageRes) => {
+      //   socket.to(payload.room_id.toString()).emit("unlike_message", payload)
+      // })
 
       // Typing handler
       socket.on("start_typing", (payload: RoomTypingRes) => {

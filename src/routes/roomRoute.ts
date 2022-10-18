@@ -1,9 +1,7 @@
 import Express from "express"
 import RoomController from "../controllers/roomController"
 import {
-  bodyMiddleware,
-  checkPartnerParamsExist,
-  checkRoomByCompoundingCarIdParamsExist,
+  bodyMiddleware, checkRoomByCompoundingCarIdParamsExist,
   checkRoomParamsExist,
   checkUserExist,
   paramsMiddleware,
@@ -12,13 +10,11 @@ import {
   verifyTokenAndDriver
 } from "../middlewares"
 import {
-  addMemberToRoomSchema,
   addMessagePinnedSchema,
   addMessageUnReadSchema,
   compoundingCarIdSchema,
   createGroupChatSchema,
-  createSingleChatSchema, deleteMemberFromRoomSchema,
-  getRoomListSchema,
+  createSingleChatSchema, getRoomListSchema,
   listSchema,
   roomIdSchema,
   updateRoomSchema
@@ -152,6 +148,34 @@ router.post(
   RoomController.addMessageUnReadToRoom
 )
 
+/**
+ * @openapi
+ * '/api/room/{room_id}':
+ *  delete:
+ *     tags:
+ *      - Room
+ *     parameters:
+ *       - in: path
+ *         name: room_id
+ *         required: true
+ *         schema:
+ *           type: number
+ *     summary: Xoá cuộc hội thoại bằng room id
+ *     description: Dùng để xóa cuộc hội thoại, chỉ dùng cho tài xế
+ *     security:
+ *      - BearerAuth: []
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *              room_id:
+ *                type: string
+ *       400:
+ *         description: Bad Request
+ */
 router.delete(
   "/:room_id",
   verifyTokenAndDriver,
@@ -272,83 +296,23 @@ router.delete(
   RoomController.clearMessageUnreadFromRoom
 )
 
-/**
- * @openapi
- * '/api/room/{room_id}/member/{user_id}':
- *  post:
- *     tags:
- *      - Room
- *     summary: Thêm user vào phòng
- *     security:
- *      - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: room_id
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: user_id
- *         required: true
- *         schema:
- *           type: number
- *           summary: là partner id của server exxe
- *     responses:
- *       200:
- *         content:
- *          application/json:
- *            schema:
- *              type: null
- *       400:
- *         description: Bad Request
- */
-router.post(
-  "/:room_id/member/:user_id",
-  verifyToken,
-  paramsMiddleware(addMemberToRoomSchema),
-  checkPartnerParamsExist,
-  checkRoomParamsExist,
-  RoomController.addMemberToRoom
-)
+// router.post(
+//   "/:room_id/member/:user_id",
+//   verifyToken,
+//   paramsMiddleware(addMemberToRoomSchema),
+//   checkPartnerParamsExist,
+//   checkRoomParamsExist,
+//   RoomController.addMemberToRoom
+// )
 
-/**
- * @openapi
- * '/api/room/{room_id}/member/{user_id}':
- *  delete:
- *     tags:
- *      - Room
- *     summary: Xóa user ra khỏi phòng
- *     security:
- *      - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: room_id
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: user_id
- *         required: true
- *         schema:
- *           type: number
- *           summary: là partner id của server exxe
- *     responses:
- *       200:
- *         content:
- *          application/json:
- *            schema:
- *              type: null
- *       400:
- *         description: Bad Request
- */
-router.delete(
-  "/:room_id/member/:user_id",
-  verifyToken,
-  paramsMiddleware(deleteMemberFromRoomSchema),
-  checkPartnerParamsExist,
-  checkRoomParamsExist,
-  RoomController.deleteMemberFromRoom
-)
+// router.delete(
+//   "/:room_id/member/:user_id",
+//   verifyToken,
+//   paramsMiddleware(deleteMemberFromRoomSchema),
+//   checkPartnerParamsExist,
+//   checkRoomParamsExist,
+//   RoomController.deleteMemberFromRoom
+// )
 
 /**
  * @openapi
@@ -356,7 +320,8 @@ router.delete(
  *  delete:
  *     tags:
  *      - Room
- *     summary: Xóa user ra khỏi phòng theo compounding_car_id
+ *     summary: Khách hàng rời nhóm chat sau khi hủy chuyến
+ *     description: Được dùng sau khi khách hàng hủy chuyến
  *     security:
  *      - BearerAuth: []
  *     parameters:
@@ -370,7 +335,12 @@ router.delete(
  *         content:
  *          application/json:
  *            schema:
- *              type: null
+ *              type: object
+ *              properties:
+ *                user_id:
+ *                  type: string
+ *                room_id:
+ *                  type: string
  *       400:
  *         description: Bad Request
  */
@@ -402,7 +372,12 @@ router.delete(
  *         content:
  *          application/json:
  *            schema:
- *              type: null
+ *              type: object
+ *              properties:
+ *                user_id:
+ *                  type: string
+ *                room_id:
+ *                  type: string
  *       400:
  *         description: Bad Request
  */

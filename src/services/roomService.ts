@@ -225,14 +225,15 @@ class RoomService {
     }
   }
 
-  async addMemberToRoom(params: AddMemberInRoomService): Promise<boolean> {
+  // This function will return socket ids to emit event has new member joined in
+  async addMemberToRoom(params: AddMemberInRoomService): Promise<string[] | undefined> {
     const {
       room,
       partner: { _id: user_id },
     } = params
 
     if (room?.member_ids?.some((item) => item.user_id?.toString() === user_id.toString())) {
-      return false
+      return undefined
     }
 
     try {
@@ -240,17 +241,23 @@ class RoomService {
         $addToSet: {
           member_ids: { user_id },
         },
+        $set: {
+          updated_at: Date.now(),
+        },
       })
 
+      // Save room id to this user
       await this.saveRoomToUserIds([user_id], room._id)
-      return true
+
+      return await this.getSocketIdsFromIRoom(room)
     } catch (error) {
       log.error(error)
-      return false
+      return undefined
     }
   }
 
-  async deleteMemberFromRoom(params: DeleteMemberFromRoomService): Promise<boolean> {
+  // This function will return list socket id of room to notice that have new member left
+  async deleteMemberFromRoom(params: DeleteMemberFromRoomService): Promise<string[] | undefined> {
     const {
       room,
       partner: { _id: user_id },
@@ -271,16 +278,30 @@ class RoomService {
         $pull: {
           member_ids: { user_id },
         },
+        $addToSet: {
+          members_leaved: { user_id },
+        },
+        $set: {
+          updated_at: Date.now(),
+        },
       })
 
       // Also delete room joined ids of user
       await this.deleteRoomFromUserIds([user_id], room._id)
 
-      return true
+      return await this.getSocketIdsFromIRoom(room)
     } catch (error) {
       log.error(error)
-      return false
+      return undefined
     }
+  }
+
+  async getSocketIdsFromIRoom(room: IRoom): Promise<string[]> {
+    const socket_ids = await UserService.getSocketIdsByUserIds(
+      room.member_ids.map((item) => item?.user_id?.toString())
+    )
+
+    return socket_ids?.filter((item) => item?.socket_id)?.map((item) => item?.socket_id) || []
   }
 
   async getRoomDetail(params: GetRoomDetailService): Promise<RoomDetailRes | null> {
@@ -644,10 +665,10 @@ class RoomService {
     compounding_car_id,
   }: {
     compounding_car_id: number
-  }): Promise<string[]> {
+  }): Promise<string[] | undefined> {
     try {
       const rooms: IRoom[] = await Room.find({ compounding_car_id }).lean()
-      if (rooms?.length === 0) return []
+      if (rooms?.length === 0) return undefined
 
       await Promise.all(rooms.map(async (item) => this.softDeleteRoom(item)))
 
@@ -675,7 +696,7 @@ class RoomService {
       return users?.filter((item) => item.socket_id)?.map((item) => item.socket_id)
     } catch (error) {
       log.error(error)
-      return []
+      return undefined
     }
   }
 

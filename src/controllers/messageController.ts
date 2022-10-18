@@ -1,5 +1,6 @@
 import Express from "express"
 import { ObjectId } from "mongodb"
+import { socket } from "../app"
 import log from "../config/logger"
 import { USERS_LIMIT } from "../constant"
 import AttachmentService from "../services/attachmentService"
@@ -155,12 +156,14 @@ class MessageController {
         message: req.message,
         user_id: req.user._id,
       })
-      if (!message) return res.json(new ResponseError("Failed to like this message"))
+      if (!message) return res.json(new ResponseError("Failed to react this message"))
 
       const messageRes = await MessageService.getMessageRes({
         current_user: req.user,
         message_id: req.message._id,
       })
+
+      socket?.to(message?.room_id?.toString())?.emit("react_message", message)
 
       return res.json(new ResponseData(messageRes, "Reacted message"))
     } catch (error) {
@@ -176,12 +179,14 @@ class MessageController {
         message_id: message_id as any,
         user_id: req.user._id,
       })
-      if (!data) return res.json(new ResponseError("Failed to unlike this message"))
+      if (!data) return res.json(new ResponseError("Failed to unreact this message"))
 
       const messageRes = await MessageService.getMessageRes({
         current_user: req.user,
         message_id: message_id as any,
       })
+
+      socket?.to(messageRes?.room_id?.toString() || "")?.emit("unreact_message", messageRes)
 
       return res.json(new ResponseData(messageRes, "Unreacted message"))
     } catch (error) {
