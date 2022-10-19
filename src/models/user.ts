@@ -66,7 +66,6 @@ const UserSchema = new Schema<IUser>({
   ],
   password: {
     type: String,
-    min: 8,
     default: null,
   },
   message_unread_count: {

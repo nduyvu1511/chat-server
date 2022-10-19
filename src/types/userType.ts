@@ -224,6 +224,7 @@ export type CreateUserParams = Pick<
 > & {
   user_id: string
   avatar: string
+  // password: string
 }
 
 export type UpdateProfile = Partial<
@@ -265,9 +266,30 @@ export interface LoginSocket {
   socket_id: string
 }
 
-export type RegisterParams = Pick<IUser, "user_id" | "phone" | "password" | "role"> & {
-  confirm_password: string
-}
+/**
+ * @openapi
+ * components:
+ *  schema:
+ *    Register:
+ *      type: object
+ *      required:
+ *        - user_id
+ *        - phone
+ *        - password
+ *        - role
+ *      properties:
+ *        user_id:
+ *          type: string
+ *          summary: Lấy ID từ partner id của server Exxe
+ *        phone:
+ *          type: string
+ *        password:
+ *          type: string
+ *        role:
+ *          type: string
+ *          enum: [car_driver, customer]
+ */
+export type RegisterParams = Pick<IUser, "user_id" | "phone" | "password" | "role">
 
 export interface CreatePasswordParams {
   new_password: string

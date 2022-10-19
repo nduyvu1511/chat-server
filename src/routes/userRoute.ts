@@ -5,7 +5,7 @@ import {
   checkUserExist,
   queryMiddleware,
   verifyRefreshToken,
-  verifyToken
+  verifyToken,
 } from "../middlewares"
 import {
   blockOrUnblockUserSchema,
@@ -17,7 +17,7 @@ import {
   loginSchema,
   queryCommonSchema,
   registerSchema,
-  updateProfileSchema
+  updateProfileSchema,
 } from "../validators"
 const router = Express.Router()
 
@@ -48,6 +48,31 @@ const router = Express.Router()
  */
 router.post("/", bodyMiddleware(createUserSchema), UserController.createUser)
 
+/**
+ * @openapi
+ * '/api/user':
+ *  post:
+ *     tags:
+ *      - User
+ *     summary: Đăng ký
+ *     description: Tạo ra 1 user mới, lấy dữ liệu từ thông tin người dùng của server Exxe, API này sẽ được gọi sau khi đăng ký thành công 1 user trên server Exxe
+ *     security:
+ *      - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schema/Register'
+ *     responses:
+ *       200:
+ *         content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schema/CreateUserRes'
+ *       400:
+ *         description: Bad Request
+ */
 router.post("/register", bodyMiddleware(registerSchema), UserController.register)
 
 /**

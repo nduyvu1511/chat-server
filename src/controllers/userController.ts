@@ -3,7 +3,7 @@ import Express from "express"
 import log from "../config/logger"
 import { USERS_LIMIT } from "../constant"
 import UserService from "../services/userService"
-import { IUser, UserLoginRes, UserRes } from "../types"
+import { IUser, RegisterParams, UserLoginRes, UserRes } from "../types"
 import ResponseError from "../utils/apiError"
 import ResponseData from "../utils/apiRes"
 import { toUserResponse } from "../utils/userResponse"
@@ -11,7 +11,8 @@ import { toUserResponse } from "../utils/userResponse"
 class UserController {
   async register(req: Express.Request, res: Express.Response) {
     try {
-      const userRes = await UserService.register(req.body)
+      const params: RegisterParams = req.body
+      const userRes = await UserService.register(params)
       if (!userRes) return res.json(new ResponseError("Failed to register"))
 
       return res.json(new ResponseData(userRes))

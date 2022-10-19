@@ -157,7 +157,7 @@ class RoomController {
       const socketIds = await RoomService.softDeleteRoomsByCompoundingCarId({
         compounding_car_id,
         current_user_id: req.user._id,
-      })
+    })
 
       if (socketIds === undefined)
         return res.json(new ResponseError("This compounding car does not contain any room chat"))

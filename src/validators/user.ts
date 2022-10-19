@@ -68,6 +68,7 @@ export const createUserSchema = Joi.object<CreateUserParams>({
   gender: Joi.string().valid("male", "female", "no_info").optional().allow("", null),
   phone: Joi.string().regex(PHONE_REGEX, "Phone is invalid").required(),
   role: Joi.string().valid("customer", "car_driver", "admin").required(),
+  // password: Joi.string().required(),
 })
 
 /**,
@@ -198,7 +199,6 @@ export const registerSchema = Joi.object<RegisterParams>({
   user_id: Joi.number().required(),
   phone: Joi.string().regex(PHONE_REGEX).required(),
   password: Joi.string().min(8).required(),
-  confirm_password: Joi.string().valid(Joi.ref("password")).required(),
   role: Joi.string().allow("customer", "car_driver", "admin").required(),
 })
 
