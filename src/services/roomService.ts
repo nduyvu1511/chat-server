@@ -78,7 +78,12 @@ class RoomService {
   }: GetRoomIdByUserId): Promise<ObjectId | undefined> {
     try {
       const room = await Room.findOne({
-        $and: [{ _id: { $in: room_joined_ids } }, { compounding_car_id }, { room_type: "single" }],
+        $and: [
+          { _id: { $in: room_joined_ids } },
+          { compounding_car_id },
+          { room_type: "single" },
+          { is_deleted: false },
+        ],
       })
         .select("member_ids")
         .lean()
@@ -235,14 +240,17 @@ class RoomService {
     } = params
 
     try {
-      await Room.findByIdAndUpdate(room._id, {
-        $addToSet: {
-          member_ids: { user_id },
-        },
-        $set: {
-          updated_at: Date.now(),
-        },
-      })
+      await Room.findOneAndUpdate(
+        { $and: [{ _id: room._id }, { is_deleted: false }] },
+        {
+          $addToSet: {
+            member_ids: { user_id },
+          },
+          $set: {
+            updated_at: Date.now(),
+          },
+        }
+      )
 
       // Save room id to this user
       await this.saveRoomToUserIds([user_id], room._id)
@@ -272,17 +280,20 @@ class RoomService {
       // }
 
       // Delete user from room
-      await Room.findByIdAndUpdate(room._id, {
-        $pull: {
-          member_ids: { user_id },
-        },
-        $addToSet: {
-          members_leaved: { user_id },
-        },
-        $set: {
-          updated_at: Date.now(),
-        },
-      })
+      await Room.findOneAndUpdate(
+        { $and: [{ _id: room._id }, { is_deleted: false }] },
+        {
+          $pull: {
+            member_ids: { user_id },
+          },
+          $addToSet: {
+            members_leaved: { user_id },
+          },
+          $set: {
+            updated_at: Date.now(),
+          },
+        }
+      )
 
       // Also delete room joined ids of user
       await this.deleteRoomFromUserIds([user_id], room._id)
@@ -616,11 +627,14 @@ class RoomService {
 
   async pinMessageToRoom(params: IMessage): Promise<IRoom | null> {
     try {
-      return await Room.findByIdAndUpdate(params.room_id, {
-        $addToSet: {
-          pinned_message_ids: params._id,
-        },
-      })
+      return await Room.findOneAndUpdate(
+        { $and: [{ _id: params.room_id }, { is_deleted: false }] },
+        {
+          $addToSet: {
+            pinned_message_ids: params._id,
+          },
+        }
+      )
     } catch (error) {
       log.error(error)
       return null
@@ -629,11 +643,14 @@ class RoomService {
 
   async deleteMessagePinnedFromRoom(params: IMessage): Promise<IRoom | null> {
     try {
-      return await Room.findByIdAndUpdate(params.room_id, {
-        $pull: {
-          pinned_message_ids: params._id,
-        },
-      })
+      return await Room.findOneAndUpdate(
+        { $and: [{ _id: params.room_id }, { is_deleted: false }] },
+        {
+          $pull: {
+            pinned_message_ids: params._id,
+          },
+        }
+      )
     } catch (error) {
       log.error(error)
       return null
@@ -642,13 +659,16 @@ class RoomService {
 
   async softDeleteRoom(params: IRoom): Promise<IRoom | null> {
     try {
-      const room: IRoom | null = await Room.findByIdAndUpdate(params._id, {
-        $set: {
-          is_deleted: true,
-          deleted_at: Date.now(),
-          members_leaved: params.member_ids.map((item) => ({ user_id: item.user_id })),
-        },
-      }).lean()
+      const room: IRoom | null = await Room.findOneAndUpdate(
+        { $and: [{ _id: params._id }, { is_deleted: false }] },
+        {
+          $set: {
+            is_deleted: true,
+            deleted_at: Date.now(),
+            members_leaved: params.member_ids.map((item) => ({ user_id: item.user_id })),
+          },
+        }
+      ).lean()
 
       if (!room) return null
 
@@ -805,8 +825,8 @@ class RoomService {
     }
 
     const room: Omit<IRoom, "room_avatar_id"> & { room_avatar_id: IAttachment } =
-      await Room.findByIdAndUpdate(
-        room_id,
+      await Room.findOneAndUpdate(
+        { $and: [{ _id: room_id }, { is_deleted: false }] },
         {
           $set: updateQuery,
         },
