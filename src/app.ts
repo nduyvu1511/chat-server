@@ -12,9 +12,10 @@ import routes from "./routes"
 dotenv.config()
 
 const corsConfig = {
-  origin: ["http://localhost:3000", process.env.DOMAIN_URL as string, "https://exxe.vn/"],
+  origin: true,
   Credential: true,
 }
+// ["http://localhost:3000", process.env.DOMAIN_URL as string, "https://exxe.vn/"]
 
 const PORT = process.env.PORT || 5000
 const app = express()
