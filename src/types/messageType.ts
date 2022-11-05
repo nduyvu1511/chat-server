@@ -339,14 +339,14 @@ export type AttachmentType = "image" | "video"
  *        author_name:
  *          type: string
  *        author_avatar:
- *          $ref: '#/components/schema/AttachmentRes'
+ *          type: string
  *        author_socket_id:
  *          type: string
  */
 export interface AuthorMessage {
   author_id: ObjectId
   author_name: string
-  author_avatar: AttachmentRes
+  author_avatar: string | null
   author_socket_id: string
 }
 

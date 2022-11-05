@@ -157,12 +157,12 @@ class RoomController {
       const socketIds = await RoomService.softDeleteRoomsByCompoundingCarId({
         compounding_car_id,
         current_user_id: req.user._id,
-    })
+      })
 
       if (socketIds === undefined)
         return res.json(new ResponseError("This compounding car does not contain any room chat"))
 
-      socketIds.forEach((id) => {
+      socketIds?.forEach((id) => {
         socket?.to(id).emit("delete_room_by_compounding_car", compounding_car_id)
       })
 
@@ -367,7 +367,7 @@ class RoomController {
       const params: UpdateRoomInfo = req.body
 
       const room = await RoomService.updateRoomInfo({
-        room_avatar_id: params?.room_avatar_id,
+        room_avatar: params?.room_avatar,
         room_name: params?.room_name,
         room_id,
       })

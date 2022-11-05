@@ -7,7 +7,7 @@ export const TAGS_LIMIT = 30
 export const SELECT_USER = [
   "_id",
   "phone",
-  "avatar_id",
+  "avatar",
   "gender",
   "bio",
   "role",
@@ -24,7 +24,7 @@ export const SELECT_ROOM = [
   "_id",
   "room_name",
   "compounding_car_id",
-  "room_avatar_id",
+  "room_avatar",
   "room_type",
   "member_ids",
   "leader_id",

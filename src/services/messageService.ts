@@ -65,10 +65,6 @@ class MessageService {
         path: "user_id",
         model: "User",
         select: SELECT_USER,
-        populate: {
-          path: "avatar_id",
-          model: "Attachment",
-        },
       })
       .populate({
         path: "reply_to.message_id",
@@ -76,14 +72,9 @@ class MessageService {
           path: "user_id",
           model: "User",
           select: SELECT_USER,
-          populate: {
-            path: "avatar_id",
-            model: "Attachment",
-          },
         },
       })
       .populate("reply_to.attachment_id")
-      // .populate("tag_ids")
       .populate("attachment_ids")
       .lean()
 
@@ -106,44 +97,44 @@ class MessageService {
           foreignField: "_id",
           as: "author",
           pipeline: [
-            {
-              $lookup: {
-                from: "attachments",
-                localField: "avatar_id",
-                foreignField: "_id",
-                as: "avatar",
-                pipeline: [
-                  {
-                    $project: {
-                      _id: 0,
-                      attachment_id: "$_id",
-                      thumbnail_url: 1,
-                      url: 1,
-                      attachment_type: 1,
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $unwind: {
-                path: "$avatar",
-                preserveNullAndEmptyArrays: true,
-              },
-            },
-            {
-              $replaceRoot: {
-                newRoot: {
-                  $mergeObjects: ["$$ROOT", "$avatar"],
-                },
-              },
-            },
+            // {
+            //   $lookup: {
+            //     from: "attachments",
+            //     localField: "avatar_id",
+            //     foreignField: "_id",
+            //     as: "avatar",
+            //     pipeline: [
+            //       {
+            //         $project: {
+            //           _id: 0,
+            //           attachment_id: "$_id",
+            //           thumbnail_url: 1,
+            //           url: 1,
+            //           attachment_type: 1,
+            //         },
+            //       },
+            //     ],
+            //   },
+            // },
+            // {
+            //   $unwind: {
+            //     path: "$avatar",
+            //     preserveNullAndEmptyArrays: true,
+            //   },
+            // },
+            // {
+            //   $replaceRoot: {
+            //     newRoot: {
+            //       $mergeObjects: ["$$ROOT", "$avatar"],
+            //     },
+            //   },
+            // },
             {
               $project: {
                 _id: 0,
                 author_id: "$_id",
                 author_name: "$user_name",
-                author_avatar: "$avatar",
+                user_avatar: { $ifNull: ["$avatar", null] },
                 is_online: "$is_online",
               },
             },
@@ -195,33 +186,33 @@ class MessageService {
                 },
               },
             },
-            {
-              $lookup: {
-                from: "attachments",
-                localField: "avatar_id",
-                foreignField: "_id",
-                as: "avatar_id",
-                pipeline: [
-                  {
-                    $project: {
-                      thumbnail_url: 1,
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $unwind: {
-                path: "$avatar_id",
-                preserveNullAndEmptyArrays: true,
-              },
-            },
+            // {
+            //   $lookup: {
+            //     from: "attachments",
+            //     localField: "avatar_id",
+            //     foreignField: "_id",
+            //     as: "avatar_id",
+            //     pipeline: [
+            //       {
+            //         $project: {
+            //           thumbnail_url: 1,
+            //         },
+            //       },
+            //     ],
+            //   },
+            // },
+            // {
+            //   $unwind: {
+            //     path: "$avatar_id",
+            //     preserveNullAndEmptyArrays: true,
+            //   },
+            // },
             {
               $project: {
                 _id: 0,
                 user_id: "$_id",
                 user_name: "$user_name",
-                user_avatar: { $ifNull: ["$avatar_id.thumbnail_url", null] },
+                user_avatar: { $ifNull: ["$avatar", null] },
                 is_online: "$is_online",
               },
             },
@@ -292,56 +283,56 @@ class MessageService {
                 },
               },
             },
-            {
-              $lookup: {
-                from: "attachments",
-                localField: "avatar_id",
-                foreignField: "_id",
-                as: "avatar_id",
-                pipeline: [
-                  {
-                    $project: {
-                      _id: 0,
-                      thumbnail_url: 1,
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $unwind: {
-                path: "$avatar_id",
-                preserveNullAndEmptyArrays: true,
-              },
-            },
+            // {
+            //   $lookup: {
+            //     from: "attachments",
+            //     localField: "avatar_id",
+            //     foreignField: "_id",
+            //     as: "avatar_id",
+            //     pipeline: [
+            //       {
+            //         $project: {
+            //           _id: 0,
+            //           thumbnail_url: 1,
+            //         },
+            //       },
+            //     ],
+            //   },
+            // },
+            // {
+            //   $unwind: {
+            //     path: "$avatar_id",
+            //     preserveNullAndEmptyArrays: true,
+            //   },
+            // },
             {
               $project: {
                 _id: 0,
                 user_id: "$_id",
                 user_name: "$user_name",
-                user_avatar: { $ifNull: ["$avatar_id.thumbnail_url", null] },
+                user_avatar: { $ifNull: ["$avatar", null] },
                 is_online: "$is_online",
               },
             },
           ],
         },
       },
-      {
-        $lookup: {
-          from: "attachments",
-          localField: "avatar_id",
-          foreignField: "_id",
-          as: "avatar",
-          pipeline: [
-            {
-              $project: {
-                _id: 0,
-                thumbnail_url: 1,
-              },
-            },
-          ],
-        },
-      },
+      // {
+      //   $lookup: {
+      //     from: "attachments",
+      //     localField: "avatar_id",
+      //     foreignField: "_id",
+      //     as: "avatar",
+      //     pipeline: [
+      //       {
+      //         $project: {
+      //           _id: 0,
+      //           thumbnail_url: 1,
+      //         },
+      //       },
+      //     ],
+      //   },
+      // },
       {
         $project: {
           _id: 0,

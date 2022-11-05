@@ -7,7 +7,7 @@ export const toUserResponse = (data: UserPopulate): UserRes => {
     socket_id: data.socket_id,
     user_name: data?.user_name,
     phone: data?.phone,
-    avatar: toAttachmentResponse(data.avatar_id),
+    avatar: data?.avatar || null,
     gender: data?.gender,
     bio: data?.bio,
     role: data?.role,
@@ -30,7 +30,7 @@ export const toAuthorMessage = (data: UserPopulate): AuthorMessage => {
   return {
     author_id: data._id,
     author_name: data?.user_name || "",
-    author_avatar: toAttachmentResponse(data?.avatar_id),
+    author_avatar: data?.avatar || null,
     author_socket_id: data.socket_id,
   }
 }

@@ -1,21 +1,19 @@
 import { ObjectId } from "mongodb"
 import { FilterQuery, PipelineStage, UpdateQuery } from "mongoose"
 import log from "../config/logger"
-import { isObjectID, MESSAGES_LIMIT, SELECT_ROOM, SELECT_USER, USERS_LIMIT } from "../constant"
+import { MESSAGES_LIMIT, SELECT_ROOM, SELECT_USER, USERS_LIMIT } from "../constant"
 import Message from "../models/message"
 import Room from "../models/room"
 import User from "../models/user"
 import {
   AddMemberInRoomService,
   AddMessageUnreadService,
-  AttachmentRes,
   ClearMessageUnreadService,
   CreateGroupChatServicesParams,
   createSingleChatServices,
   DeleteMemberFromRoomService,
   GetRoomDetailService,
   GetRoomIdByUserId,
-  IAttachment,
   IMessage,
   IRoom,
   ListRes,
@@ -34,7 +32,6 @@ import {
   UserSocketId,
 } from "../types"
 import {
-  toAttachmentResponse,
   toListResponse,
   toRoomListResponse,
   toRoomMemberListResponse,
@@ -43,7 +40,6 @@ import {
 import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"
 import UserService from "./userService"
-
 class RoomService {
   async createSingleChat(params: createSingleChatServices): Promise<IRoom | null> {
     try {
@@ -108,11 +104,11 @@ class RoomService {
 
   async createGroupChat(params: CreateGroupChatServicesParams): Promise<IRoom | null> {
     try {
-      const { member_ids, room_avatar_id, room_name } = params
+      const { member_ids, room_avatar, room_name } = params
 
       const room = new Room({
         room_type: "group",
-        room_avatar_id: room_avatar_id || null,
+        room_avatar: room_avatar || null,
         room_name: room_name || null,
         member_ids: member_ids?.map((user_id) => ({ user_id })),
         compounding_car_id: params.compounding_car_id,
@@ -327,7 +323,6 @@ class RoomService {
         $and: [{ _id: params.room_id }, { is_deleted: false }],
       })
         .select(SELECT_ROOM)
-        .populate("room_avatar_id")
         .lean()
       if (!room?._id || room.is_deleted) return null
 
@@ -364,9 +359,7 @@ class RoomService {
       //   : null
 
       let room_name: null | string = room?.room_name
-      let room_avatar: AttachmentRes | null = room?.room_avatar_id
-        ? toAttachmentResponse(room?.room_avatar_id)
-        : null
+      let room_avatar = room?.room_avatar
 
       if (room.room_type === "single") {
         const partner = members.data.find(
@@ -405,7 +398,6 @@ class RoomService {
       },
     }
     const members: UserPopulate[] = await User.find(filter)
-      .populate("avatar_id")
       .limit(limit)
       .skip(offset)
       .select(SELECT_USER)
@@ -435,20 +427,20 @@ class RoomService {
       {
         $match: filter,
       },
-      {
-        $lookup: {
-          from: "attachments",
-          localField: "room_avatar_id",
-          foreignField: "_id",
-          as: "room_avatar_id",
-        },
-      },
-      {
-        $unwind: {
-          path: "$room_avatar_id",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
+      // {
+      //   $lookup: {
+      //     from: "attachments",
+      //     localField: "room_avatar_id",
+      //     foreignField: "_id",
+      //     as: "room_avatar_id",
+      //   },
+      // },
+      // {
+      //   $unwind: {
+      //     path: "$room_avatar_id",
+      //     preserveNullAndEmptyArrays: true,
+      //   },
+      // },
 
       // Get Members in room
       {
@@ -465,24 +457,10 @@ class RoomService {
               $limit: 4,
             },
             {
-              $lookup: {
-                from: "attachments",
-                localField: "avatar_id",
-                foreignField: "_id",
-                as: "avatar_id",
-              },
-            },
-            {
-              $unwind: {
-                path: "$avatar_id",
-                preserveNullAndEmptyArrays: true,
-              },
-            },
-            {
               $project: {
                 _id: 0,
                 user_id: "$_id",
-                user_avatar: { $ifNull: ["$avatar_id.thumbnail_url", null] },
+                user_avatar: { $ifNull: ["$avatar", null] },
                 user_name: "$user_name",
                 is_online: "$is_online",
               },
@@ -584,7 +562,7 @@ class RoomService {
               cond: { $eq: ["$$item.user_id", new ObjectId(current_user._id)] },
             },
           },
-          room_avatar: "$room_avatar_id.thumbnail_url",
+          room_avatar: "$room_avatar",
         },
       },
       {
@@ -779,10 +757,6 @@ class RoomService {
         path: "user_id",
         model: "User",
         select: SELECT_USER,
-        populate: {
-          path: "avatar_id",
-          model: "Attachment",
-        },
       })
       .populate({
         path: "reply_to.message_id",
@@ -790,10 +764,6 @@ class RoomService {
           path: "user_id",
           model: "User",
           select: SELECT_USER,
-          populate: {
-            path: "avatar_id",
-            model: "Attachment",
-          },
         },
       })
       .populate("reply_to.attachment_id")
@@ -814,26 +784,21 @@ class RoomService {
   }
 
   async updateRoomInfo(params: UpdateRoomInfoService): Promise<RoomInfoRes | null> {
-    const { room_avatar_id, room_name, room_id } = params
+    const {  room_name, room_id } = params
 
     const updateQuery: UpdateQuery<IRoom> = {}
-    if (room_avatar_id && isObjectID(room_avatar_id.toString())) {
-      updateQuery.room_avatar_id = room_avatar_id
-    }
+
     if (room_name) {
       updateQuery.room_name = room_name
     }
 
-    const room: Omit<IRoom, "room_avatar_id"> & { room_avatar_id: IAttachment } =
-      await Room.findOneAndUpdate(
-        { $and: [{ _id: room_id }, { is_deleted: false }] },
-        {
-          $set: updateQuery,
-        },
-        { new: true }
-      )
-        .populate("room_avatar_id")
-        .lean()
+    const room: IRoom = await Room.findOneAndUpdate(
+      { $and: [{ _id: room_id }, { is_deleted: false }] },
+      {
+        $set: updateQuery,
+      },
+      { new: true }
+    ).lean()
 
     if (!room) return null
 
@@ -842,7 +807,7 @@ class RoomService {
       room_id: room._id,
       room_name: room.room_name,
       room_type: room.room_type,
-      room_avatar: room?.room_avatar_id ? toAttachmentResponse(room.room_avatar_id) : null,
+      room_avatar: room?.room_avatar || null,
     }
   }
 }

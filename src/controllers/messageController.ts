@@ -163,7 +163,7 @@ class MessageController {
         message_id: req.message._id,
       })
 
-      socket?.to(message?.room_id?.toString())?.emit("react_message", message)
+      socket?.to(message?.room_id?.toString())?.emit("react_message", messageRes)
 
       return res.json(new ResponseData(messageRes, "Reacted message"))
     } catch (error) {

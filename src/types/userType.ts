@@ -1,13 +1,12 @@
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
-import { AttachmentRes, IAttachment } from "./attachmentType"
 import { QueryCommonParams } from "./commonType"
 
 export interface IUser {
   _id: ObjectId
   user_name: string
   role: UserRole
-  avatar_id?: ObjectId
+  avatar: string
   password: string
   bio?: string
   phone: string
@@ -26,9 +25,7 @@ export interface IUser {
   socket_id: string
 }
 
-export type UserPopulate = Omit<IUser, "avatar_id"> & {
-  avatar_id: IAttachment
-}
+export type UserPopulate = IUser
 
 /**
  * @openapi
@@ -168,7 +165,7 @@ export type UserRes = Pick<
   "bio" | "date_of_birth" | "gender" | "is_online" | "offline_at" | "role" | "phone" | "user_name"
 > & {
   user_id: ObjectId
-  avatar: AttachmentRes
+  avatar: string | null
   socket_id: string
   room_id?: ObjectId
   is_yourself?: boolean

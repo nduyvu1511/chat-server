@@ -50,10 +50,10 @@ export const createSingleChatSchema = Joi.object<createSingleChat>({
  *            type: number
  *            summary: Lấy id này từ partner_id của server Exxe, Phải có ít nhất 3 người thì mới tạo được nhóm chat
  *            example: [1,2,3]
- *        room_avatar_id:
+ *        room_avatar:
  *          type: string
  *          example: 631a99cc79c11fc36845e297
- *          summary: Lấy id này từ kết quả trả về của API POST '/api/attachment'
+ *          summary: Lấy từ url của hình ảnh của loại chuyến đi hoặc hình của tỉnh đến
  *        room_name:
  *          type: string
  *        compounding_car_id:
@@ -61,7 +61,7 @@ export const createSingleChatSchema = Joi.object<createSingleChat>({
  */
 export const createGroupChatSchema = Joi.object<CreateGroupChat>({
   member_ids: Joi.array().items(Joi.number()).required().min(1),
-  room_avatar_id: Joi.string().regex(OBJECT_ID_REGEX).optional(),
+  room_avatar: Joi.string().optional(),
   room_name: Joi.string().required(),
   compounding_car_id: Joi.number().required(),
 })
@@ -137,16 +137,16 @@ export const deleteMemberFromRoomSchema = Joi.object<{
  *    UpdateRoomInfo:
  *      type: object
  *      properties:
- *        room_avatar_id:
+ *        room_avatar:
  *          type: string
  *          example: 631a99cc79c11fc36845e297
- *          summary: Lấy từ Attachment API
+ *          summary: Lấy từ url của Server Exxe
  *        room_name:
  *          type: string
  */
 export const updateRoomSchema = Joi.object<UpdateRoomInfo>({
   room_name: Joi.string().optional(),
-  room_avatar_id: Joi.string().regex(OBJECT_ID_REGEX).optional(),
+  room_avatar: Joi.string().optional(),
 })
 
 /**

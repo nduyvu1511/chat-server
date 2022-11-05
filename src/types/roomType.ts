@@ -1,13 +1,12 @@
 import { ObjectId } from "mongodb"
-import { AttachmentRes, IAttachment } from "./attachmentType"
-import { AttachmentId, ListRes, Lnglat, QueryCommonParams } from "./commonType"
+import { ListRes, Lnglat, QueryCommonParams } from "./commonType"
 import { LastMessage, MessagePopulate, MessageRes } from "./messageType"
 import { IUser, UserPopulate } from "./userType"
 
 export interface IRoom {
   _id: ObjectId
   room_name: string
-  room_avatar_id: ObjectId
+  room_avatar: string
   room_type: RoomType
   member_ids: RoomMember[]
   leader_id: ObjectId
@@ -130,7 +129,7 @@ export interface RoomRes {
  *       room_name:
  *        type: string
  *       room_avatar:
- *        $ref: '#/components/schema/AttachmentRes'
+ *        type: string
  *       room_type:
  *        type: string
  *        enum: [group, single, admin]
@@ -142,19 +141,10 @@ export interface RoomRes {
 export interface RoomInfoRes {
   room_id: ObjectId
   room_name: string | null
-  room_avatar?: AttachmentRes | null
+  room_avatar?: string | null
   room_type: RoomType
   member_count: number
 }
-
-// export type RoomDetailPopulate = Omit<
-//   IRoom,
-//   "last_message_id" | "room_avatar_id" | "member_ids"
-// > & {
-//   last_message_id?: MessagePopulate
-//   room_avatar_id?: IAttachment
-//   member_ids: MemberRoomPopulate[]
-// }
 
 export interface LastMessagePopulate {
   text: string
@@ -202,7 +192,7 @@ export type RoomDetailRes = Omit<
   "message_unread_count" | "last_message" | "room_avatar"
 > & {
   offline_at: Date | null
-  room_avatar: AttachmentRes | null
+  room_avatar: string | null
   // pinned_messages: ListRes<MessageRes[]>
   messages: ListRes<MessageRes[]>
   members: ListRes<RoomMemberRes[]>
@@ -229,7 +219,7 @@ export type RoomDetailRes = Omit<
  *       room_name:
  *        type: string
  *       room_avatar:
- *        $ref: '#/components/schema/AttachmentRes'
+ *        type: string
  *       room_type:
  *        type: string
  *        enum: [group, single, admin]
@@ -279,13 +269,12 @@ export type RoomDetailRes = Omit<
 
 export type RoomDetailPopulate = Omit<
   IRoom,
-  "member_ids" | "pinned_message_ids" | "message_ids" | "leader_id" | "room_avatar_id"
+  "member_ids" | "pinned_message_ids" | "message_ids" | "leader_id"
 > & {
   member_ids: ListRes<UserPopulate[]>
   pinned_message_ids?: ListRes<MessagePopulate[]>
   message_ids: ListRes<MessagePopulate[]>
   leader_id?: UserPopulate
-  room_avatar_id?: IAttachment
 }
 
 export type ToRoomDetailResponse = {
@@ -311,7 +300,7 @@ export interface MemberLeaved {
   leaved_at: number
 }
 
-export type UpdateRoomInfo = Partial<Pick<IRoom, "room_name" | "room_avatar_id">> & {}
+export type UpdateRoomInfo = Partial<Pick<IRoom, "room_name" | "room_avatar">> & {}
 
 export type UpdateRoomInfoService = UpdateRoomInfo & {
   room_id: string
@@ -329,15 +318,12 @@ export interface createSingleChat {
 
 export interface CreateGroupChat {
   room_name: Pick<IRoom, "room_name">
-  room_avatar_id?: AttachmentId
+  room_avatar?: string
   member_ids: number[]
   compounding_car_id: number
 }
 
-export type CreateGroupChatServicesParams = Pick<
-  CreateGroupChat,
-  "room_avatar_id" | "room_name"
-> & {
+export type CreateGroupChatServicesParams = Pick<CreateGroupChat, "room_avatar" | "room_name"> & {
   member_ids: ObjectId[]
   compounding_car_id: number
 }
@@ -412,7 +398,7 @@ export type RoomMemberRes = Pick<
   "bio" | "gender" | "date_of_birth" | "is_online" | "user_name" | "phone" | "offline_at"
 > & {
   user_id: ObjectId
-  avatar: AttachmentRes
+  avatar: string | null
   socket_id: string | null
 }
 

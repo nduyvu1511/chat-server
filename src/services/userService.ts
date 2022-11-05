@@ -3,14 +3,7 @@ import jwt from "jsonwebtoken"
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
 import log from "../config/logger"
-import {
-  ACCESS_TOKEN_EXPIRED,
-  isObjectID,
-  REFRESH_TOKEN_EXPIRED,
-  SELECT_USER,
-  USERS_LIMIT,
-} from "../constant"
-import Attachment from "../models/attachment"
+import { ACCESS_TOKEN_EXPIRED, REFRESH_TOKEN_EXPIRED, SELECT_USER, USERS_LIMIT } from "../constant"
 import Room from "../models/room"
 import Token from "../models/token"
 import User from "../models/user"
@@ -23,7 +16,6 @@ import {
   CreateUserParams,
   GetTokenParams,
   GetUserByFilter,
-  IAttachment,
   IUser,
   ListRes,
   MessageUnreadCountQueryRes,
@@ -40,7 +32,6 @@ import {
 } from "../types"
 import { toUserListResponse, toUserResponse } from "../utils"
 import { toListResponse } from "./../utils/commonResponse"
-import AttachmentService from "./attachmentService"
 
 class UserService {
   async register(params: RegisterParams): Promise<UserRes | null> {
@@ -51,7 +42,6 @@ class UserService {
         ...params,
         user_name: params.phone,
         password,
-        avatar_id: null,
       })
       return (await user.save()).toObject()
     } catch (error) {
@@ -62,17 +52,8 @@ class UserService {
 
   async createUser(user: CreateUserParams): Promise<UserPopulate | null> {
     try {
-      const avatar = await AttachmentService.createAttachment({
-        attachment_type: "image",
-        thumbnail_url: user.avatar,
-        url: user.avatar,
-        asset_id: "",
-        public_id: "",
-      })
-      const _ = new User({ ...user, avatar_id: avatar?._id || null })
-      const userRes: IUser = (await _.save()).toObject()
-
-      return { ...userRes, avatar_id: avatar }
+      const data = new User(user)
+      return (await data.save()).toObject()
     } catch (error) {
       log.error(error)
       return null
@@ -87,9 +68,7 @@ class UserService {
 
       return await User.findByIdAndUpdate(_id, rest, {
         new: true,
-      })
-        .populate("avatar_id")
-        .lean()
+      }).lean()
     } catch (error) {
       log.error(error)
       return null
@@ -99,51 +78,10 @@ class UserService {
   async updateProfile(params: UpdateProfileService): Promise<UserPopulate | null> {
     try {
       const { user, ...data } = params
-      let avatar: IAttachment | null = null
 
-      if (params?.avatar && user?.avatar_id && isObjectID(user.avatar_id.toString())) {
-        const _avatar: IAttachment | null = await Attachment.findById(user?.avatar_id).lean()
-        if (!_avatar?._id) {
-          avatar = await AttachmentService.createAttachment({
-            thumbnail_url: params.avatar,
-            url: params.avatar,
-            attachment_type: "image",
-            asset_id: "",
-            public_id: "",
-          })
-        } else {
-          if (_avatar.url !== params.avatar && _avatar?.thumbnail_url !== params.avatar)
-            avatar = await AttachmentService.createAttachment({
-              thumbnail_url: params.avatar,
-              url: params.avatar,
-              attachment_type: "image",
-              asset_id: "",
-              public_id: "",
-            })
-        }
-      } else if (!params?.avatar && user?.avatar_id && isObjectID(user.avatar_id.toString())) {
-        avatar = { _id: user.avatar_id } as any
-      } else if (params?.avatar && !user?.avatar_id) {
-        avatar = await AttachmentService.createAttachment({
-          thumbnail_url: params.avatar,
-          url: params.avatar,
-          attachment_type: "image",
-          asset_id: "",
-          public_id: "",
-        })
-      } else {
-        avatar = await Attachment.findById(process.env.BLANK_AVATAR_ID)
-      }
-
-      return await User.findByIdAndUpdate(
-        user._id,
-        { ...data, avatar_id: avatar?._id },
-        {
-          new: true,
-        }
-      )
-        .populate("avatar_id")
-        .lean()
+      return await User.findByIdAndUpdate(user._id, data, {
+        new: true,
+      }).lean()
     } catch (error) {
       log.error(error)
       return null
@@ -211,17 +149,6 @@ class UserService {
       return null
     }
   }
-
-  // async loginToSocket({ socket_id, user_id }: LoginToSocket): Promise<IUser | null> {
-  //   try {
-  //     const user = await this.getUserByUserId(user_id as any)
-  //     if (!user) return null
-  //     await this.addUserSocketId({ user_id, socket_id })
-  //   } catch (error) {
-  //     log.error(error)
-  //     return null
-  //   }
-  // }
 
   async getSocketIdsByUserIds(user_ids: string[]): Promise<UserSocketId[]> {
     try {
@@ -292,7 +219,7 @@ class UserService {
   }
 
   async getUserByUserId(user_id: ObjectId): Promise<UserPopulate | null> {
-    return await User.findById(user_id).populate("avatar_id").lean()
+    return await User.findById(user_id).lean()
   }
 
   async getUserIds(user_ids: number[]): Promise<IUser[]> {
@@ -307,9 +234,7 @@ class UserService {
     return await User.findOne({
       user_id: params.user_id,
       phone: params.phone,
-    })
-      .populate("avatar_id")
-      .lean()
+    }).lean()
   }
 
   async getTopMembers(room_ids: string[]): Promise<TopMember[]> {
@@ -328,25 +253,25 @@ class UserService {
         {
           $limit: 4,
         },
-        {
-          $lookup: {
-            from: "attachments",
-            localField: "avatar_id",
-            foreignField: "_id",
-            as: "avatar_id",
-          },
-        },
-        {
-          $unwind: {
-            path: "$avatar_id",
-            preserveNullAndEmptyArrays: true,
-          },
-        },
+        // {
+        //   $lookup: {
+        //     from: "attachments",
+        //     localField: "avatar_id",
+        //     foreignField: "_id",
+        //     as: "avatar_id",
+        //   },
+        // },
+        // {
+        //   $unwind: {
+        //     path: "$avatar_id",
+        //     preserveNullAndEmptyArrays: true,
+        //   },
+        // },
         {
           $project: {
             _id: 0,
             user_id: "$_id",
-            user_avatar: { $ifNull: ["$avatar_id.thumbnail_url", null] },
+            user_avatar: { $ifNull: ["$avatar", null] },
             user_name: "$user_name",
             is_online: "$is_online",
           },
@@ -434,18 +359,16 @@ class UserService {
   }
 
   async getUserInfoByIUser(args: IUser): Promise<UserRes> {
-    const attachment = args?.avatar_id ? await Attachment.findById(args.avatar_id).lean() : null
-    const userPopulate: UserPopulate = { ...args, avatar_id: attachment as any }
     const count = await this.getMessageUnreadCount({
       user_id: args._id,
       room_ids: args.room_joined_ids as any,
     })
 
-    return { ...toUserResponse(userPopulate), message_unread_count: count.message_unread_count }
+    return { ...toUserResponse(args), message_unread_count: count.message_unread_count }
   }
 
   async getUserByPhone(phone: string): Promise<UserPopulate | null> {
-    const user: UserPopulate | null = await User.findOne({ phone }).populate("avatar_id").lean()
+    const user: UserPopulate | null = await User.findOne({ phone }).lean()
     return user
   }
 
@@ -474,7 +397,6 @@ class UserService {
     const total = await User.countDocuments(filter)
     const userRes: UserPopulate[] = await User.find(filter)
       .select(SELECT_USER)
-      .populate("avatar_id")
       .limit(limit)
       .skip(offset)
       .lean()

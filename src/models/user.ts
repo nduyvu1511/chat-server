@@ -29,9 +29,8 @@ const UserSchema = new Schema<IUser>({
     enum: ["customer", "car_driver", "admin"],
     required: true,
   },
-  avatar_id: {
-    type: Schema.Types.ObjectId,
-    ref: Attachment,
+  avatar: {
+    type: String,
     default: null,
   },
   bio: {

@@ -107,7 +107,7 @@ export const toRoomDetailResponse = ({
     compounding_car_id: data?.compounding_car_id || null,
     room_name: data?.room_name || null,
     room_type: data.room_type,
-    room_avatar: data?.room_avatar_id ? toAttachmentResponse(data.room_avatar_id) : null,
+    room_avatar: data?.room_avatar || null,
     // leader_info: data.leader_id ? toRoomMemberResponse(data.leader_id) : null,
     // pinned_messages: data?.pinned_message_ids?.data?.length
     //   ? toListResponse({
@@ -151,7 +151,7 @@ export const toRoomMemberOnlineCount = (params: { is_online: boolean }[]) => {
 
 export const toRoomMemberResponse = (data: UserPopulate): RoomMemberRes => ({
   user_id: data._id,
-  avatar: toAttachmentResponse(data.avatar_id),
+  avatar: data?.avatar || null,
   user_name: data?.user_name || "",
   phone: data.phone,
   bio: data?.bio || "",

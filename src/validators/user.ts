@@ -123,7 +123,7 @@ export const GetTokenSchema = Joi.object<GetTokenParams>({
  */
 export const updateProfileSchema = Joi.object<UpdateProfile>({
   user_name: Joi.string().optional(),
-  avatar: Joi.string().regex(URL_REGEX).optional(),
+  avatar: Joi.string().optional(),
   bio: Joi.string().optional(),
   date_of_birth: Joi.string().regex(DATE_REGEX).optional(),
   gender: Joi.string().valid("male", "female", "no_info").optional(),
