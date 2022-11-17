@@ -32,8 +32,31 @@ import {
 } from "../types"
 import { toUserListResponse, toUserResponse } from "../utils"
 import { toListResponse } from "./../utils/commonResponse"
+import RoomService from "./roomService"
 
 class UserService {
+  async createChatWithAdmin(user: IUser): Promise<boolean> {
+    try {
+      if (user.role === "admin") return false
+
+      const adminList: IUser[] = await User.find({ role: "admin" }).lean()
+
+      if (adminList?.length) {
+        await Promise.all(
+          adminList.map(async (partner) => {
+            await RoomService.createSingleChat({ partner, user, room_type: "admin" })
+            return true
+          })
+        )
+      }
+
+      return true
+    } catch (error) {
+      log.error(error)
+      return false
+    }
+  }
+
   async register(params: RegisterParams): Promise<UserRes | null> {
     try {
       const password = await this.hashPassword(params.password)
@@ -43,6 +66,9 @@ class UserService {
         user_name: params.phone,
         password,
       })
+
+      await this.createChatWithAdmin(user)
+
       return (await user.save()).toObject()
     } catch (error) {
       log.error(error)
@@ -53,7 +79,13 @@ class UserService {
   async createUser(user: CreateUserParams): Promise<UserPopulate | null> {
     try {
       const data = new User(user)
-      return (await data.save()).toObject()
+      const userRes = await data.save()
+
+      if (userRes?.role === "admin") return userRes
+
+      await this.createChatWithAdmin(userRes)
+
+      return userRes
     } catch (error) {
       log.error(error)
       return null

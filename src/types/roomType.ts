@@ -328,10 +328,11 @@ export type CreateGroupChatServicesParams = Pick<CreateGroupChat, "room_avatar" 
   compounding_car_id: number
 }
 
-export type createSingleChatServices = {
+export type CreateSingleChatService = {
   partner: IUser
   user: IUser
-  compounding_car_id: number
+  compounding_car_id?: number
+  room_type?: "single" | "admin"
 }
 
 export interface QueryRoomParams extends QueryCommonParams {

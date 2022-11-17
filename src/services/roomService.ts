@@ -10,7 +10,7 @@ import {
   AddMessageUnreadService,
   ClearMessageUnreadService,
   CreateGroupChatServicesParams,
-  createSingleChatServices,
+  CreateSingleChatService,
   DeleteMemberFromRoomService,
   GetRoomDetailService,
   GetRoomIdByUserId,
@@ -41,19 +41,20 @@ import { toMessageListResponse } from "../utils/messageResponse"
 import { GetMessagesByFilter } from "../validators"
 import UserService from "./userService"
 class RoomService {
-  async createSingleChat(params: createSingleChatServices): Promise<IRoom | null> {
+  async createSingleChat(params: CreateSingleChatService): Promise<IRoom | null> {
     try {
       const { partner, user } = params
 
       const room = new Room({
-        room_type: "single",
+        room_type: params?.room_type === "admin" ? "admin" : "single",
         room_name: null,
         member_ids: [{ user_id: user._id }, { user_id: partner._id }],
-        compounding_car_id: params.compounding_car_id,
+        compounding_car_id: params?.compounding_car_id || null,
       })
-
       const roomRes: IRoom = (await room.save()).toObject()
+
       this.saveRoomToUserIds([partner._id, user._id], room._id)
+
       UserService.setUserIdsChattedWith({
         user_ids: [user._id, partner._id],
         type: "add",
@@ -111,7 +112,7 @@ class RoomService {
         room_avatar: room_avatar || null,
         room_name: room_name || null,
         member_ids: member_ids?.map((user_id) => ({ user_id })),
-        compounding_car_id: params.compounding_car_id,
+        compounding_car_id: params?.compounding_car_id || null,
       })
 
       const roomRes: IRoom = (await room.save()).toObject()
@@ -784,7 +785,7 @@ class RoomService {
   }
 
   async updateRoomInfo(params: UpdateRoomInfoService): Promise<RoomInfoRes | null> {
-    const {  room_name, room_id } = params
+    const { room_name, room_id } = params
 
     const updateQuery: UpdateQuery<IRoom> = {}
 
