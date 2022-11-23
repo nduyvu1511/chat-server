@@ -13,7 +13,7 @@ import {
   ToRoomStatus,
   UserPopulate,
 } from "../types"
-import { toAttachmentResponse, toDefaultListResponse, toListResponse } from "./commonResponse"
+import { toDefaultListResponse, toListResponse } from "./commonResponse"
 import { toLastMessageResponse, toMessageListResponse } from "./messageResponse"
 import { toUserListResponse } from "./userResponse"
 

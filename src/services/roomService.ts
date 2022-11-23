@@ -649,7 +649,7 @@ class RoomService {
         }
       ).lean()
 
-      if (!room) return null
+      if (!room || room?.room_type === "admin") return null
 
       // Delete room if do not have messages
       if ((room?.message_ids || [])?.length === 0) {
