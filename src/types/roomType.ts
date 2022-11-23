@@ -337,6 +337,7 @@ export type CreateSingleChatService = {
 
 export interface QueryRoomParams extends QueryCommonParams {
   search_term?: string
+  room_type?: RoomType | undefined
 }
 
 export interface QueryMembersInRoomParams extends QueryCommonParams {

@@ -409,7 +409,7 @@ class RoomService {
   }
 
   async getRoomList(params: QueryRoomServiceParams): Promise<ListRes<RoomRes[]>> {
-    const { limit, offset, search_term, room_ids, current_user } = params
+    const { limit, offset, search_term, room_ids, current_user, room_type = undefined } = params
 
     const filter = {
       $and: [
@@ -418,6 +418,7 @@ class RoomService {
             $in: room_ids,
           },
         },
+        { room_type },
         {
           is_deleted: false,
         },

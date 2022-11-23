@@ -106,7 +106,8 @@ export const addMessagePinnedSchema = Joi.object({
 export const getRoomListSchema = Joi.object<QueryRoomParams>({
   limit: Joi.number().optional(),
   offset: Joi.number().optional(),
-  search_term: Joi.string().optional(),
+  search_term: Joi.string().optional().allow("", null),
+  room_type: Joi.string().optional().allow("", null),
 })
 
 export const roomIdSchema = Joi.object<{ room_id: ObjectId }>({

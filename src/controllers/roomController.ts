@@ -308,12 +308,14 @@ class RoomController {
       const limit = Number(req.query?.limit) || ROOMS_LIMIT
       const offset = Number(req.query?.offset) || 0
       const search_term = req.query?.search_term ? req.query?.search_term + "" : ""
+      const room_type = req.query?.room_type + "" || undefined
       const rooms = await RoomService.getRoomList({
         limit,
         offset,
         search_term,
         room_ids: req.user?.room_joined_ids || [],
         current_user: req.user,
+        room_type: room_type as any,
       })
       return res.json(new ResponseData(rooms))
     } catch (error) {
