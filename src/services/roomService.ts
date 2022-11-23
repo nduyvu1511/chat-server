@@ -411,33 +411,22 @@ class RoomService {
   async getRoomList(params: QueryRoomServiceParams): Promise<ListRes<RoomRes[]>> {
     const { limit, offset, search_term, room_ids, current_user, room_type = undefined } = params
 
-    const filter: FilterQuery<IRoom> =
-      room_type === "admin"
-        ? {
-            $and: [
-              {
-                _id: {
-                  $in: room_ids,
-                },
-              },
-              { room_type: "admin" },
-              {
-                is_deleted: false,
-              },
-            ],
-          }
-        : {
-            $and: [
-              {
-                _id: {
-                  $in: room_ids,
-                },
-              },
-              {
-                is_deleted: false,
-              },
-            ],
-          }
+    const filter: FilterQuery<IRoom> = {
+      $and: [
+        {
+          _id: {
+            $in: room_ids,
+          },
+        },
+        {
+          is_deleted: false,
+        },
+      ],
+    }
+
+    if (room_type === "admin") {
+      filter.$and?.push({ room_type: "admin" })
+    }
 
     const query: PipelineStage[] = [
       {
