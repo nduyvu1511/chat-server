@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken"
 import { ObjectId } from "mongodb"
 import { FilterQuery } from "mongoose"
 import log from "../config/logger"
-import { ACCESS_TOKEN_EXPIRED, REFRESH_TOKEN_EXPIRED, SELECT_USER, USERS_LIMIT } from "../constant"
+import { SELECT_USER, USERS_LIMIT } from "../constant"
 import Room from "../models/room"
 import Token from "../models/token"
 import User from "../models/user"
@@ -189,13 +189,14 @@ class UserService {
           $in: user_ids,
         },
       })
-        .select(["socket_id", "room_joined_ids"])
+        .select(["socket_id", "room_joined_ids", "device_id"])
         .lean()
 
       if (!users?.length) return []
       return users.map((item) => ({
         socket_id: item.socket_id,
         user_id: item._id,
+        device_id: item.device_id,
         room_joined_ids: item?.room_joined_ids || [],
       }))
     } catch (error) {
@@ -410,15 +411,15 @@ class UserService {
     const query: FilterQuery<Object> =
       status === "block"
         ? {
-            $addToSet: {
-              blocked_user_ids: partner_id,
-            },
-          }
+          $addToSet: {
+            blocked_user_ids: partner_id,
+          },
+        }
         : {
-            $pull: {
-              blocked_user_ids: partner_id,
-            },
-          }
+          $pull: {
+            blocked_user_ids: partner_id,
+          },
+        }
 
     return await User.findByIdAndUpdate(user_id, query, { new: true }).lean()
   }
@@ -449,9 +450,6 @@ class UserService {
     const token = jwt.sign(
       { _id: user._id, user_id: user.user_id, role: user.role },
       process.env.JWT_REFRESH_SECRET as string,
-      {
-        expiresIn: REFRESH_TOKEN_EXPIRED,
-      }
     )
 
     const data = new Token({ token, user_id: user._id })
@@ -460,19 +458,43 @@ class UserService {
     return token
   }
 
-  async deleteRefreshToken(user_id: string): Promise<boolean> {
-    await Token.findOneAndDelete({ user_id })
+  async deleteToken(user_id: ObjectId): Promise<boolean> {
+    await Token.deleteMany({ user_id })
     return true
   }
 
-  generateToken(user: IUser | UserPopulate): string {
-    return jwt.sign(
+  async login(user_id: number, hash_token: string, device_id: string): Promise<IUser | null> {
+    try {
+      const userRes: IUser | null = await User.findOneAndUpdate(
+        { user_id },
+        {
+          $set: {
+            hash_token: hash_token,
+            device_id: device_id
+          },
+        },
+        { new: true }
+      ).lean()
+
+      return userRes
+    } catch (error) {
+      log.error(error)
+      return null
+    }
+  }
+
+
+
+  async generateToken(user: IUser | UserPopulate): Promise<string> {
+    const token = jwt.sign(
       { _id: user._id, user_id: user.user_id, role: user.role },
       process.env.JWT_SECRET as string,
-      {
-        expiresIn: ACCESS_TOKEN_EXPIRED,
-      }
     )
+
+    const data = new Token({ token, user_id: user._id })
+    await data.save()
+
+    return token
   }
 
   async requestRefreshToken({ user, refresh_token }: RequestRefreshToken): Promise<{
@@ -485,12 +507,9 @@ class UserService {
     jwt.sign(
       { _id: user._id, user_id: user.user_id, role: user.role },
       process.env.JWT_SECRET as string,
-      {
-        expiresIn: REFRESH_TOKEN_EXPIRED,
-      }
     )
 
-    const access_token = this.generateToken(user)
+    const access_token = await this.generateToken(user)
     const _refresh_token = await this.generateRefreshToken(user)
 
     return {

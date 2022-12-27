@@ -43,7 +43,7 @@ export async function checkRoomParamsExist(
   }
 }
 
-export async function checkRoomByCompoundingCarIdParamsExist(
+export async function checkRoomByDependIdParamsExist(
   req: Express.Request,
   res: Express.Response,
   next: Express.NextFunction
@@ -52,7 +52,7 @@ export async function checkRoomByCompoundingCarIdParamsExist(
     const data: IRoom | null = await Room.findOne({
       $and: [
         {
-          compounding_car_id: req.params.compounding_car_id,
+          depend_id: req.params.depend_id,
         },
         { is_deleted: false },
       ],

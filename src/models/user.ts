@@ -1,7 +1,6 @@
 import { ObjectId } from "mongodb"
 import Mongoose, { Schema } from "mongoose"
 import { IUser } from "../types"
-import Attachment from "./attachment"
 
 const UserSchema = new Schema<IUser>({
   phone: {
@@ -63,12 +62,22 @@ const UserSchema = new Schema<IUser>({
       _id: false,
     },
   ],
+  // field for case single device
+  hash_token: {
+    type: String,
+    default: null,
+  },
+  device_id: {
+    type: String,
+    default: null,
+  },
+  //--------------
   password: {
     type: String,
     default: null,
   },
   message_unread_count: {
-    type: Number,
+    typ: Number,
     default: 0,
   },
   created_at: {

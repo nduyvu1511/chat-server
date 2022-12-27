@@ -25,8 +25,15 @@ class UserController {
     try {
       const user = await UserService.getUserByPhoneAndUserId(req.body)
       if (!user) return res.json(new ResponseError("User not found, please register first"))
-      const access_token = UserService.generateToken(user)
+
+      await
+        UserService.deleteToken(user._id);
+
+      const access_token = await UserService.generateToken(user)
       const refresh_token = await UserService.generateRefreshToken(user)
+
+      const hash_token = await bcrypt.hash(access_token, 10);
+      UserService.login(user.user_id, hash_token, req.body.device_id)
 
       return res.json(
         new ResponseData({
@@ -41,7 +48,7 @@ class UserController {
   }
 
   async login(req: Express.Request, res: Express.Response) {
-    const { password, phone } = req.body
+    const { password, phone, device_id } = req.body
     try {
       const user = await UserService.getUserByPhone(phone)
       if (!user) {
@@ -54,8 +61,14 @@ class UserController {
       if (!(await bcrypt.compare(password, user?.password || "")))
         return res.json(new ResponseError("Password is not match"))
 
-      const access_token = UserService.generateToken(user)
+      await
+        UserService.deleteToken(user._id);
+
+      const access_token = await UserService.generateToken(user)
       const refresh_token = await UserService.generateRefreshToken(user)
+
+      const hash_token = await bcrypt.hash(access_token, 10);
+      UserService.login(user.user_id, hash_token, device_id)
 
       return res.json(
         new ResponseData<UserLoginRes>({
@@ -71,7 +84,7 @@ class UserController {
 
   async logout(req: Express.Request, res: Express.Response) {
     try {
-      await UserService.deleteRefreshToken(req.user._id.toString())
+      await UserService.deleteToken(req.user._id)
       return res.json(new ResponseData(null, "logout successfully"))
     } catch (error) {
       return res.status(400).send(error)

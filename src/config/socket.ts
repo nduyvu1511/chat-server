@@ -5,14 +5,18 @@ import { DefaultEventsMap } from "socket.io/dist/typed-events"
 import MessageService from "../services/messageService"
 import RoomService from "../services/roomService"
 import UserService from "../services/userService"
-import { FriendStatusRes, IUser, MessageRes, RoomTypingRes } from "../types"
+import { FriendStatusRes, IUser, MessagePopulate, MessageRes, RoomTypingRes } from "../types"
 import log from "./logger"
+import pushNotificationService from "../services/pushNotificationService"
+import { toMessageText } from "../utils/messageResponse"
 
 const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) => {
   try {
-    io.use((socket, next) => {
+    io.use(async (socket, next) => {
       const { access_token = "" } = socket.handshake.query
       if (!access_token) return new Error("No token provided")
+      console.log(access_token);
+
 
       const authUser = jwt.verify(access_token as string, process.env.JWT_SECRET as string) as IUser
 
@@ -28,11 +32,14 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
     io.on("connection", (socket) => {
       // User login to our system
       socket.on("login", async () => {
+
         const user = await UserService.addUserSocketId({
           socket_id: socket.id,
           user_id: socket.data._id,
         })
         if (!user) return
+
+        console.log("login success");
 
         const userRes = await UserService.getUserInfoByIUser(user)
         socket.emit("login", userRes)
@@ -149,6 +156,28 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
         if (!partnerSocketIds?.length) return
 
         partnerSocketIds.forEach(async (item) => {
+          if (item.device_id) {
+
+            const message = toMessageText(payload)
+            console.log(message);
+
+            const notification = {
+              contents: {
+                'en': message,
+              },
+              priority: 10,
+              headings: {
+                'en': "Bạn có tin nhắn mới",
+              },
+              large_icon: payload.author.author_avatar,
+              include_player_ids: [item.device_id],
+              data: payload,
+            };
+
+            console.log(notification);
+            pushNotificationService.createNotication(notification)
+          }
+
           if (item.socket_id) {
             if (
               Array.from(io.sockets.adapter.sids.get(item.socket_id) || [])?.[1] !==
@@ -164,6 +193,7 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
                   .to(item.socket_id)
                   .emit("receive_unread_message", { ...payload, is_author: false })
               }
+
             }
           } else {
             RoomService.addMessageUnreadToRoom({

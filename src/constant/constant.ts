@@ -23,7 +23,7 @@ export const SELECT_USER = [
 export const SELECT_ROOM = [
   "_id",
   "room_name",
-  "compounding_car_id",
+  "depend_id",
   "room_avatar",
   "room_type",
   "member_ids",

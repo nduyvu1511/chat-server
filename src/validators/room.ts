@@ -26,12 +26,12 @@ import {
  *      properties:
  *        partner_id:
  *          type: number
- *        compounding_car_id:
+ *        depend_id:
  *          type: number
  */
 export const createSingleChatSchema = Joi.object<createSingleChat>({
   partner_id: Joi.alternatives().try(Joi.number(), Joi.string().regex(OBJECT_ID_REGEX)).required(),
-  compounding_car_id: Joi.number().required(),
+  depend_id: Joi.number().required(),
 })
 
 /**
@@ -56,14 +56,14 @@ export const createSingleChatSchema = Joi.object<createSingleChat>({
  *          summary: Lấy từ url của hình ảnh của loại chuyến đi hoặc hình của tỉnh đến
  *        room_name:
  *          type: string
- *        compounding_car_id:
+ *        depend_id:
  *          type: string
  */
 export const createGroupChatSchema = Joi.object<CreateGroupChat>({
   member_ids: Joi.array().items(Joi.number()).required().min(1),
   room_avatar: Joi.string().optional(),
   room_name: Joi.string().required(),
-  compounding_car_id: Joi.number().required(),
+  depend_id: Joi.number().required(),
 })
 
 export const listSchema = Joi.object<QueryCommonParams>({
@@ -114,8 +114,8 @@ export const roomIdSchema = Joi.object<{ room_id: ObjectId }>({
   room_id: Joi.string().regex(OBJECT_ID_REGEX).required(),
 })
 
-export const compoundingCarIdSchema = Joi.object<{ compounding_car_id: ObjectId }>({
-  compounding_car_id: Joi.number().required(),
+export const dependIdSchema = Joi.object<{ depend_id: ObjectId }>({
+  depend_id: Joi.number().required(),
 })
 
 export const addMemberToRoomSchema = Joi.object<{ user_id: ObjectId | number; room_id: ObjectId }>({

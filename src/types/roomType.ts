@@ -13,7 +13,7 @@ export interface IRoom {
   last_message_id?: ObjectId
   pinned_message_ids: ObjectId[]
   members_leaved: MemberLeaved[]
-  compounding_car_id: number
+  depend_id: number
   message_ids: ObjectId[]
   is_deleted: boolean
   created_at: Date
@@ -61,7 +61,7 @@ export interface IRoom {
  *      properties:
  *       room_id:
  *        type: string
- *       compounding_car_id:
+ *       depend_id:
  *        type: string
  *       room_name:
  *        type: string
@@ -94,7 +94,7 @@ export interface IRoom {
  */
 export interface RoomRes {
   room_id: ObjectId
-  compounding_car_id: number | null
+  depend_id: number | null
   room_name: string | null
   room_avatar?: string | null
   room_type: RoomType
@@ -159,7 +159,7 @@ export interface LastMessagePopulate {
 export type RoomPopulate = Pick<IRoom, "room_type" | "room_name"> & {
   member_count: number
   room_id: ObjectId
-  compounding_car_id: number | null
+  depend_id: number | null
   room_avatar?: string
   top_members: {
     user_id: ObjectId
@@ -313,25 +313,25 @@ export interface RoomMemberWithId {
 
 export interface createSingleChat {
   partner_id: number
-  compounding_car_id: number
+  depend_id: number
 }
 
 export interface CreateGroupChat {
   room_name: Pick<IRoom, "room_name">
   room_avatar?: string
   member_ids: number[]
-  compounding_car_id: number
+  depend_id: number
 }
 
 export type CreateGroupChatServicesParams = Pick<CreateGroupChat, "room_avatar" | "room_name"> & {
   member_ids: ObjectId[]
-  compounding_car_id: number
+  depend_id: number
 }
 
 export type CreateSingleChatService = {
   partner: IUser
   user: IUser
-  compounding_car_id?: number
+  depend_id?: number
   room_type?: "single" | "admin"
 }
 
@@ -427,7 +427,7 @@ export interface AddMemberInRoomService {
   room: IRoom
 }
 
-export interface DeleteMemberFromRoomService extends AddMemberInRoomService {}
+export interface DeleteMemberFromRoomService extends AddMemberInRoomService { }
 
 export interface AddMessageUnread {
   message_id: ObjectId
@@ -447,10 +447,10 @@ export interface RoomTypingRes {
 export interface GetRoomIdByUserId {
   room_joined_ids: ObjectId[]
   partner_id: ObjectId
-  compounding_car_id: number
+  depend_id: number
 }
 
-export interface SoftDeleteRoomsByCompoundingCarId {
-  compounding_car_id: number
+export interface SoftDeleteRoomsByDependId {
+  depend_id: number
   current_user_id: ObjectId
 }
