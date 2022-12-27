@@ -15,8 +15,6 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
     io.use(async (socket, next) => {
       const { access_token = "" } = socket.handshake.query
       if (!access_token) return new Error("No token provided")
-      console.log(access_token);
-
 
       const authUser = jwt.verify(access_token as string, process.env.JWT_SECRET as string) as IUser
 
@@ -38,8 +36,6 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
           user_id: socket.data._id,
         })
         if (!user) return
-
-        console.log("login success");
 
         const userRes = await UserService.getUserInfoByIUser(user)
         socket.emit("login", userRes)
@@ -159,7 +155,6 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
           if (item.device_id) {
 
             const message = toMessageText(payload)
-            console.log(message);
 
             const notification = {
               contents: {
@@ -174,7 +169,6 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
               data: payload,
             };
 
-            console.log(notification);
             pushNotificationService.createNotication(notification)
           }
 
