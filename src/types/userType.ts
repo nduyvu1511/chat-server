@@ -8,6 +8,8 @@ export interface IUser {
   role: UserRole
   avatar: string
   password: string
+  hash_token: string
+  device_id: string
   bio?: string
   phone: string
   user_id: number
@@ -232,7 +234,7 @@ export type UpdateProfile = Partial<
 
 export type UpdateProfileService = UpdateProfile & { user: IUser }
 
-export type GetTokenParams = Pick<IUser, "user_id" | "phone">
+export type GetTokenParams = Pick<IUser, "user_id" | "phone" | "device_id">
 
 export type UserRole = "customer" | "car_driver" | "admin"
 
@@ -257,6 +259,7 @@ export type getUserBlockListParams = Pick<IUser, "blocked_user_ids"> & QueryComm
 export interface LoginParams {
   phone: string
   password: string
+  device_id: string
 }
 
 export interface LoginSocket {
@@ -341,6 +344,7 @@ export interface LoginToSocket {
 export interface UserSocketId {
   user_id: ObjectId
   socket_id: string
+  device_id: string
   room_joined_ids: string[]
 }
 

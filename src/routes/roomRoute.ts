@@ -2,7 +2,7 @@ import Express from "express"
 import RoomController from "../controllers/roomController"
 import {
   bodyMiddleware,
-  checkRoomByCompoundingCarIdParamsExist,
+  checkRoomByDependIdParamsExist,
   checkRoomParamsExist,
   checkUserExist,
   paramsMiddleware,
@@ -13,7 +13,7 @@ import {
 import {
   addMessagePinnedSchema,
   addMessageUnReadSchema,
-  compoundingCarIdSchema,
+  dependIdSchema,
   createGroupChatSchema,
   createSingleChatSchema,
   getRoomListSchema,
@@ -180,7 +180,6 @@ router.post(
  */
 router.delete(
   "/:room_id",
-  verifyTokenAndDriver,
   paramsMiddleware(roomIdSchema),
   checkRoomParamsExist,
   RoomController.softDeleteRoom
@@ -188,13 +187,13 @@ router.delete(
 
 /**
  * @openapi
- * '/api/room/compounding_car_id/{compounding_car_id}':
+ * '/api/room/depend_id/{depend_id}':
  *  delete:
  *     tags:
  *      - Room
  *     parameters:
  *       - in: path
- *         name: compounding_car_id
+ *         name: depend_id
  *         required: true
  *         schema:
  *           type: number
@@ -215,17 +214,17 @@ router.delete(
  *         description: Bad Request1
  */
 router.delete(
-  "/compounding_car_id/:compounding_car_id",
+  "/depend_id/:depend_id",
   verifyTokenAndDriver,
-  paramsMiddleware(compoundingCarIdSchema),
-  RoomController.softDeleteRoomsByCompoundingCarId
+  paramsMiddleware(dependIdSchema),
+  RoomController.softDeleteRoomsByDependId
 )
 
 // router.patch(
-//   "/restore/ride/:compounding_car_id",
+//   "/restore/ride/:depend_id",
 //   verifyTokenAndDriver,
-//   paramsMiddleware(compoundingCarIdSchema),
-//   RoomController.restoreSoftDeleteRoomByCompoundingCarId
+//   paramsMiddleware(dependIdSchema),
+//   RoomController.restoreSoftDeleteRoomByDependId
 // )
 
 /**
@@ -318,7 +317,7 @@ router.delete(
 
 /**
  * @openapi
- * '/api/room/compounding_car_id/{compounding_car_id}/leave':
+ * '/api/room/depend_id/{depend_id}/leave':
  *  delete:
  *     tags:
  *      - Room
@@ -328,7 +327,7 @@ router.delete(
  *      - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: compounding_car_id
+ *         name: depend_id
  *         required: true
  *         schema:
  *           type: string
@@ -347,16 +346,16 @@ router.delete(
  *         description: Bad Request
  */
 router.delete(
-  "/compounding_car_id/:compounding_car_id/leave",
+  "/depend_id/:depend_id/leave",
   verifyToken,
-  paramsMiddleware(compoundingCarIdSchema),
-  checkRoomByCompoundingCarIdParamsExist,
+  paramsMiddleware(dependIdSchema),
+  checkRoomByDependIdParamsExist,
   RoomController.leaveRoom
 )
 
 /**
  * @openapi
- * '/api/room/compounding_car_id/{compounding_car_id}/join':
+ * '/api/room/depend_id/{depend_id}/join':
  *  post:
  *     tags:
  *      - Room
@@ -366,7 +365,7 @@ router.delete(
  *      - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: compounding_car_id
+ *         name: depend_id
  *         required: true
  *         schema:
  *           type: string
@@ -385,10 +384,10 @@ router.delete(
  *         description: Bad Request
  */
 router.post(
-  "/compounding_car_id/:compounding_car_id/join",
+  "/depend_id/:depend_id/join",
   verifyToken,
-  paramsMiddleware(compoundingCarIdSchema),
-  checkRoomByCompoundingCarIdParamsExist,
+  paramsMiddleware(dependIdSchema),
+  checkRoomByDependIdParamsExist,
   RoomController.joinRoom
 )
 

@@ -2,6 +2,7 @@ import * as express from "express"
 import jwt from "jsonwebtoken"
 import { IUser } from "../types"
 import ResponseError from "../utils/apiError"
+import Token from "../models/token"
 
 const verifyToken = async (
   req: express.Request,
@@ -15,6 +16,11 @@ const verifyToken = async (
   }
 
   try {
+    const hasToken = await Token.findOne({ token })
+    if (!hasToken) {
+      return res.json(new ResponseError("Token invalid!", 403, false, null))
+    }
+
     const authUser = jwt.verify(token, process.env.JWT_SECRET as string) as IUser
     req.user = authUser
     return next()

@@ -95,6 +95,7 @@ export const createUserSchema = Joi.object<CreateUserParams>({
 export const GetTokenSchema = Joi.object<GetTokenParams>({
   user_id: Joi.number().required(),
   phone: Joi.string().min(10).required(),
+  device_id: Joi.string(),
 })
 
 /**
@@ -160,6 +161,7 @@ export const blockOrUnblockUserSchema = Joi.object<BlockOrUnBlockUserParams>({
 export const loginSchema = Joi.object<LoginParams>({
   phone: Joi.string().min(10).required(),
   password: Joi.string().min(8).required(),
+  device_id: Joi.string(),
 })
 
 /**

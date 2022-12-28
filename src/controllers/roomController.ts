@@ -27,7 +27,7 @@ class RoomController {
 
       // Check partner and user already has room
       const r_id = await RoomService.getRoomIdByUserId({
-        compounding_car_id: bodyParams.compounding_car_id,
+        depend_id: bodyParams.depend_id,
         partner_id: partner._id,
         room_joined_ids: req.user.room_joined_ids as any[],
       })
@@ -46,7 +46,7 @@ class RoomController {
       const room = await RoomService.createSingleChat({
         partner: partner as any,
         user: req.user,
-        compounding_car_id: bodyParams.compounding_car_id,
+        depend_id: bodyParams.depend_id,
       })
       if (!room) return res.json(new ResponseError("Create room chat failed"))
 
@@ -75,8 +75,8 @@ class RoomController {
       const params: CreateGroupChat = req.body
       const memberIds: number[] = _.uniq([...params.member_ids, user.user_id])
 
-      if (await RoomService.getRoomByCompoundingCarId(params.compounding_car_id)) {
-        return res.json(new ResponseError("This compounding car already contain room chat"))
+      if (await RoomService.getRoomByDependId(params.depend_id)) {
+        return res.json(new ResponseError("This depend id already contain room chat"))
       }
 
       if (memberIds?.length < 2) {
@@ -132,51 +132,55 @@ class RoomController {
 
   async softDeleteRoom(req: Express.Request, res: Express.Response) {
     try {
-      const room = await RoomService.softDeleteRoom(req.room)
-      if (!room) return res.json(new ResponseError("Failed to soft delete room"))
+      if (req.user?.role === "customer" && req.room.room_type === "single") {
+        this.leaveRoom(req, res);
+      } else {
+        const room = await RoomService.softDeleteRoom(req.room)
+        if (!room) return res.json(new ResponseError("Failed to soft delete room"))
 
-      setTimeout(async () => {
-        const users = await RoomService.getSocketIdsFromRoom(room._id.toString())
-        users.forEach((item) => {
-          if (item?.socket_id && item.user_id.toString() !== req.user._id.toString()) {
-            socket?.to(item.socket_id)?.emit("delete_room", room._id)
-          }
-        })
-      }, 0)
+        setTimeout(async () => {
+          const users = await RoomService.getSocketIdsFromRoom(room._id.toString())
+          users.forEach((item) => {
+            if (item?.socket_id && item.user_id.toString() !== req.user._id.toString()) {
+              socket?.to(item.socket_id)?.emit("delete_room", room._id)
+            }
+          })
+        }, 0)
 
-      return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
+        return res.json(new ResponseData({ room_id: req.params.room_id }, "Soft deleted room"))
+      }
     } catch (error) {
       log.error(error)
       return res.status(400).send(error)
     }
   }
 
-  async softDeleteRoomsByCompoundingCarId(req: Express.Request, res: Express.Response) {
+  async softDeleteRoomsByDependId(req: Express.Request, res: Express.Response) {
     try {
-      const compounding_car_id = Number(req.params.compounding_car_id)
-      const socketIds = await RoomService.softDeleteRoomsByCompoundingCarId({
-        compounding_car_id,
+      const depend_id = Number(req.params.depend_id)
+      const socketIds = await RoomService.softDeleteRoomsByDependId({
+        depend_id: depend_id,
         current_user_id: req.user._id,
       })
 
       if (socketIds === undefined)
-        return res.json(new ResponseError("This compounding car does not contain any room chat"))
+        return res.json(new ResponseError("This depend id does not contain any room chat"))
 
       socketIds?.forEach((id) => {
-        socket?.to(id).emit("delete_room_by_compounding_car", compounding_car_id)
+        socket?.to(id).emit("delete_room_by_depend_id", depend_id)
       })
 
-      return res.json(new ResponseData({ compounding_car_id }, "Soft deleted room"))
+      return res.json(new ResponseData({ depend_id }, "Soft deleted room"))
     } catch (error) {
       log.error(error)
       return res.status(400).send(error)
     }
   }
 
-  async restoreSoftDeleteRoomByCompoundingCarId(req: Express.Request, res: Express.Response) {
+  async restoreSoftDeleteRoomByDependId(req: Express.Request, res: Express.Response) {
     try {
       const status = await RoomService.restoreSoftDeleteRoom({
-        compounding_car_id: Number(req.params.compounding_car_id),
+        depend_id: Number(req.params.depend_id),
       })
       if (!status) return res.json(new ResponseError("Failed to soft delete room"))
 

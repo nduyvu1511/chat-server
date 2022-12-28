@@ -26,7 +26,7 @@ import {
   RoomMemberRes,
   RoomPopulate,
   RoomRes,
-  SoftDeleteRoomsByCompoundingCarId,
+  SoftDeleteRoomsByDependId,
   UpdateRoomInfoService,
   UserPopulate,
   UserSocketId,
@@ -49,7 +49,7 @@ class RoomService {
         room_type: params?.room_type === "admin" ? "admin" : "single",
         room_name: null,
         member_ids: [{ user_id: user._id }, { user_id: partner._id }],
-        compounding_car_id: params?.compounding_car_id || null,
+        depend_id: params?.depend_id || null,
       })
       const roomRes: IRoom = (await room.save()).toObject()
 
@@ -71,13 +71,13 @@ class RoomService {
   async getRoomIdByUserId({
     room_joined_ids,
     partner_id,
-    compounding_car_id,
+    depend_id: depend_id,
   }: GetRoomIdByUserId): Promise<ObjectId | undefined> {
     try {
       const room = await Room.findOne({
         $and: [
           { _id: { $in: room_joined_ids } },
-          { compounding_car_id },
+          { depend_id: depend_id },
           { room_type: "single" },
           { is_deleted: false },
         ],
@@ -112,7 +112,7 @@ class RoomService {
         room_avatar: room_avatar || null,
         room_name: room_name || null,
         member_ids: member_ids?.map((user_id) => ({ user_id })),
-        compounding_car_id: params?.compounding_car_id || null,
+        depend_id: params?.depend_id || null,
       })
 
       const roomRes: IRoom = (await room.save()).toObject()
@@ -220,9 +220,9 @@ class RoomService {
     }
   }
 
-  async getRoomByCompoundingCarId(compounding_car_id: number): Promise<IRoom | null> {
+  async getRoomByDependId(depend_id: number): Promise<IRoom | null> {
     try {
-      return await Room.findOne({ $and: [{ compounding_car_id }, { is_deleted: false }] })
+      return await Room.findOne({ $and: [{ depend_id: depend_id }, { is_deleted: false }] })
     } catch (error) {
       log.error(error)
       return null
@@ -372,7 +372,7 @@ class RoomService {
 
       return {
         room_id: room._id,
-        compounding_car_id: room?.compounding_car_id || null,
+        depend_id: room?.depend_id || null,
         room_type: room.room_type,
         room_name,
         room_avatar,
@@ -465,8 +465,8 @@ class RoomService {
               $project: {
                 _id: 0,
                 user_id: "$_id",
-                user_avatar: { $ifNull: ["$avatar", null] },
                 user_name: "$user_name",
+                avatar: { $ifNull: ["$avatar", null] },
                 is_online: "$is_online",
               },
             },
@@ -552,7 +552,7 @@ class RoomService {
       {
         $project: {
           room_id: "$_id",
-          compounding_car_id: { $ifNull: ["$compounding_car_id", null] },
+          depend_id: { $ifNull: ["$depend_id", null] },
           room_name: "$room_name",
           room_type: "$room_type",
           last_message: "$last_message_id",
@@ -674,13 +674,13 @@ class RoomService {
   }
 
   // This function will return list socket id of user who in the room deleted
-  async softDeleteRoomsByCompoundingCarId({
-    compounding_car_id,
+  async softDeleteRoomsByDependId({
+    depend_id: depend_id,
     current_user_id,
-  }: SoftDeleteRoomsByCompoundingCarId): Promise<string[] | undefined> {
+  }: SoftDeleteRoomsByDependId): Promise<string[] | undefined> {
     try {
       let rooms: IRoom[] = await Room.find({
-        $and: [{ compounding_car_id }, { is_deleted: false }],
+        $and: [{ depend_id: depend_id }, { is_deleted: false }],
       }).lean()
 
       if (rooms?.length === 0) return undefined
@@ -688,7 +688,7 @@ class RoomService {
       await Promise.all(rooms.map(async (item) => this.softDeleteRoom(item)))
 
       // const status: IRoom | null = await Room.updateMany(
-      //   { compounding_car_id: room.compounding_car_id },
+      //   { depend_id: room.depend_id },
       //   {
       //     $set: {
       //       is_deleted: true,

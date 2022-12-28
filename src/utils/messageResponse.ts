@@ -24,8 +24,8 @@ export const toMessageResponse = ({ data, current_user }: ToMessageResponse): Me
       message_type: data?.attachment_ids?.length
         ? "attachment"
         : data?.location
-        ? "location"
-        : "text",
+          ? "location"
+          : "text",
     }
   }
 
@@ -33,8 +33,8 @@ export const toMessageResponse = ({ data, current_user }: ToMessageResponse): Me
   const your_reaction =
     data?.liked_by_user_ids?.length > 0
       ? data?.liked_by_user_ids?.find(
-          (item) => item.user_id.toString() === current_user._id.toString()
-        )?.emotion || null
+        (item) => item.user_id.toString() === current_user._id.toString()
+      )?.emotion || null
       : null
   const reactions = data?.liked_by_user_ids?.length
     ? data?.liked_by_user_ids?.map((item) => item.emotion)
@@ -50,8 +50,8 @@ export const toMessageResponse = ({ data, current_user }: ToMessageResponse): Me
     is_read: is_author
       ? data?.read_by_user_ids?.length >= 2
       : data?.read_by_user_ids?.some(
-          (item) => item?.user_id?.toString() === current_user._id.toString()
-        ),
+        (item) => item?.user_id?.toString() === current_user._id.toString()
+      ),
     your_reaction,
     reactions,
     attachments: data?.attachment_ids?.length ? toAttachmentListResponse(data?.attachment_ids) : [],
@@ -80,8 +80,16 @@ export const toLastMessageResponse = ({
     message_text: toMessageDescription(data as any),
   }
 }
+export const toMessageText = (message: MessageRes): string => {
+  if (message.attachments?.length) {
+    return "Hình ảnh"
+  } else if (message?.location) {
+    return "Vị trí"
+  }
+  return message?.message_text || ""
+}
 
-const toMessageDescription = (message: MessagePopulate): string => {
+export const toMessageDescription = (message: MessagePopulate): string => {
   if (message.attachment_ids?.length) {
     return "Hình ảnh"
   } else if (message?.location) {
