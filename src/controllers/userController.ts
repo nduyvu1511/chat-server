@@ -84,7 +84,11 @@ class UserController {
 
   async logout(req: Express.Request, res: Express.Response) {
     try {
-      await UserService.deleteToken(req.user._id)
+      const user = await UserService.getUserByPartnerId(req.user.user_id)
+      if (user) {
+        await UserService.deleteToken(user._id)
+        await UserService.logout(user.user_id)
+      }
       return res.json(new ResponseData(null, "logout successfully"))
     } catch (error) {
       return res.status(400).send(error)

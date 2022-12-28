@@ -482,6 +482,25 @@ class UserService {
       return null
     }
   }
+  async logout(user_id: number): Promise<IUser | null> {
+    try {
+      const userRes: IUser | null = await User.findOneAndUpdate(
+        { user_id },
+        {
+          $set: {
+            hash_token: null,
+            device_id: null,
+          },
+        },
+        { new: true }
+      ).lean()
+
+      return userRes
+    } catch (error) {
+      log.error(error)
+      return null
+    }
+  }
 
 
 

@@ -581,15 +581,16 @@ class RoomService {
         $sort: { "last_message.created_at": -1 },
       },
     ]
-
+    
     const data: RoomPopulate[] = await Room.aggregate([
-      { $limit: offset + limit },
-      { $skip: offset },
       ...query,
+      { $skip: offset },
+      { $limit: limit },
     ])
 
+    
     const total = search_term ? data.length : await Room.countDocuments(filter)
-
+    
     return toListResponse({
       limit,
       offset,
@@ -597,7 +598,7 @@ class RoomService {
       data: toRoomListResponse({ current_user, data: data }),
     })
   }
-
+  
   async getRoomById(room_id: ObjectId): Promise<IRoom | null> {
     return await Room.findOne({ $and: [{ _id: room_id }, { is_deleted: false }] })
       .select(SELECT_ROOM)
