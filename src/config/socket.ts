@@ -153,7 +153,6 @@ const socketHandler = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEve
 
         partnerSocketIds.forEach(async (item) => {
           if (item.device_id) {
-
             const message = toMessageText(payload)
 
             const notification = {
